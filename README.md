@@ -4,7 +4,7 @@
 
 **Plataforma web para professores criarem, aplicarem e corrigirem provas de forma automatizada, com consulta de notas e gabaritos pelos alunos.**
 
-🔗 **Link do sistema hospedado:** https://...
+🔗 **Link do sistema hospedado:** '''https://...
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)
@@ -22,10 +22,11 @@
 
 | Nome completo | Papel / principais frentes no projeto |
 |---|---|
-| Bruno | A definir |
-| Camila | A definir |
-| Felipe dos Santos | A definir |
-| Matheus | A definir |
+| BRUNO ROVANI MARCELINO | Autenticação e Perfil — cadastro/login de professor e aluno, JWT/refresh token, anonimização de conta (LGPD) |
+| CAMILA TEXEIRA | 	Turmas e Questões — criação de turmas, matrícula por e-mail/código de convite, CRUD do banco de questões |
+| FELIPE DOS SANTOS | Provas e Aplicações — montagem de provas (banco de questões da prova), aplicação de provas a turmas |
+| MATHEUS KUCHENBECKER | Geração de PDF e Gabarito — versões, embaralhamento de questões/alternativas, identificação do aluno, publicação de gabarito |
+| MIGUEL CARLOS BERTOLDI | Correção e Notas — fluxo de correção, lançamento manual de nota, relatórios e histórico de notas do aluno |
 
 ## 📑 Sumário
 
@@ -121,6 +122,8 @@ Fora do escopo do semestre (ponto em aberto, a validar com o cliente e com a pro
 Diagrama de casos de uso, diagrama de classes e diagrama de atividades do sistema (e demais diagramas que forem necessários). Exporte cada diagrama como imagem (PNG ou SVG) e salve em `docs/uml/`, depois insira aqui:
 
 ```
+
+- CRIAÇÃO DOS DIAGRAMAS
 ![Diagrama de Casos de Uso](docs/uml/casos-de-uso.png)
 
 ![Diagrama de Classes](docs/uml/diagrama-classes.png)
@@ -137,6 +140,7 @@ Abaixo de cada imagem, escreva um parágrafo curto explicando o que o diagrama r
 Prints das telas principais, na ordem do fluxo de navegação (a tela A leva à tela B), salvos em `docs/telas/`. Insira as imagens e, embaixo de cada uma, uma legenda de uma linha dizendo o que ela faz:
 
 ```
+- CRIAÇÃO DE UMA IMAGEM COM A TELA DE LOGIN
 ![Tela de login](docs/telas/tela-login.png)
 *Tela de login: autenticação do usuário por e-mail e senha.*
 ```
@@ -150,6 +154,7 @@ Estilo em camadas usado no projeto: `rota → controle → serviço → reposit�
 Insira aqui o **desenho da arquitetura** (diagrama de componentes/camadas), exportado como imagem e salvo em `docs/arquitetura/`:
 
 ```
+- CRIAÇÃO E APRIMORAMENTO DOS DIAGRAMAS
 ![Diagrama de arquitetura em camadas](docs/arquitetura/diagrama-camadas.png)
 ```
 
@@ -239,8 +244,8 @@ docs/
 Passo a passo para clonar e rodar o projeto localmente, incluindo as versões usadas (ex.: Node 20.x):
 
 ```
-1. git clone <link-do-repositório>
-2. cd nome-do-projeto
+1. git clone https://github.com/Felipe-S-prog/Projeto-e-Arquitetura-5-fase.git
+2. cd Projeto-e-Arquitetura-5-fase
 3. npm install
 4. copiar .env.example para .env e configurar as variáveis (ex.: dados de acesso ao MySQL)
 5. npm run dev
@@ -279,10 +284,11 @@ Guia rápido de como usar o sistema, do ponto de vista de quem vai operá-lo (o 
 
 Nome: principais contribuições no projeto (ex.: telas de cadastro, integração com banco, documentação). Serve para deixar claro quem fez o quê na entrega da equipe; não substitui o diário de organização de tarefas individual de cada pessoa.
 
-- **Bruno**: principais contribuições.
-- **Camila**: principais contribuições.
-- **Felipe dos Santos**: principais contribuições.
-- **Matheus**: principais contribuições.
+- **Bruno**: Autenticação e Perfil (cadastro/login, JWT/refresh, anonimização de conta).
+- **Camila**: Turmas e Questões (turmas, matrícula, banco de questões).
+- **Felipe dos Santos**: Provas e Aplicações (montagem e aplicação de provas às turmas).
+- **Matheus**: Provas e Aplicações (montagem e aplicação de provas às turmas).
+- **Miguel**: Correção e Notas (fluxo de correção, lançamento manual, relatórios, histórico do aluno).
 
 ---
 
