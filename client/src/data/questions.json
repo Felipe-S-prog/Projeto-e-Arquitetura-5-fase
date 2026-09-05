@@ -1,0 +1,90 @@
+[
+  {
+    "id": 1,
+    "excerpt": "Qual é a capital da Argentina?",
+    "tags": ["Geografia"],
+    "alternatives": [
+      { "text": "Buenos Aires", "correct": true },
+      { "text": "Córdoba", "correct": false },
+      { "text": "Rosário", "correct": false },
+      { "text": "Mendoza", "correct": false }
+    ]
+  },
+  {
+    "id": 2,
+    "excerpt": "Qual é o principal produto liberado na fotossíntese?",
+    "tags": ["Biologia"],
+    "alternatives": [
+      { "text": "Gás carbônico", "correct": false },
+      { "text": "Oxigênio", "correct": true },
+      { "text": "Nitrogênio", "correct": false },
+      { "text": "Água", "correct": false }
+    ]
+  },
+  {
+    "id": 3,
+    "excerpt": "Resolva a equação do segundo grau x² - 5x + 6 = 0. Quais são as raízes?",
+    "tags": ["Matemática", "Álgebra"],
+    "alternatives": [
+      { "text": "x = 2 e x = 3", "correct": true },
+      { "text": "x = 1 e x = 6", "correct": false },
+      { "text": "x = -2 e x = -3", "correct": false },
+      { "text": "x = 5 e x = 6", "correct": false }
+    ]
+  },
+  {
+    "id": 4,
+    "excerpt": "Qual alternativa melhor descreve o impacto da Revolução Industrial na urbanização?",
+    "tags": ["História"],
+    "alternatives": [
+      { "text": "Reduziu o êxodo rural", "correct": false },
+      { "text": "Acelerou o crescimento das cidades", "correct": true },
+      { "text": "Não teve efeito relevante", "correct": false },
+      { "text": "Provocou o esvaziamento urbano", "correct": false }
+    ]
+  },
+  {
+    "id": 5,
+    "excerpt": "Qual alternativa representa corretamente a Lei de Lavoisier?",
+    "tags": ["Química"],
+    "alternatives": [
+      { "text": "A massa se perde durante a reação", "correct": false },
+      { "text": "Na natureza nada se cria, nada se perde, tudo se transforma", "correct": true },
+      { "text": "A energia é sempre criada na reação", "correct": false },
+      { "text": "Reações químicas alteram o número de átomos", "correct": false }
+    ]
+  },
+  {
+    "id": 6,
+    "excerpt": "Qual das opções abaixo é uma unidade de força no Sistema Internacional?",
+    "tags": ["Física"],
+    "alternatives": [
+      { "text": "Joule", "correct": false },
+      { "text": "Newton", "correct": true },
+      { "text": "Watt", "correct": false },
+      { "text": "Pascal", "correct": false }
+    ]
+  },
+  {
+    "id": 7,
+    "excerpt": "Em uma estrutura de repetição 'for', qual componente define a condição de parada?",
+    "tags": ["Computação"],
+    "alternatives": [
+      { "text": "Inicialização", "correct": false },
+      { "text": "Condição", "correct": true },
+      { "text": "Incremento", "correct": false },
+      { "text": "Corpo do laço", "correct": false }
+    ]
+  },
+  {
+    "id": 8,
+    "excerpt": "Qual figura de linguagem está presente em 'o vento sussurrava segredos'?",
+    "tags": ["Português", "Literatura"],
+    "alternatives": [
+      { "text": "Metáfora", "correct": false },
+      { "text": "Personificação", "correct": true },
+      { "text": "Hipérbole", "correct": false },
+      { "text": "Antítese", "correct": false }
+    ]
+  }
+]

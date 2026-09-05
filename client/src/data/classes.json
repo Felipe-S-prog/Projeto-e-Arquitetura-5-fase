@@ -1,0 +1,6 @@
+[
+  { "id": 1, "name": "Cálculo I - Turma A", "subject": "Matemática", "period": "2026/2", "status": "Ativa" },
+  { "id": 2, "name": "Física Geral", "subject": "Física", "period": "2026/2", "status": "Ativa" },
+  { "id": 3, "name": "Introdução à Programação", "subject": "Computação", "period": "2026/1", "status": "Arquivada" },
+  { "id": 4, "name": "Química Aplicada", "subject": "Química", "period": "2026/2", "status": "Ativa" }
+]

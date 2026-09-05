@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "examId": 1,
+    "classId": 1,
+    "status": "Aplicada",
+    "quantity": 32,
+    "date": "18/08/2026",
+    "shuffleQuestions": true,
+    "shuffleAlternatives": true
+  },
+  {
+    "id": 2,
+    "examId": 2,
+    "classId": 2,
+    "status": "Aplicada",
+    "quantity": 28,
+    "date": "02/09/2026",
+    "shuffleQuestions": true,
+    "shuffleAlternatives": false
+  },
+  {
+    "id": 3,
+    "examId": 3,
+    "classId": 3,
+    "status": "Pendente",
+    "quantity": 0,
+    "date": null,
+    "shuffleQuestions": true,
+    "shuffleAlternatives": true
+  }
+]
