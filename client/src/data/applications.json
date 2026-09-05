@@ -7,7 +7,8 @@
     "quantity": 32,
     "date": "18/08/2026",
     "shuffleQuestions": true,
-    "shuffleAlternatives": true
+    "shuffleAlternatives": true,
+    "linkToRoster": false
   },
   {
     "id": 2,
@@ -17,7 +18,8 @@
     "quantity": 28,
     "date": "02/09/2026",
     "shuffleQuestions": true,
-    "shuffleAlternatives": false
+    "shuffleAlternatives": false,
+    "linkToRoster": false
   },
   {
     "id": 3,
@@ -27,6 +29,7 @@
     "quantity": 0,
     "date": null,
     "shuffleQuestions": true,
-    "shuffleAlternatives": true
+    "shuffleAlternatives": true,
+    "linkToRoster": false
   }
 ]

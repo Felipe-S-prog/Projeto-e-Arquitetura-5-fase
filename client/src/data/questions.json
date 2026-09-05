@@ -2,89 +2,204 @@
   {
     "id": 1,
     "excerpt": "Qual é a capital da Argentina?",
-    "tags": ["Geografia"],
+    "tags": [
+      "Geografia"
+    ],
     "alternatives": [
-      { "text": "Buenos Aires", "correct": true },
-      { "text": "Córdoba", "correct": false },
-      { "text": "Rosário", "correct": false },
-      { "text": "Mendoza", "correct": false }
+      {
+        "text": "Buenos Aires",
+        "correct": true
+      },
+      {
+        "text": "Córdoba",
+        "correct": false
+      },
+      {
+        "text": "Rosário",
+        "correct": false
+      },
+      {
+        "text": "Mendoza",
+        "correct": false
+      }
     ]
   },
   {
     "id": 2,
     "excerpt": "Qual é o principal produto liberado na fotossíntese?",
-    "tags": ["Biologia"],
+    "tags": [
+      "Biologia"
+    ],
     "alternatives": [
-      { "text": "Gás carbônico", "correct": false },
-      { "text": "Oxigênio", "correct": true },
-      { "text": "Nitrogênio", "correct": false },
-      { "text": "Água", "correct": false }
+      {
+        "text": "Gás carbônico",
+        "correct": false
+      },
+      {
+        "text": "Oxigênio",
+        "correct": true
+      },
+      {
+        "text": "Nitrogênio",
+        "correct": false
+      },
+      {
+        "text": "Água",
+        "correct": false
+      }
     ]
   },
   {
     "id": 3,
     "excerpt": "Resolva a equação do segundo grau x² - 5x + 6 = 0. Quais são as raízes?",
-    "tags": ["Matemática", "Álgebra"],
+    "tags": [
+      "Matemática",
+      "Álgebra"
+    ],
+    "imageUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgMTYwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjE2MCI+CiAgPHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIxNjAiIGZpbGw9IiNmZmZmZmYiLz4KICA8bGluZSB4MT0iMjAiIHkxPSIxMzAiIHgyPSIyODAiIHkyPSIxMzAiIHN0cm9rZT0iIzlhYTFhZCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iNDAiIHkxPSIyMCIgeDI9IjQwIiB5Mj0iMTUwIiBzdHJva2U9IiM5YWExYWQiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgPHBhdGggZD0iTSA1NSA0MCBRIDE1MCAxNzAgMjQ1IDQwIiBmaWxsPSJub25lIiBzdHJva2U9IiMxZDNhNzAiIHN0cm9rZS13aWR0aD0iMi41Ii8+CiAgPGNpcmNsZSBjeD0iMTAwIiBjeT0iMTMwIiByPSIzLjUiIGZpbGw9IiMxZDNhNzAiLz4KICA8Y2lyY2xlIGN4PSIxODUiIGN5PSIxMzAiIHI9IjMuNSIgZmlsbD0iIzFkM2E3MCIvPgogIDx0ZXh0IHg9Ijk2IiB5PSIxNDYiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzFkM2E3MCI+MjwvdGV4dD4KICA8dGV4dCB4PSIxODEiIHk9IjE0NiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjExIiBmaWxsPSIjMWQzYTcwIj4zPC90ZXh0PgogIDx0ZXh0IHg9IjE1MCIgeT0iMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzRiNTU2MyI+Zih4KSA9IHjCsiAtIDV4ICsgNjwvdGV4dD4KPC9zdmc+Cg==",
     "alternatives": [
-      { "text": "x = 2 e x = 3", "correct": true },
-      { "text": "x = 1 e x = 6", "correct": false },
-      { "text": "x = -2 e x = -3", "correct": false },
-      { "text": "x = 5 e x = 6", "correct": false }
+      {
+        "text": "x = 2 e x = 3",
+        "correct": true
+      },
+      {
+        "text": "x = 1 e x = 6",
+        "correct": false
+      },
+      {
+        "text": "x = -2 e x = -3",
+        "correct": false
+      },
+      {
+        "text": "x = 5 e x = 6",
+        "correct": false
+      }
     ]
   },
   {
     "id": 4,
     "excerpt": "Qual alternativa melhor descreve o impacto da Revolução Industrial na urbanização?",
-    "tags": ["História"],
+    "tags": [
+      "História"
+    ],
     "alternatives": [
-      { "text": "Reduziu o êxodo rural", "correct": false },
-      { "text": "Acelerou o crescimento das cidades", "correct": true },
-      { "text": "Não teve efeito relevante", "correct": false },
-      { "text": "Provocou o esvaziamento urbano", "correct": false }
+      {
+        "text": "Reduziu o êxodo rural",
+        "correct": false
+      },
+      {
+        "text": "Acelerou o crescimento das cidades",
+        "correct": true
+      },
+      {
+        "text": "Não teve efeito relevante",
+        "correct": false
+      },
+      {
+        "text": "Provocou o esvaziamento urbano",
+        "correct": false
+      }
     ]
   },
   {
     "id": 5,
     "excerpt": "Qual alternativa representa corretamente a Lei de Lavoisier?",
-    "tags": ["Química"],
+    "tags": [
+      "Química"
+    ],
     "alternatives": [
-      { "text": "A massa se perde durante a reação", "correct": false },
-      { "text": "Na natureza nada se cria, nada se perde, tudo se transforma", "correct": true },
-      { "text": "A energia é sempre criada na reação", "correct": false },
-      { "text": "Reações químicas alteram o número de átomos", "correct": false }
+      {
+        "text": "A massa se perde durante a reação",
+        "correct": false
+      },
+      {
+        "text": "Na natureza nada se cria, nada se perde, tudo se transforma",
+        "correct": true
+      },
+      {
+        "text": "A energia é sempre criada na reação",
+        "correct": false
+      },
+      {
+        "text": "Reações químicas alteram o número de átomos",
+        "correct": false
+      }
     ]
   },
   {
     "id": 6,
     "excerpt": "Qual das opções abaixo é uma unidade de força no Sistema Internacional?",
-    "tags": ["Física"],
+    "tags": [
+      "Física"
+    ],
     "alternatives": [
-      { "text": "Joule", "correct": false },
-      { "text": "Newton", "correct": true },
-      { "text": "Watt", "correct": false },
-      { "text": "Pascal", "correct": false }
+      {
+        "text": "Joule",
+        "correct": false
+      },
+      {
+        "text": "Newton",
+        "correct": true
+      },
+      {
+        "text": "Watt",
+        "correct": false
+      },
+      {
+        "text": "Pascal",
+        "correct": false
+      }
     ]
   },
   {
     "id": 7,
     "excerpt": "Em uma estrutura de repetição 'for', qual componente define a condição de parada?",
-    "tags": ["Computação"],
+    "tags": [
+      "Computação"
+    ],
     "alternatives": [
-      { "text": "Inicialização", "correct": false },
-      { "text": "Condição", "correct": true },
-      { "text": "Incremento", "correct": false },
-      { "text": "Corpo do laço", "correct": false }
+      {
+        "text": "Inicialização",
+        "correct": false
+      },
+      {
+        "text": "Condição",
+        "correct": true
+      },
+      {
+        "text": "Incremento",
+        "correct": false
+      },
+      {
+        "text": "Corpo do laço",
+        "correct": false
+      }
     ]
   },
   {
     "id": 8,
     "excerpt": "Qual figura de linguagem está presente em 'o vento sussurrava segredos'?",
-    "tags": ["Português", "Literatura"],
+    "tags": [
+      "Português",
+      "Literatura"
+    ],
     "alternatives": [
-      { "text": "Metáfora", "correct": false },
-      { "text": "Personificação", "correct": true },
-      { "text": "Hipérbole", "correct": false },
-      { "text": "Antítese", "correct": false }
+      {
+        "text": "Metáfora",
+        "correct": false
+      },
+      {
+        "text": "Personificação",
+        "correct": true
+      },
+      {
+        "text": "Hipérbole",
+        "correct": false
+      },
+      {
+        "text": "Antítese",
+        "correct": false
+      }
     ]
   }
 ]

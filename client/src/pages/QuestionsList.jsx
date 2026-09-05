@@ -63,21 +63,29 @@ export default function QuestionsList() {
               borderRadius: 12,
             }}
           >
-            <div
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 8,
-                background: 'var(--icon-tile-bg)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                color: 'var(--navy)',
-              }}
-            >
-              <BubbleIcon size={14} />
-            </div>
+            {q.imageUrl ? (
+              <img
+                src={q.imageUrl}
+                alt=""
+                style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-light)' }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 8,
+                  background: 'var(--icon-tile-bg)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  color: 'var(--navy)',
+                }}
+              >
+                <BubbleIcon size={14} />
+              </div>
+            )}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 15, color: 'oklch(22% 0.02 250)', lineHeight: 1.5 }}>{q.excerpt}</div>
               <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -94,6 +102,7 @@ export default function QuestionsList() {
                   Objetiva
                 </span>
                 <span style={{ fontSize: 12.5, color: 'var(--muted-3)' }}>{q.tags.join(', ')}</span>
+                {q.imageUrl && <span style={{ fontSize: 12.5, color: 'var(--muted-3)' }}>· com imagem</span>}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 14, fontSize: 13, paddingTop: 4, flexShrink: 0 }}>

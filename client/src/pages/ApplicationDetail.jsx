@@ -15,6 +15,7 @@ export default function ApplicationDetail() {
   const cls = getClassById(app.classId);
   const hasPdf = app.status === 'Aplicada';
   const stageOpacity = hasPdf ? 1 : 0.55;
+  const publishedCount = (app.copies || []).filter((c) => c.answerKeyPublished).length;
 
   return (
     <div>
@@ -79,15 +80,17 @@ export default function ApplicationDetail() {
         </div>
 
         <div
+          onClick={hasPdf ? () => navigate(`/aplicacoes/${app.id}/gabarito`) : undefined}
           style={{
             background: 'white',
-            border: '1px solid var(--border)',
+            border: '1.5px solid var(--border)',
             borderRadius: 14,
             padding: 20,
             display: 'flex',
             flexDirection: 'column',
             gap: 10,
             opacity: stageOpacity,
+            cursor: hasPdf ? 'pointer' : 'default',
           }}
         >
           <div
@@ -104,10 +107,13 @@ export default function ApplicationDetail() {
           >
             <StackedSheetsIcon size={11} />
           </div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-strong)' }}>Versões geradas</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-strong)' }}>Versões e gabarito</div>
           <div style={{ fontSize: 12.5, color: 'var(--muted-2)', flex: 1 }}>
-            {hasPdf ? `${app.quantity} versões, cada uma embaralhada de forma única.` : 'Disponível após gerar as provas.'}
+            {hasPdf
+              ? `${app.quantity} versões · ${publishedCount} gabaritos publicados.`
+              : 'Disponível após gerar as provas.'}
           </div>
+          {hasPdf && <div style={{ fontSize: 13, fontWeight: 700 }}>Publicar gabarito →</div>}
         </div>
 
         <div

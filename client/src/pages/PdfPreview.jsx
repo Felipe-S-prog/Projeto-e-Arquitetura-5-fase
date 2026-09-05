@@ -1,38 +1,40 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import { Breadcrumb, PrimaryButton } from '../components/ui';
+import { Breadcrumb, PrimaryButton, SecondaryButton } from '../components/ui';
 import { ExamSheetIcon, QrMarkerIcon } from '../components/icons';
 import DownloadModal from '../components/DownloadModal';
 
 const LINE_WIDTHS = [
   ['92%', '60%'],
   ['85%', '70%'],
-  ['95%', '55%'],
 ];
 
 export default function PdfPreview() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getApplicationById, getExamById, getClassById, confirmApplicationDownload } = useData();
+  const { getApplicationById, getExamById, getClassById, examQuestionsDetailed, confirmApplicationDownload, generateApplicationCopies } =
+    useData();
 
   const app = getApplicationById(id);
   const [expanded, setExpanded] = useState({});
   const [showModal, setShowModal] = useState(false);
 
-  const previewCount = Math.min(app?.quantity || 0, 30) || 3;
-  const previewSheets = useMemo(
-    () =>
-      Array.from({ length: previewCount }).map((_, i) => ({
-        label: `Prova #${String(i + 1).padStart(2, '0')}`,
-        versionCode: (100 + i).toString(36).toUpperCase(),
-      })),
-    [previewCount]
-  );
+  // Segurança para navegação direta (ex: voltar/avançar no navegador) sem
+  // ter passado pelo botão "Gerar pré-visualização" ainda.
+  useEffect(() => {
+    if (app && (!app.copies || app.copies.length === 0)) {
+      generateApplicationCopies(app.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [app?.id]);
 
   if (!app) return <div>Aplicação não encontrada.</div>;
   const exam = getExamById(app.examId);
   const cls = getClassById(app.classId);
+  const examQuestions = examQuestionsDetailed(app.examId);
+  const questionWithImage = examQuestions.find((q) => q.imageUrl);
+  const copies = app.copies || [];
   const shuffleSummary = `Questões: ${app.shuffleQuestions ? 'sim' : 'não'} · Alternativas: ${app.shuffleAlternatives ? 'sim' : 'não'}`;
 
   const confirmDownload = () => {
@@ -44,25 +46,26 @@ export default function PdfPreview() {
   return (
     <div>
       <Breadcrumb items={[{ label: exam?.title, to: `/aplicacoes/${app.id}` }, { label: 'Pré-visualização' }]} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 16 }}>
         <div>
           <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
             Pré-visualização das provas
           </div>
           <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 5 }}>
-            {app.quantity} provas geradas, cada uma com questões e alternativas em ordem diferente.
+            {copies.length} provas geradas, cada uma com questões e alternativas em ordem diferente.
           </div>
         </div>
-        <PrimaryButton onClick={() => setShowModal(true)} style={{ flexShrink: 0 }}>
-          Baixar todas em PDF
-        </PrimaryButton>
+        <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+          <SecondaryButton onClick={() => navigate(`/aplicacoes/${app.id}/gabarito`)}>Gerar gabarito</SecondaryButton>
+          <PrimaryButton onClick={() => setShowModal(true)}>Baixar todas em PDF</PrimaryButton>
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22 }}>
-        {previewSheets.map((p, i) => {
+        {copies.map((copy, i) => {
           const isExpanded = !!expanded[i];
           return (
-            <div key={i} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+            <div key={copy.code} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
               <div
                 onClick={() => setExpanded((prev) => ({ ...prev, [i]: !prev[i] }))}
                 style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', cursor: 'pointer' }}
@@ -71,8 +74,8 @@ export default function PdfPreview() {
                   <ExamSheetIcon width={15} height={17} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text-strong)' }}>{p.label}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted-2)', marginTop: 2 }}>Versão {p.versionCode}</div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text-strong)' }}>{copy.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted-2)', marginTop: 2 }}>Código: {copy.code}</div>
                 </div>
                 <span
                   style={{
@@ -112,7 +115,9 @@ export default function PdfPreview() {
                     >
                       <div>
                         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-strong)' }}>{exam?.title}</div>
-                        <div style={{ fontSize: 9, color: 'var(--muted-3)', marginTop: 2 }}>Nome: ______________________</div>
+                        <div style={{ fontSize: 9, color: 'var(--muted-3)', marginTop: 2 }}>
+                          {copy.studentName ? `Nome: ${copy.studentName}` : 'Nome: ______________________'}
+                        </div>
                       </div>
                       <div style={{ color: 'var(--navy)' }}>
                         <QrMarkerIcon size={20} />
@@ -129,19 +134,32 @@ export default function PdfPreview() {
                         </div>
                       </div>
                     ))}
+                    {questionWithImage && (
+                      <div style={{ marginTop: 6, marginBottom: 9 }}>
+                        <img
+                          src={questionWithImage.imageUrl}
+                          alt="Figura da questão"
+                          style={{ width: '100%', borderRadius: 3, border: '1px solid var(--border-light)', display: 'block' }}
+                        />
+                        <div style={{ fontSize: 8, color: 'var(--muted-3)', marginTop: 3 }}>Figura da questão com imagem</div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
             </div>
           );
         })}
+        {copies.length === 0 && (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted-3)', fontSize: 13.5 }}>Gerando provas…</div>
+        )}
       </div>
 
       {showModal && (
         <DownloadModal
           examTitle={exam?.title}
           className={cls?.name}
-          quantity={app.quantity}
+          quantity={copies.length}
           shuffleSummary={shuffleSummary}
           onConfirm={confirmDownload}
           onCancel={() => setShowModal(false)}
