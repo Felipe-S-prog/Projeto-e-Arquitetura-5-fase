@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Montar Prova — SGP</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand-group">
+      <span class="brand">SGP</span>
+      <span class="brand-sub">Sistema de Geração de Provas</span>
+    </div>
+    <nav class="top-nav">
+      <a href="provas.html" class="active">Provas</a>
+      <a href="aplicacoes.html">Aplicações</a>
+    </nav>
+  </header>
+
+  <main>
+    <a class="back-link" href="provas.html">&larr; Voltar para Minhas Provas</a>
+
+    <div class="page-head">
+      <div>
+        <h1 id="page-title">Nova Prova</h1>
+        <p>Escolha um título, adicione questões do seu banco e defina a pontuação de cada uma (até 20 questões).</p>
+      </div>
+    </div>
+
+    <form class="card" id="exam-form">
+      <div class="field">
+        <label for="title">Título da prova</label>
+        <input type="text" id="title" name="title" placeholder="Ex: Avaliação 1 — Estruturas de Dados" required />
+      </div>
+
+      <div class="field">
+        <label for="description">Descrição (opcional)</label>
+        <textarea id="description" name="description" placeholder="Ex: Cobre listas, pilhas e filas. Consulta não permitida."></textarea>
+      </div>
+
+      <div class="field" style="margin-bottom: 8px;">
+        <p class="section-title">Questões da prova</p>
+        <p class="section-hint">Arraste a ordem com as setas e defina a pontuação individual — a soma não precisa fechar 10,0 automaticamente, mas fique de olho no total.</p>
+      </div>
+
+      <div id="question-list"></div>
+
+      <div class="add-question-row">
+        <select id="bank-select"></select>
+        <button type="button" class="btn-secondary" id="add-question-btn">+ Adicionar questão</button>
+      </div>
+
+      <div class="score-total" id="score-total">
+        <span><strong id="question-count">0</strong> questões adicionadas</span>
+        <span>Total: <strong id="total-score">0.0</strong> pts</span>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Salvar prova</button>
+        <button type="button" class="btn-secondary" onclick="window.location.href='provas.html'">Cancelar</button>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    // Banco de questões mock — em N1 ainda não existe integração real com a
+    // Feature 2 (Gerenciamento de Questões, parte da Camila). Aqui simulamos
+    // o que viria da API: GET /questions
+    const questionBankMock = [
+      { id: "q1", type: "objetiva", statement: "Qual estrutura segue o princípio LIFO?" },
+      { id: "q2", type: "objetiva", statement: "Qual a complexidade média de busca em uma árvore binária balanceada?" },
+      { id: "q3", type: "discursiva", statement: "Explique a diferença entre lista encadeada e array." },
+      { id: "q4", type: "objetiva", statement: "Em uma fila (queue), qual operação remove o primeiro elemento?" },
+      { id: "q5", type: "discursiva", statement: "Descreva um cenário real de uso de uma pilha (stack)." },
+      { id: "q6", type: "objetiva", statement: "Qual algoritmo de ordenação tem complexidade O(n log n) no melhor caso?" },
+    ];
+
+    // Se a prova está sendo editada (veio de provas.html com ?id=...),
+    // pré-carrega alguns dados de exemplo. Sem backend ainda, isso é só ilustrativo.
+    const params = new URLSearchParams(window.location.search);
+    const editingId = params.get("id");
+
+    let examQuestions = [];
+
+    if (editingId === "exam-1") {
+      document.getElementById("page-title").textContent = "Editar Prova";
+      document.getElementById("title").value = "Avaliação 1 — Estruturas de Dados";
+      document.getElementById("description").value = "Cobre listas, pilhas e filas.";
+      examQuestions = [
+        { questionId: "q1", score: 2.5 },
+        { questionId: "q3", score: 3.5 },
+        { questionId: "q4", score: 2.0 },
+      ];
+    }
+
+    function questionById(id) {
+      return questionBankMock.find((q) => q.id === id);
+    }
+
+    function renderBankSelect() {
+      const select = document.getElementById("bank-select");
+      select.innerHTML = "";
+      const available = questionBankMock.filter(
+        (q) => !examQuestions.some((eq) => eq.questionId === q.id)
+      );
+
+      if (available.length === 0) {
+        const opt = document.createElement("option");
+        opt.textContent = "Todas as questões do banco já foram adicionadas";
+        opt.disabled = true;
+        select.appendChild(opt);
+        document.getElementById("add-question-btn").disabled = true;
+        return;
+      }
+
+      document.getElementById("add-question-btn").disabled = false;
+      available.forEach((q) => {
+        const opt = document.createElement("option");
+        opt.value = q.id;
+        opt.textContent = `[${q.type}] ${q.statement}`;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderQuestionList() {
+      const list = document.getElementById("question-list");
+      list.innerHTML = "";
+
+      examQuestions.forEach((eq, index) => {
+        const q = questionById(eq.questionId);
+        const row = document.createElement("div");
+        row.className = "question-row";
+        row.innerHTML = `
+          <div class="q-order">
+            <button type="button" data-move="up" data-index="${index}" title="Mover para cima" ${index === 0 ? "disabled" : ""}>&uarr;</button>
+            <button type="button" data-move="down" data-index="${index}" title="Mover para baixo" ${index === examQuestions.length - 1 ? "disabled" : ""}>&darr;</button>
+          </div>
+          <div class="q-info">
+            <p class="q-statement">${q.statement}</p>
+            <span class="q-type">${q.type}</span>
+          </div>
+          <input class="q-score" type="number" min="0" step="0.5" value="${eq.score}" data-index="${index}" aria-label="Pontuação da questão" />
+          <button type="button" class="q-remove" data-index="${index}">Remover</button>
+        `;
+        list.appendChild(row);
+      });
+
+      updateScoreSummary();
+    }
+
+    function updateScoreSummary() {
+      const total = examQuestions.reduce((sum, eq) => sum + Number(eq.score || 0), 0);
+      document.getElementById("question-count").textContent = examQuestions.length;
+      document.getElementById("total-score").textContent = total.toFixed(1);
+
+      const totalEl = document.getElementById("score-total");
+      totalEl.classList.toggle("over-limit", examQuestions.length > 20);
+    }
+
+    document.getElementById("add-question-btn").addEventListener("click", () => {
+      const select = document.getElementById("bank-select");
+      const id = select.value;
+      if (!id || examQuestions.length >= 20) return;
+      examQuestions.push({ questionId: id, score: 1.0 });
+      renderQuestionList();
+      renderBankSelect();
+    });
+
+    document.getElementById("question-list").addEventListener("click", (e) => {
+      const target = e.target;
+      const index = Number(target.dataset.index);
+
+      if (target.dataset.move === "up" && index > 0) {
+        [examQuestions[index - 1], examQuestions[index]] = [examQuestions[index], examQuestions[index - 1]];
+        renderQuestionList();
+      }
+      if (target.dataset.move === "down" && index < examQuestions.length - 1) {
+        [examQuestions[index + 1], examQuestions[index]] = [examQuestions[index], examQuestions[index + 1]];
+        renderQuestionList();
+      }
+      if (target.classList.contains("q-remove")) {
+        examQuestions.splice(index, 1);
+        renderQuestionList();
+        renderBankSelect();
+      }
+    });
+
+    document.getElementById("question-list").addEventListener("input", (e) => {
+      if (e.target.classList.contains("q-score")) {
+        const index = Number(e.target.dataset.index);
+        examQuestions[index].score = Number(e.target.value);
+        updateScoreSummary();
+      }
+    });
+
+    document.getElementById("exam-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      // Sem backend na N1: aqui é onde entraria o POST /exams (ou PATCH /exams/:id).
+      // Por enquanto só simula o salvamento e volta para a lista.
+      window.location.href = "provas.html";
+    });
+
+    renderBankSelect();
+    renderQuestionList();
+  </script>
+
+</body>
+</html>
