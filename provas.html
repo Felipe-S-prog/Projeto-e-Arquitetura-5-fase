@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minhas Provas — SGP</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand-group">
+      <span class="brand">SGP</span>
+      <span class="brand-sub">Sistema de Geração de Provas</span>
+    </div>
+    <nav class="top-nav">
+      <a href="provas.html" class="active">Provas</a>
+      <a href="aplicacoes.html">Aplicações</a><a href="banco-questoes.html">Banco de Questões</a><a href="turmas.html">Turmas</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="page-head">
+      <div>
+        <h1>Minhas Provas</h1>
+        <p>Bancos de questões montados em provas reutilizáveis, prontas para aplicar a uma turma.</p>
+      </div>
+      <a class="btn-primary" href="nova-prova.html">+ Nova Prova</a>
+    </div>
+
+    <ul class="exam-list" id="exam-list">
+      <!-- as provas são renderizadas via JS a partir do mock abaixo -->
+    </ul>
+
+    <p class="empty-hint" id="empty-hint" hidden>
+      Você ainda não montou nenhuma prova. Clique em "+ Nova Prova" para começar.
+    </p>
+  </main>
+
+  <script>
+    // Dados mock — Feature 4 (Criação de Provas) da spec do SGP.
+    // Sem conexão com banco ainda: N1 exige apenas telas navegáveis.
+    const provasMock = [
+      {
+        id: "exam-1",
+        title: "Avaliação 1 — Estruturas de Dados",
+        status: "ready",
+        questionCount: 12,
+        totalScore: 10.0,
+      },
+      {
+        id: "exam-2",
+        title: "Recuperação — Banco de Dados I",
+        status: "draft",
+        questionCount: 6,
+        totalScore: 8.5,
+      },
+      {
+        id: "exam-3",
+        title: "Avaliação Final — Redes de Computadores",
+        status: "closed",
+        questionCount: 20,
+        totalScore: 10.0,
+      },
+    ];
+
+    const statusLabel = {
+      draft: "Rascunho",
+      ready: "Pronta",
+      closed: "Arquivada",
+    };
+
+    function renderProvas(provas) {
+      const list = document.getElementById("exam-list");
+      const emptyHint = document.getElementById("empty-hint");
+
+      if (provas.length === 0) {
+        emptyHint.hidden = false;
+        return;
+      }
+
+      provas.forEach((prova) => {
+        const item = document.createElement("li");
+        item.innerHTML = `
+          <a class="exam-card" href="nova-prova.html?id=${prova.id}">
+            <div class="exam-main">
+              <p class="exam-title">${prova.title}</p>
+              <div class="exam-meta">
+                <span>${prova.questionCount} questões</span>
+                <span>Total: ${prova.totalScore.toFixed(1)} pts</span>
+              </div>
+            </div>
+            <span class="badge badge-${prova.status}">${statusLabel[prova.status]}</span>
+          </a>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    renderProvas(provasMock);
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Banco de Questões — SGP</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+<header class="topbar"><div class="brand-group"><span class="brand">SGP</span><span class="brand-sub">Sistema de Geração de Provas</span></div>
+<nav class="top-nav"><a href="provas.html">Provas</a><a href="aplicacoes.html">Aplicações</a><a href="banco-questoes.html" class="active">Banco de Questões</a><a href="turmas.html">Turmas</a></nav></header>
+
+<main>
+<div class="page-head">
+  <div><h1>Banco de Questões</h1><p>Cadastre questões, alternativas e gabaritos para reutilizar na geração automática das provas.</p></div>
+  <a class="btn-primary" href="#nova-questao">+ Nova Questão</a>
+</div>
+
+<div class="requirement-grid">
+  <div class="requirement-box"><strong>Gabarito por questão</strong><span>Defina a alternativa correta para que a correção automática consiga calcular a nota.</span></div>
+  <div class="requirement-box"><strong>Embaralhamento</strong><span>As questões e alternativas podem ser embaralhadas para gerar versões diferentes da mesma prova.</span></div>
+  <div class="requirement-box"><strong>Análise das respostas</strong><span>O sistema deve registrar qual alternativa o aluno marcou, não apenas se acertou ou errou.</span></div>
+  <div class="requirement-box"><strong>Layout da prova</strong><span>Questões devem ser organizadas para evitar enunciados e alternativas cortados entre páginas.</span></div>
+</div>
+
+<div class="search-bar"><input id="search" type="search" placeholder="Buscar por enunciado ou disciplina...">
+<select id="type-filter"><option value="todos">Todos os tipos</option><option value="objetiva">Objetiva</option><option value="discursiva">Discursiva</option></select></div>
+<p class="toolbar-note">Banco reutilizável: as questões cadastradas aqui aparecem ao montar uma prova.</p>
+
+<section id="question-list"></section><p class="empty-hint" id="empty-hint" hidden>Nenhuma questão encontrada.</p>
+</main>
+
+<script>
+const questions=[
+{id:"q1",type:"objetiva",subject:"Estruturas de Dados",statement:"Qual estrutura segue o princípio LIFO?",options:["Fila","Pilha","Lista","Árvore"],correct:1,shuffle:true},
+{id:"q2",type:"objetiva",subject:"Estruturas de Dados",statement:"Qual a complexidade média de busca em uma árvore binária balanceada?",options:["O(1)","O(log n)","O(n²)","O(2n)"],correct:1,shuffle:true},
+{id:"q3",type:"discursiva",subject:"Estruturas de Dados",statement:"Explique a diferença entre lista encadeada e array.",options:[],correct:null,shuffle:false},
+{id:"q4",type:"objetiva",subject:"Estruturas de Dados",statement:"Em uma fila (queue), qual operação remove o primeiro elemento?",options:["Push","Pop","Dequeue","Peek"],correct:2,shuffle:true},
+{id:"q5",type:"discursiva",subject:"Estruturas de Dados",statement:"Descreva um cenário real de uso de uma pilha (stack).",options:[],correct:null,shuffle:false},
+{id:"q6",type:"objetiva",subject:"Algoritmos",statement:"Qual algoritmo de ordenação tem complexidade O(n log n) no melhor caso?",options:["Bubble Sort","Merge Sort","Selection Sort","Linear Search"],correct:1,shuffle:true}];
+
+function renderQuestions(){
+ const list=document.getElementById("question-list"),empty=document.getElementById("empty-hint");
+ const term=document.getElementById("search").value.toLowerCase(),type=document.getElementById("type-filter").value;
+ const filtered=questions.filter(q=>(q.statement.toLowerCase().includes(term)||q.subject.toLowerCase().includes(term))&&(type==="todos"||q.type===type));
+ list.innerHTML="";empty.hidden=filtered.length>0;
+ filtered.forEach(q=>{
+  const card=document.createElement("article");card.className="question-card";
+  const options=q.options.length?`<div class="question-options">${q.options.map((o,i)=>`<div class="${i===q.correct?'correct-mark':''}">${String.fromCharCode(65+i)}) ${o}${i===q.correct?' ✓ Gabarito':''}</div>`).join("")}</div>`:"";
+  card.innerHTML=`<div class="question-card-head"><div><p class="question-title">${q.statement}</p>
+  <p class="question-text">${q.type==="objetiva"?"Questão objetiva com gabarito definido.":"Questão discursiva para resposta do aluno."}</p></div>
+  <div class="question-actions"><button class="btn-small" onclick="alert('Edição da questão: ${q.id}')">Editar</button><button class="btn-small btn-danger" onclick="removeQuestion('${q.id}')">Excluir</button></div></div>
+  ${options}<div class="question-meta"><span>Tipo: ${q.type}</span><span>Disciplina: ${q.subject}</span>${q.type==="objetiva"?`<span>Alternativas: ${q.options.length}</span><span>Embaralhar: ${q.shuffle?"Sim":"Não"}</span>`:""}</div>`;
+  list.appendChild(card);
+ });
+}
+function removeQuestion(id){const i=questions.findIndex(q=>q.id===id);if(i>=0&&confirm("Deseja excluir esta questão?")){questions.splice(i,1);renderQuestions()}}
+document.getElementById("search").addEventListener("input",renderQuestions);
+document.getElementById("type-filter").addEventListener("change",renderQuestions);
+renderQuestions();
+</script>
+</body></html>
