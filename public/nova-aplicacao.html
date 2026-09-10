@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Aplicação — SGP</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand-group">
+      <span class="brand">SGP</span>
+      <span class="brand-sub">Sistema de Geração de Provas</span>
+    </div>
+    <nav class="top-nav">
+      <a href="provas.html">Provas</a>
+      <a href="aplicacoes.html" class="active">Aplicações</a>
+    </nav>
+  </header>
+
+  <main>
+    <a class="back-link" href="aplicacoes.html">&larr; Voltar para Aplicações</a>
+
+    <div class="page-head">
+      <div>
+        <h1>Nova Aplicação</h1>
+        <p>Associe uma prova já montada a uma turma. Isso cria uma aplicação independente — a mesma prova pode ser aplicada a outras turmas depois.</p>
+      </div>
+    </div>
+
+    <form class="card" id="application-form">
+      <div class="field">
+        <label for="exam-select">Prova</label>
+        <select id="exam-select" required>
+          <option value="" disabled selected>Selecione uma prova</option>
+        </select>
+        <span class="hint">Só provas com status "Pronta" ou já usadas antes aparecem aqui — provas arquivadas não podem gerar novas aplicações.</span>
+      </div>
+
+      <div class="field">
+        <label for="class-select">Turma</label>
+        <select id="class-select" required>
+          <option value="" disabled selected>Selecione uma turma</option>
+        </select>
+        <span class="hint">Lista de turmas vem da parte de Turmas (Camila) — aqui ainda é um mock local.</span>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Criar aplicação</button>
+        <button type="button" class="btn-secondary" onclick="window.location.href='aplicacoes.html'">Cancelar</button>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    // Mocks locais — em N2 estes selects vêm de GET /exams (status != closed)
+    // e GET /classes.
+    const examsMock = [
+      { id: "exam-1", title: "Avaliação 1 — Estruturas de Dados", status: "ready" },
+      { id: "exam-2", title: "Recuperação — Banco de Dados I", status: "draft" },
+    ];
+
+    const classesMock = [
+      { id: "class-1", name: "ED - Turma A (2026/1)" },
+      { id: "class-2", name: "BD1 - Turma Noturno (2026/1)" },
+      { id: "class-3", name: "Redes - Turma B (2026/1)" },
+    ];
+
+    function populateSelect(selectId, items, labelFn) {
+      const select = document.getElementById(selectId);
+      items.forEach((item) => {
+        const opt = document.createElement("option");
+        opt.value = item.id;
+        opt.textContent = labelFn(item);
+        select.appendChild(opt);
+      });
+    }
+
+    populateSelect("exam-select", examsMock, (e) => e.title);
+    populateSelect("class-select", classesMock, (c) => c.name);
+
+    document.getElementById("application-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      // Sem backend na N1: aqui entraria o POST /applications.
+      window.location.href = "aplicacoes.html";
+    });
+  </script>
+
+</body>
+</html>
