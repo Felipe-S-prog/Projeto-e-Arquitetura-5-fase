@@ -11,6 +11,7 @@ export default function QuestionNew() {
 
   const [excerpt, setExcerpt] = useState('');
   const [tags, setTags] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [alternatives, setAlternatives] = useState(['', '', '', '']);
   const [correctAlt, setCorrectAlt] = useState(0);
 
@@ -41,6 +42,7 @@ export default function QuestionNew() {
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean),
+      imageUrl: imageUrl.trim() || undefined,
       alternatives: alternatives.map((text, i) => ({ text, correct: i === correctAlt })),
     });
     navigate('/questoes');
@@ -71,6 +73,20 @@ export default function QuestionNew() {
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
               />
+            </FormField>
+            <FormField label="Imagem (opcional)" hint="Cole o link de uma imagem para ilustrar a questão (ex: um gráfico ou diagrama).">
+              <TextInput
+                placeholder="https://..."
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+              />
+              {imageUrl && (
+                <img
+                  src={imageUrl}
+                  alt="Pré-visualização"
+                  style={{ marginTop: 10, maxWidth: 220, borderRadius: 8, border: '1px solid var(--border-light)', display: 'block' }}
+                />
+              )}
             </FormField>
 
             <div>

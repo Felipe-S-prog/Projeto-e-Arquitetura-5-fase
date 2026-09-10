@@ -16,6 +16,8 @@ import ApplicationNew from './pages/ApplicationNew';
 import ApplicationDetail from './pages/ApplicationDetail';
 import PdfConfig from './pages/PdfConfig';
 import PdfPreview from './pages/PdfPreview';
+import AnswerKey from './pages/AnswerKey';
+import PublicAnswerKey from './pages/PublicAnswerKey';
 import Admin from './pages/Admin';
 
 function RequireAuth({ children }) {
@@ -30,6 +32,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/questoes" replace /> : <Login />} />
+      <Route path="/gabarito" element={<PublicAnswerKey />} />
       <Route
         path="/"
         element={
@@ -52,6 +55,7 @@ function AppRoutes() {
         <Route path="aplicacoes/:id" element={<ApplicationDetail />} />
         <Route path="aplicacoes/:id/pdf" element={<PdfConfig />} />
         <Route path="aplicacoes/:id/pdf/preview" element={<PdfPreview />} />
+        <Route path="aplicacoes/:id/gabarito" element={<AnswerKey />} />
         <Route path="admin" element={<Admin />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

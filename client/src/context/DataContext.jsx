@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import questionsSeed from '../data/questions.json';
 import classesSeed from '../data/classes.json';
 import examsSeed from '../data/exams.json';
@@ -6,6 +6,7 @@ import applicationsSeed from '../data/applications.json';
 import adminUsersSeed from '../data/adminUsers.json';
 import settingsSeed from '../data/settings.json';
 import { todayBR } from '../utils/status';
+import { buildApplicationCopies } from '../utils/answerKey';
 
 const DataContext = createContext(null);
 
@@ -17,7 +18,7 @@ export function DataProvider({ children }) {
   const [questions, setQuestions] = useState(() => questionsSeed.map((q) => ({ ...q })));
   const [classes, setClasses] = useState(() => classesSeed.map((c) => ({ ...c })));
   const [exams, setExams] = useState(() => examsSeed.map((e) => ({ ...e })));
-  const [applications, setApplications] = useState(() => applicationsSeed.map((a) => ({ ...a })));
+  const [applications, setApplications] = useState(() => applicationsSeed.map((a) => ({ ...a, copies: a.copies || [] })));
   const [adminUsers, setAdminUsers] = useState(() => adminUsersSeed.map((u) => ({ ...u })));
   const [settings, setSettings] = useState(() => ({ ...settingsSeed }));
 
@@ -33,7 +34,7 @@ export function DataProvider({ children }) {
   }, []);
 
   const addClass = useCallback((cls) => {
-    setClasses((prev) => [...prev, { id: nextId(prev), status: 'Ativa', ...cls }]);
+    setClasses((prev) => [...prev, { id: nextId(prev), status: 'Ativa', students: [], ...cls }]);
   }, []);
 
   const archiveClass = useCallback((id) => {
@@ -62,6 +63,8 @@ export function DataProvider({ children }) {
           date: null,
           shuffleQuestions: true,
           shuffleAlternatives: true,
+          linkToRoster: false,
+          copies: [],
         },
       ];
     });
@@ -77,6 +80,79 @@ export function DataProvider({ children }) {
       prev.map((a) => (a.id === id ? { ...a, status: 'Aplicada', date: a.date || todayBR() } : a))
     );
   }, []);
+
+  // Gera (ou regera) as cópias da prova para uma aplicação: uma por pessoa,
+  // cada uma com sua própria ordem de questões/alternativas. Quando
+  // linkToRoster está ativo, uma cópia é criada por aluno matriculado na
+  // turma (nome já identificado); caso contrário, as cópias são anônimas e
+  // identificadas só pelo código.
+  const generateApplicationCopies = useCallback(
+    (applicationId) => {
+      setApplications((prev) => {
+        const app = prev.find((a) => a.id === Number(applicationId));
+        if (!app) return prev;
+
+        const exam = exams.find((e) => e.id === app.examId);
+        if (!exam) return prev;
+        const examQuestions = exam.questions
+          .map(({ questionId }) => questions.find((q) => q.id === questionId))
+          .filter(Boolean);
+
+        const cls = classes.find((c) => c.id === app.classId);
+        const studentNames = app.linkToRoster ? (cls?.students || []).map((s) => s.name) : null;
+
+        const otherCodes = prev.flatMap((a) => (a.id === app.id ? [] : (a.copies || []).map((c) => c.code)));
+
+        const copies = buildApplicationCopies({
+          examQuestions,
+          quantity: app.quantity,
+          shuffleQuestions: app.shuffleQuestions,
+          shuffleAlternatives: app.shuffleAlternatives,
+          studentNames,
+          existingCodes: otherCodes,
+        });
+
+        return prev.map((a) => (a.id === app.id ? { ...a, copies, quantity: copies.length } : a));
+      });
+    },
+    [exams, questions, classes]
+  );
+
+  // Publica o gabarito de uma cópia específica (code) ou de todas ('all').
+  // Publicar só libera a consulta pública das respostas certas — nunca
+  // revela nota, já que este app não calcula correção.
+  const publishAnswerKey = useCallback((applicationId, code) => {
+    const now = new Date().toISOString();
+    setApplications((prev) =>
+      prev.map((a) => {
+        if (a.id !== Number(applicationId)) return a;
+        const copies = (a.copies || []).map((c) =>
+          code === 'all' || c.code === code ? { ...c, answerKeyPublished: true, answerKeyPublishedAt: now } : c
+        );
+        return { ...a, copies };
+      })
+    );
+  }, []);
+
+  // Busca global (sem autenticação) de uma cópia pelo código digitado pelo
+  // aluno na página pública de gabarito.
+  const findCopyByCode = useCallback(
+    (code) => {
+      const normalized = (code || '').trim().toUpperCase();
+      if (!normalized) return null;
+      for (const app of applications) {
+        const copy = (app.copies || []).find((c) => c.code === normalized);
+        if (copy) return { application: app, copy };
+      }
+      return null;
+    },
+    [applications]
+  );
+
+  const classStudents = useCallback(
+    (classId) => classes.find((c) => c.id === Number(classId))?.students || [],
+    [classes]
+  );
 
   const addAdminUser = useCallback((user) => {
     setAdminUsers((prev) => {
@@ -124,6 +200,15 @@ export function DataProvider({ children }) {
   const selectableClasses = useMemo(() => classes.filter((c) => c.status !== 'Arquivada'), [classes]);
   const selectableExams = useMemo(() => exams.filter((e) => e.status !== 'Arquivada'), [exams]);
 
+  // Backfill único: aplicações que já nasceram "Aplicada" no mock (seed)
+  // ainda não têm cópias geradas, então geramos uma vez ao carregar.
+  useEffect(() => {
+    applicationsSeed.forEach((seed) => {
+      if (seed.status === 'Aplicada') generateApplicationCopies(seed.id);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const value = useMemo(
     () => ({
       questions,
@@ -140,6 +225,10 @@ export function DataProvider({ children }) {
       createApplication,
       updateApplication,
       confirmApplicationDownload,
+      generateApplicationCopies,
+      publishAnswerKey,
+      findCopyByCode,
+      classStudents,
       addAdminUser,
       removeAdminUser,
       updateSettings,
@@ -167,6 +256,10 @@ export function DataProvider({ children }) {
       createApplication,
       updateApplication,
       confirmApplicationDownload,
+      generateApplicationCopies,
+      publishAnswerKey,
+      findCopyByCode,
+      classStudents,
       addAdminUser,
       removeAdminUser,
       updateSettings,
