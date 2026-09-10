@@ -1,0 +1,84 @@
+:root {
+  --navy: oklch(33% 0.1 250);
+  --navy-hover: oklch(26% 0.11 250);
+  --navy-chip-bg: oklch(94% 0.03 250);
+  --navy-chip-tint-bg: oklch(96% 0.02 250);
+
+  --ink: oklch(18% 0.02 250);
+  --text: oklch(22% 0.02 250);
+  --text-strong: oklch(20% 0.02 250);
+  --muted: oklch(50% 0.02 250);
+  --muted-2: oklch(52% 0.02 250);
+  --muted-3: oklch(55% 0.02 250);
+  --faint: oklch(60% 0.015 250);
+  --faint-2: oklch(65% 0.015 250);
+
+  --border: oklch(91% 0.012 250);
+  --border-strong: oklch(87% 0.012 250);
+  --border-light: oklch(94% 0.01 250);
+  --border-lighter: oklch(95% 0.008 250);
+  --border-dashed: oklch(88% 0.012 250);
+
+  --bg: oklch(97% 0.006 250);
+  --surface: #fff;
+  --icon-tile-bg: oklch(96% 0.008 250);
+
+  --green-bg: oklch(90% 0.1 150);
+  --green-text: oklch(38% 0.15 150);
+  --neutral-bg: oklch(93% 0.01 250);
+  --neutral-text: oklch(50% 0.02 250);
+  --amber-bg: oklch(92% 0.06 80);
+  --amber-text: oklch(45% 0.13 80);
+  --red-text: oklch(52% 0.15 25);
+  --red-border: oklch(85% 0.06 25);
+  --red-text-strong: oklch(48% 0.15 25);
+
+  --shadow-card: 0 1px 2px oklch(0% 0 0 / 0.03), 0 8px 24px oklch(0% 0 0 / 0.04);
+  --shadow-sheet: 0 1px 3px oklch(0% 0 0 / 0.06);
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: var(--navy);
+}
+
+a:hover {
+  color: var(--navy-hover);
+}
+
+::placeholder {
+  color: oklch(65% 0.01 250);
+}
+
+button {
+  font-family: inherit;
+}
+
+input, select, textarea {
+  font-family: inherit;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: 2px solid oklch(80% 0.06 250);
+  outline-offset: 1px;
+}

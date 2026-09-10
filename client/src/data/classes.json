@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "name": "Cálculo I - Turma A",
+    "subject": "Matemática",
+    "period": "2026/2",
+    "status": "Ativa",
+    "students": [
+      { "id": 1, "name": "Ana Beatriz Souza" },
+      { "id": 2, "name": "Bruno Cardoso Lima" },
+      { "id": 3, "name": "Carla Fernandes Rocha" },
+      { "id": 4, "name": "Diego Martins Alves" }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Física Geral",
+    "subject": "Física",
+    "period": "2026/2",
+    "status": "Ativa",
+    "students": [
+      { "id": 5, "name": "Eduarda Nunes Prado" },
+      { "id": 6, "name": "Felipe Augusto Ramos" }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Introdução à Programação",
+    "subject": "Computação",
+    "period": "2026/1",
+    "status": "Arquivada",
+    "students": []
+  },
+  {
+    "id": 4,
+    "name": "Química Aplicada",
+    "subject": "Química",
+    "period": "2026/2",
+    "status": "Ativa",
+    "students": [
+      { "id": 7, "name": "Gabriel Henrique Melo" }
+    ]
+  }
+]

@@ -1,0 +1,39 @@
+[
+  {
+    "id": 1,
+    "title": "Prova 1 - Cálculo Diferencial",
+    "description": "Avaliação bimestral sobre limites, derivadas e aplicações.",
+    "status": "Pronta",
+    "questions": [
+      { "questionId": 1, "score": 5 },
+      { "questionId": 3, "score": 5 }
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Avaliação Final - Física",
+    "description": "Prova final cobrindo mecânica clássica e unidades de medida.",
+    "status": "Rascunho",
+    "questions": [
+      { "questionId": 6, "score": 10 }
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Prova Bimestral - Programação",
+    "description": "Estruturas de repetição, condicionais e lógica básica.",
+    "status": "Arquivada",
+    "questions": [
+      { "questionId": 7, "score": 10 }
+    ]
+  },
+  {
+    "id": 4,
+    "title": "Prova 2 - Química Geral",
+    "description": "Leis ponderais e estequiometria.",
+    "status": "Rascunho",
+    "questions": [
+      { "questionId": 5, "score": 10 }
+    ]
+  }
+]

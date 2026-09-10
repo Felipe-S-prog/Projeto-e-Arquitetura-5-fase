@@ -1,0 +1,6 @@
+[
+  { "id": 1, "name": "Marcos Vinícius Tavares", "email": "marcos.tavares@catolicasc.org.br", "role": "Administrador", "status": "Ativo" },
+  { "id": 2, "name": "Renata Aparecida Souza", "email": "renata.souza@catolicasc.org.br", "role": "Professor", "status": "Ativo" },
+  { "id": 3, "name": "Lucas Henrique Prado", "email": "lucas.prado@catolicasc.org.br", "role": "Professor", "status": "Convidado" },
+  { "id": 4, "name": "Fernanda Costa Lima", "email": "fernanda.lima@catolicasc.org.br", "role": "Professor", "status": "Ativo" }
+]
