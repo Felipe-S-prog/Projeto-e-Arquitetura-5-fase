@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Turmas — SGP</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+<header class="topbar"><div class="brand-group"><span class="brand">SGP</span><span class="brand-sub">Sistema de Geração de Provas</span></div>
+<nav class="top-nav"><a href="provas.html">Provas</a><a href="aplicacoes.html">Aplicações</a><a href="banco-questoes.html">Banco de Questões</a><a href="turmas.html" class="active">Turmas</a></nav></header>
+
+<main>
+<div class="page-head">
+ <div><h1>Turmas</h1><p>Organize os alunos e prepare aplicações individualizadas para facilitar a identificação e a correção.</p></div>
+ <a class="btn-primary" href="#nova-turma">+ Nova Turma</a>
+</div>
+
+<div class="requirement-grid">
+ <div class="requirement-box"><strong>Lista de alunos</strong><span>Importe uma planilha Excel com os alunos da turma para evitar cadastro manual.</span></div>
+ <div class="requirement-box"><strong>Identificação individual</strong><span>Cada aluno pode receber uma versão identificada da prova, mesmo quando as questões são as mesmas.</span></div>
+ <div class="requirement-box"><strong>Correção automatizada</strong><span>A aplicação fica vinculada à turma para facilitar a leitura das folhas de resposta.</span></div>
+ <div class="requirement-box"><strong>Relatório de notas</strong><span>Os resultados da turma podem ser organizados em planilha para lançamento no sistema acadêmico.</span></div>
+</div>
+
+<div class="search-bar"><input id="search" type="search" placeholder="Buscar turma ou disciplina...">
+<select id="semester-filter"><option value="todos">Todos os períodos</option><option value="2026/1">2026/1</option><option value="2026/2">2026/2</option></select></div>
+
+<section id="class-list"></section><p class="empty-hint" id="empty-hint" hidden>Nenhuma turma encontrada.</p>
+
+<div class="class-import">
+ <h2>Importar alunos da turma</h2>
+ <p>Use uma planilha Excel para carregar nome e identificação dos alunos e gerar provas individualizadas.</p>
+ <button class="btn-secondary" onclick="alert('Aqui será conectado o importador de Excel.')">Selecionar planilha Excel</button>
+</div>
+</main>
+
+<script>
+const classes=[
+{id:"class-1",name:"ED - Turma A",subject:"Estruturas de Dados",period:"2026/1",students:32,applications:2,individual:true},
+{id:"class-2",name:"BD1 - Turma Noturno",subject:"Banco de Dados I",period:"2026/1",students:28,applications:1,individual:true},
+{id:"class-3",name:"Redes - Turma B",subject:"Redes de Computadores",period:"2026/1",students:35,applications:0,individual:false},
+{id:"class-4",name:"Engenharia de Software - A",subject:"Engenharia de Software",period:"2026/2",students:30,applications:0,individual:false}];
+
+function renderClasses(){
+ const list=document.getElementById("class-list"),empty=document.getElementById("empty-hint");
+ const term=document.getElementById("search").value.toLowerCase(),semester=document.getElementById("semester-filter").value;
+ const filtered=classes.filter(c=>(c.name.toLowerCase().includes(term)||c.subject.toLowerCase().includes(term))&&(semester==="todos"||c.period===semester));
+ list.innerHTML="";empty.hidden=filtered.length>0;
+ filtered.forEach(c=>{
+  const card=document.createElement("article");card.className="class-card";
+  card.innerHTML=`<div class="class-card-head"><div><p class="class-title">${c.name} <span class="client-feature">${c.individual?"Identificação individual":"Turma"}</span></p>
+  <p class="question-text">${c.subject} · ${c.period}</p></div>
+  <div class="class-actions"><button class="btn-small" onclick="alert('Editar turma: ${c.id}')">Editar</button><button class="btn-small" onclick="alert('Abrir alunos da turma')">Alunos</button><button class="btn-small btn-danger" onclick="removeClass('${c.id}')">Excluir</button></div></div>
+  <div class="class-stats"><div class="class-stat"><strong>${c.students}</strong><span>Alunos</span></div><div class="class-stat"><strong>${c.applications}</strong><span>Aplicações</span></div><div class="class-stat"><strong>${c.individual?"Sim":"Não"}</strong><span>Prova identificada</span></div></div>`;
+  list.appendChild(card);
+ });
+}
+function removeClass(id){const i=classes.findIndex(c=>c.id===id);if(i>=0&&confirm("Deseja excluir esta turma?")){classes.splice(i,1);renderClasses()}}
+document.getElementById("search").addEventListener("input",renderClasses);
+document.getElementById("semester-filter").addEventListener("change",renderClasses);
+renderClasses();
+</script>
+</body></html>
