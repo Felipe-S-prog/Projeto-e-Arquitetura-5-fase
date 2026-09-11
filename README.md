@@ -2,7 +2,7 @@
 
 # 🚀 SGP – Sistema de Geração de Provas
 
-**Plataforma web para professores criarem, aplicarem e corrigirem provas de forma automatizada, com consulta de notas e gabaritos pelos alunos.**
+**Plataforma web para professores criarem, aplicarem e corrigirem provas de forma automatizada. O aluno não acessa a plataforma: consulta o gabarito publicado por um link público, sem necessidade de login.**
 
 🔗 **Link do sistema hospedado:** [projetoearquitetura5fase.netlify.app](https://projetoearquitetura5fase.netlify.app/)
 <br>
@@ -24,11 +24,11 @@
 
 | Nome completo | Papel / principais frentes no projeto |
 |---|---|
-| BRUNO ROVANI MARCELINO | Autenticação e Perfil — cadastro/login de professor e aluno, JWT/refresh token, anonimização de conta (LGPD) |
+| BRUNO ROVANI MARCELINO | Autenticação e Perfil — cadastro de professor por um administrador, login de professor/administrador, JWT/refresh token, anonimização de conta (LGPD) |
 | CAMILA TEXEIRA | 	Turmas e Questões — criação de turmas, matrícula por e-mail/código de convite, CRUD do banco de questões |
 | FELIPE DOS SANTOS | Provas e Aplicações — montagem de provas (banco de questões da prova), aplicação de provas a turmas |
 | MATHEUS KUCHENBECKER | Geração de PDF e Gabarito — versões, embaralhamento de questões/alternativas, identificação do aluno, publicação de gabarito |
-| MIGUEL CARLOS BERTOLDI | Correção e Notas — fluxo de correção, lançamento manual de nota, relatórios e histórico de notas do aluno |
+| MIGUEL CARLOS BERTOLDI | Correção e Notas — fluxo de correção, lançamento manual de nota, relatórios e histórico de notas por turma |
 
 ## 📑 Sumário
 
@@ -61,22 +61,23 @@ O projeto nasce de uma dor real relatada por professores da Católica SC: em sem
 
 **Objetivo**
 
-Entregar uma plataforma que permita ao professor cadastrar questões, montar provas, gerar o PDF de aplicação (com controle de versões, embaralhamento de questões e alternativas e, quando desejado, identificação do aluno), corrigir a prova a partir da leitura do gabarito preenchido e lançar as notas — tudo em um único sistema, para professores e alunos da Católica SC, reduzindo o tempo de correção e concentrando em um só lugar o que hoje está dividido entre ferramentas concorrentes.
+Entregar uma plataforma que permita ao professor cadastrar questões, montar provas, gerar o PDF de aplicação (com controle de versões, embaralhamento de questões e alternativas e, quando desejado, identificação do aluno), corrigir a prova a partir da leitura do gabarito preenchido e lançar as notas — tudo em um único sistema para professores da Católica SC, reduzindo o tempo de correção e concentrando em um só lugar o que hoje está dividido entre ferramentas concorrentes. **O aluno não tem conta nem login no sistema**: o único ponto de contato dele é o gabarito publicado, acessado por um link público.
 
 **Escopo**
 
 Dentro do escopo do projeto:
 
-- Cadastro e login de professores e alunos (com domínios de e-mail distintos por papel).
+- Cadastro de professores feito por um administrador; login de professores e administradores (alunos não fazem login).
+- Cada professor só acessa suas próprias turmas, questões e provas — isolamento de dados é entre contas de professor, não entre alunos.
 - Banco de questões por professor, objetivas e discursivas.
-- Criação de turmas e matrícula de alunos (por e-mail ou código de convite).
+- Criação de turmas e matrícula de alunos como registro (nome/e-mail informados pelo professor), sem gerar conta de acesso para o aluno.
 - Criação de provas reutilizáveis (banco de questões da prova) e aplicação dessas provas a uma ou mais turmas.
 - Geração de um PDF único consolidado por aplicação, com quantidade configurável de versões, embaralhamento de questões e alternativas, e opção de prova com ou sem identificação do aluno.
-- Publicação de gabarito (por versão ou por aplicação) para consulta do aluno.
+- Publicação de gabarito (por versão ou por aplicação) em um link público, sem exigir login do aluno.
 - Correção automatizada a partir da leitura do gabarito preenchido pelo aluno.
 - Lançamento manual de nota quando a prova foi gerada sem identificação do aluno.
 - Relatórios de notas (por aplicação e consolidados), com exportação.
-- Histórico de notas e desempenho do aluno.
+- Histórico de notas e desempenho do aluno, consultado pelo professor (o aluno não tem essa consulta dentro do sistema).
 
 Fora do escopo do semestre (ponto em aberto, a validar com o cliente e com a professora da disciplina antes da apresentação de 28/08):
 
@@ -84,6 +85,7 @@ Fora do escopo do semestre (ponto em aberto, a validar com o cliente e com a pro
 - **Arquitetura de microsserviços** (Auth, Exam/Class/Application, Grade, Sync, Vision) proposta na especificação de referência — o projeto da disciplina segue uma **arquitetura em camadas única** (rota → controle → serviço → repositório → model), conforme exigido pela metodologia da disciplina.
 - Fila de sincronização offline e deduplicação de correções (dependem diretamente do app mobile acima).
 - Exclusão física de dados (LGPD) — só a anonimização de conta está prevista.
+- **Conta e login de aluno na plataforma** — decisão validada com o cliente: o aluno nunca acessa o sistema diretamente. Contas de professor são criadas por um administrador; o único ponto de contato do aluno é o gabarito publicado via link público, sem autenticação.
 
 ## 2. Requisitos
 
@@ -93,18 +95,18 @@ Fora do escopo do semestre (ponto em aberto, a validar com o cliente e com a pro
 
 | Código | Requisito |
 |---|---|
-| RF01 | O sistema deve permitir cadastro e login de professores e alunos. |
-| RF02 | O professor deve poder criar, editar, listar e excluir (soft-delete) questões objetivas e discursivas, com tags e filtros. |
-| RF03 | O professor deve poder criar turmas e matricular alunos, seja diretamente por e-mail, seja por um código de convite compartilhável. |
+| RF01 | O sistema deve permitir cadastro de professores por um administrador, e login de professores e administradores. O aluno não possui login. |
+| RF02 | O professor deve poder criar, editar, listar e excluir (soft-delete) questões objetivas e discursivas, com tags e filtros — sempre restrito ao próprio banco de questões do professor. |
+| RF03 | O professor deve poder criar turmas e matricular alunos informando nome e e-mail; a matrícula é apenas um registro para identificação nas provas, não cria conta de acesso para o aluno. |
 | RF04 | O professor deve poder montar provas com quantidade livre de questões (até 20) e pontuação definida individualmente por questão. |
 | RF05 | O professor deve poder aplicar uma prova já criada a uma ou mais turmas, gerando aplicações independentes entre si (permitindo reaplicação, ex.: segunda chamada). |
 | RF06 | O sistema deve gerar um PDF único e consolidado por aplicação, com opção de múltiplas versões e embaralhamento independente de questões e de alternativas por versão. |
 | RF07 | O sistema deve permitir gerar a prova com ou sem identificação do aluno no cabeçalho. |
-| RF08 | O sistema deve permitir a publicação do gabarito (por versão ou por aplicação) para consulta do aluno. |
+| RF08 | O sistema deve permitir a publicação do gabarito (por versão ou por aplicação) em um link público, acessível pelo aluno sem necessidade de login. |
 | RF09 | O sistema deve corrigir automaticamente a prova a partir da leitura do gabarito preenchido, calculando a nota conforme a pontuação de cada questão. |
 | RF10 | Quando a prova foi gerada sem identificação, o professor deve poder lançar manualmente a nota, associando-a ao aluno correto. |
 | RF11 | O professor deve poder gerar relatórios de notas por aplicação e consolidados, com exportação (ao menos CSV/Excel). |
-| RF12 | O aluno deve poder consultar seu histórico de notas e o gabarito das provas já publicadas. |
+| RF12 | O professor deve poder consultar o histórico de notas e desempenho de cada aluno dentro de suas turmas. |
 
 ### 2.2 Não Funcionais (RNF)
 
@@ -113,7 +115,7 @@ Fora do escopo do semestre (ponto em aberto, a validar com o cliente e com a pro
 | RNF01 | O sistema deve seguir a arquitetura em camadas definida pela disciplina: rota → controle → serviço → repositório → model. |
 | RNF02 | As senhas devem ser armazenadas com hash seguro (ex.: bcrypt), nunca em texto puro. |
 | RNF03 | O login deve emitir token JWT de acesso e refresh token, com suporte a logout do dispositivo atual e logout de todos os dispositivos. |
-| RNF04 | O isolamento de dados entre alunos deve ser garantido: um aluno só pode acessar suas próprias notas e provas. |
+| RNF04 | O isolamento de dados entre professores deve ser garantido: um professor só pode acessar suas próprias turmas, questões, provas e notas. Alunos não autenticam no sistema, então esse isolamento não se aplica a eles. |
 | RNF05 | O sistema deve responder em tempo aceitável em uma conexão padrão (meta inicial: até 2s nas operações comuns). |
 | RNF06 | O sistema deve estar hospedado em um serviço gratuito (Netlify, Vercel, GitHub Pages ou similar) e permanecer acessível ao longo do semestre. |
 
