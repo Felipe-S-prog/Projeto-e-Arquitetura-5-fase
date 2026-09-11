@@ -4,7 +4,7 @@
 
 **Plataforma web para professores criarem, aplicarem e corrigirem provas de forma automatizada. O aluno não acessa a plataforma: consulta o gabarito publicado por um link público, sem necessidade de login.**
 
-🔗 **Link do sistema hospedado:** [projetoearquitetura5fase.netlify.app](https://projetoearquitetura5fase.netlify.app/)
+🔗 **Link do sistema hospedado:** ([https://projetoearquitetura5fase.netlify.app/](https://projeto5fase.netlify.app/))
 <br>
 🔗 **Link dos slides:** https://catolicasc-my.sharepoint.com/:p:/g/personal/matheus_kuchenbecker_catolicasc_edu_br/IQAvxzL0gGprSa9NjLN3J_VeATAhEe-oNpuc5HMO3loNs6I?e=BOYppk
 
