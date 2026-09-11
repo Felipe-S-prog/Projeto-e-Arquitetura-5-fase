@@ -4,7 +4,7 @@
 
 **Plataforma web para professores criarem, aplicarem e corrigirem provas de forma automatizada, com consulta de notas e gabaritos pelos alunos.**
 
-🔗 **Link do sistema hospedado:** '''https://...
+🔗 **Link do sistema hospedado:** [projetoearquitetura5fase.netlify.app](https://projetoearquitetura5fase.netlify.app/)
 <br>
 🔗 **Link dos slides:** https://catolicasc-my.sharepoint.com/:p:/g/personal/matheus_kuchenbecker_catolicasc_edu_br/IQAvxzL0gGprSa9NjLN3J_VeATAhEe-oNpuc5HMO3loNs6I?e=BOYppk
 
