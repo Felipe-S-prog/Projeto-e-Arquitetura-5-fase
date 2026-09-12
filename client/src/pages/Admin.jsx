@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { PageHeader, PrimaryButton, Badge, FormField, TextInput } from '../components/ui';
+import AdminUserModal from '../components/AdminUserModal';
 import { initials } from '../utils/status';
 
 export default function Admin() {
-  const { adminUsers, removeAdminUser, settings, updateSettings } = useData();
+  const { adminUsers, addAdminUser, updateAdminUser, removeAdminUser, settings, updateSettings } = useData();
   const [institutionName, setInstitutionName] = useState(settings.institutionName);
   const [defaultPeriod, setDefaultPeriod] = useState(settings.defaultPeriod);
+
+  // Controla o modal de usuário: `null` fechado, `{}` novo cadastro,
+  // ou o próprio objeto do usuário quando é edição.
+  const [userModal, setUserModal] = useState(null);
 
   const handleRemove = (id, name) => {
     if (window.confirm(`Remover ${name} do sistema?`)) removeAdminUser(id);
@@ -17,12 +22,26 @@ export default function Admin() {
     updateSettings({ institutionName, defaultPeriod });
   };
 
+  const handleSaveUser = (data) => {
+    if (userModal?.id) {
+      updateAdminUser(userModal.id, data);
+    } else {
+      addAdminUser(data);
+    }
+    setUserModal(null);
+  };
+
+  const editingId = userModal?.id;
+  const existingEmails = adminUsers
+    .filter((u) => u.id !== editingId)
+    .map((u) => u.email.toLowerCase());
+
   return (
     <div>
       <PageHeader
         title="Administração"
         description="Gerencie usuários e configurações gerais do sistema."
-        actions={<PrimaryButton onClick={(e) => e.preventDefault()}>+ Adicionar usuário</PrimaryButton>}
+        actions={<PrimaryButton onClick={() => setUserModal({})}>+ Adicionar usuário</PrimaryButton>}
       />
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 24 }}>
@@ -58,7 +77,14 @@ export default function Admin() {
             <Badge status={u.role} />
             <Badge status={u.status} />
             <div style={{ display: 'flex', gap: 14, fontSize: 13, flexShrink: 0 }}>
-              <a href="#" style={{ textDecoration: 'none', fontWeight: 600 }} onClick={(e) => e.preventDefault()}>
+              <a
+                href="#"
+                style={{ textDecoration: 'none', fontWeight: 600 }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  setUserModal(u);
+                }}
+              >
                 Editar
               </a>
               <a
@@ -92,6 +118,15 @@ export default function Admin() {
           </PrimaryButton>
         </div>
       </form>
+
+      {userModal && (
+        <AdminUserModal
+          user={userModal.id ? userModal : null}
+          existingEmails={existingEmails}
+          onSave={handleSaveUser}
+          onCancel={() => setUserModal(null)}
+        />
+      )}
     </div>
   );
 }

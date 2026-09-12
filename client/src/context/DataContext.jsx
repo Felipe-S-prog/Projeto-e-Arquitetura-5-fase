@@ -10,6 +10,37 @@ import { buildApplicationCopies } from '../utils/answerKey';
 
 const DataContext = createContext(null);
 
+// Chaves usadas no localStorage. Só persistimos aqui os dados da tela de
+// Administração (usuários e configurações): é a parte da N1 que não tem
+// mock read-only vindo de outra frente do time, então dá para guardar no
+// navegador sem mexer no que os outros colegas ainda vão construir. Isso é
+// só um "banco de dados" fake do lado do cliente para a demo não perder as
+// alterações no F5 — a conexão real com o MySQL fica para a fase seguinte.
+const ADMIN_USERS_STORAGE_KEY = 'sgp:adminUsers';
+const SETTINGS_STORAGE_KEY = 'sgp:settings';
+
+function loadPersisted(key, fallback) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed ?? fallback;
+  } catch {
+    // localStorage indisponível (aba anônima, storage cheio, etc.) ou dado
+    // corrompido: cai de volta para o mock e segue a vida.
+    return fallback;
+  }
+}
+
+function persist(key, value) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Sem espaço ou sem permissão de storage: a sessão atual continua
+    // funcionando normalmente, só não persiste entre reloads.
+  }
+}
+
 function nextId(list) {
   return list.reduce((max, item) => Math.max(max, item.id), 0) + 1;
 }
@@ -19,8 +50,18 @@ export function DataProvider({ children }) {
   const [classes, setClasses] = useState(() => classesSeed.map((c) => ({ ...c })));
   const [exams, setExams] = useState(() => examsSeed.map((e) => ({ ...e })));
   const [applications, setApplications] = useState(() => applicationsSeed.map((a) => ({ ...a, copies: a.copies || [] })));
-  const [adminUsers, setAdminUsers] = useState(() => adminUsersSeed.map((u) => ({ ...u })));
-  const [settings, setSettings] = useState(() => ({ ...settingsSeed }));
+  const [adminUsers, setAdminUsers] = useState(() =>
+    loadPersisted(ADMIN_USERS_STORAGE_KEY, adminUsersSeed.map((u) => ({ ...u })))
+  );
+  const [settings, setSettings] = useState(() => loadPersisted(SETTINGS_STORAGE_KEY, { ...settingsSeed }));
+
+  useEffect(() => {
+    persist(ADMIN_USERS_STORAGE_KEY, adminUsers);
+  }, [adminUsers]);
+
+  useEffect(() => {
+    persist(SETTINGS_STORAGE_KEY, settings);
+  }, [settings]);
 
   const addQuestion = useCallback((question) => {
     setQuestions((prev) => {
@@ -161,6 +202,10 @@ export function DataProvider({ children }) {
     });
   }, []);
 
+  const updateAdminUser = useCallback((id, patch) => {
+    setAdminUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)));
+  }, []);
+
   const removeAdminUser = useCallback((id) => {
     setAdminUsers((prev) => prev.filter((u) => u.id !== id));
   }, []);
@@ -230,6 +275,7 @@ export function DataProvider({ children }) {
       findCopyByCode,
       classStudents,
       addAdminUser,
+      updateAdminUser,
       removeAdminUser,
       updateSettings,
       getClassById,
@@ -261,6 +307,7 @@ export function DataProvider({ children }) {
       findCopyByCode,
       classStudents,
       addAdminUser,
+      updateAdminUser,
       removeAdminUser,
       updateSettings,
       getClassById,
