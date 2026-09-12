@@ -139,15 +139,144 @@ Abaixo de cada imagem, escreva um parágrafo curto explicando o que o diagrama r
 
 ## 4. Telas do Sistema
 
-📌 **N1**
+### 📌 N1 — Telas do Sistema
 
-Prints das telas principais, na ordem do fluxo de navegação (a tela A leva à tela B), salvos em `docs/telas/`. Insira as imagens e, embaixo de cada uma, uma legenda de uma linha dizendo o que ela faz:
+Prints das telas principais, apresentados na ordem do fluxo de navegação (a tela A leva à tela B).
 
-```
-- CRIAÇÃO DE UMA IMAGEM COM A TELA DE LOGIN
-![Tela de login](docs/telas/tela-login.png)
-*Tela de login: autenticação do usuário por e-mail e senha.*
-```
+Cada imagem é acompanhada de uma breve descrição de sua funcionalidade.
+
+### 4.1 Tela de Login
+
+<p align="center">
+  <img width="591" height="691" alt="Tela de Login" src="https://github.com/user-attachments/assets/cef8cdf1-6569-41b1-a08d-bfce18f514e7" />
+</p>
+
+**Descrição:** Vista apresentada ao entrar no sistema, contendo os campos de **e-mail** e **senha**.
+
+---
+
+### 4.2 Entrada no Sistema
+
+<p align="center">
+  <img width="1666" height="935" alt="Tela inicial do sistema" src="https://github.com/user-attachments/assets/42b833af-5915-4971-9cd6-26a2cf1c4f85" />
+</p>
+
+**Descrição:** Ao entrar no sistema, é apresentada diretamente a tela de **Questões**, onde é possível criar, editar ou excluir questões existentes.
+
+---
+
+### 4.3 Tópicos do Sistema
+
+<p align="center">
+  <img width="234" height="386" alt="Tópicos do sistema" src="https://github.com/user-attachments/assets/afaa2349-b74f-40b1-8e0d-61ec9ca10d08" />
+</p>
+
+**Descrição:** No lado direito, ficam os tópicos/temas do sistema, separados em:
+
+- **CONTEÚDO:** Questões e Provas
+- **OPERAÇÃO:** Aplicações e Turmas
+- **SISTEMA:** Administração
+
+---
+
+### 4.4 Provas
+
+<p align="center">
+  <img width="1443" height="632" alt="Tela de Provas" src="https://github.com/user-attachments/assets/ea152216-8009-4624-b6db-cee8a886e0dc" />
+</p>
+
+**Descrição:** Na aba de **Provas**, é possível criar uma nova prova e visualizar provas em **rascunho**, **prontas** e/ou **arquivadas**.
+
+<p align="center">
+  <img width="1136" height="857" alt="Criação de prova" src="https://github.com/user-attachments/assets/25cb66bd-e75d-4590-85bc-b3d03b08cb5c" />
+</p>
+
+**Descrição:** Ao clicar em **Criar prova**, é exibido todo o banco de questões existentes, além da possibilidade de definir o nome da prova.
+
+---
+
+### 4.5 Aplicações
+
+<p align="center">
+  <img width="1418" height="631" alt="Tela de Aplicações" src="https://github.com/user-attachments/assets/41b217d6-5c9c-41cb-9087-418989751238" />
+</p>
+
+**Descrição:** Com a prova criada, é possível realizar uma aplicação. Ao clicar em **+ Criar aplicação**, o usuário é redirecionado para outra tela, onde seleciona a prova e a turma em que ela será aplicada.
+
+<p align="center">
+  <img width="822" height="567" alt="Criação de aplicação" src="https://github.com/user-attachments/assets/11170ad9-8dd6-42f5-af37-64a288c6e580" />
+</p>
+
+---
+
+### 4.6 Turmas
+
+<p align="center">
+  <img width="1458" height="556" alt="Tela de Turmas" src="https://github.com/user-attachments/assets/579b8eb6-a5ec-4ea2-a3e1-cc0a44fae581" />
+</p>
+
+**Descrição:** Na aba de **Turmas**, é possível criar ou editar uma turma existente. Ao clicar em **+ Criar Turma**, devem ser preenchidos os seguintes dados:
+
+- **Nome:** 
+- **Disciplina:** 
+- **Período / ano letivo:** 
+
+<p align="center">
+  <img width="964" height="550" alt="Criação de turma" src="https://github.com/user-attachments/assets/42c99c9f-e201-4804-99cb-9a2a71b33cf5" />
+</p>
+
+**Descrição:** Ao acessar uma turma já criada, é possível visualizar todas as provas aplicadas a ela.
+
+<p align="center">
+  <img width="1419" height="572" alt="Provas aplicadas à turma" src="https://github.com/user-attachments/assets/2b1c81f1-e3af-4e65-b80d-7bae2bcd271b" />
+</p>
+
+**Descrição:** Visualização das aplicações vinculadas à turma.
+
+<p align="center">
+  <img width="1398" height="496" alt="Detalhes da aplicação" src="https://github.com/user-attachments/assets/3ee7733a-f4c1-46a3-ac74-bdbcd9c33cc7" />
+</p>
+
+**Descrição:** Visualização detalhada de uma aplicação selecionada.
+
+---
+
+### 4.7 Administração
+
+<p align="center">
+  <img width="1471" height="861" alt="Tela de Administração" src="https://github.com/user-attachments/assets/cf61cf07-41b8-4b7a-9568-ea32a069c46e" />
+</p>
+
+**Descrição:** Local destinado à criação e gerenciamento de usuários, como **professores** e **administradores**. Essa tela **somente é exibida para usuários com perfil de Administrador**.
+
+É possível criar um novo usuário informando:
+
+- **Nome**
+- **E-mail**
+- **Papel:** Professor ou Administrador
+
+<p align="center">
+  <img width="432" height="413" alt="Criação de usuário" src="https://github.com/user-attachments/assets/550c6402-41a2-4c07-a289-3c09573f3b57" />
+</p>
+
+**Descrição:** Após a criação, é possível editar os dados do usuário.
+
+<p align="center">
+  <img width="1207" height="822" alt="Edição de usuário" src="https://github.com/user-attachments/assets/86bdad20-2e1e-4306-93cd-f8226abf2115" />
+</p>
+
+**Descrição:** Após a criação do usuário, é exibido também o campo **Status**, que pode assumir os valores **Convidado** (aguardando liberação) ou **Ativo** (usuário ativo no sistema).
+
+<p align="center">
+  <img width="389" height="149" alt="Status do usuário" src="https://github.com/user-attachments/assets/cf28616f-256c-4ef0-af9f-edaa0f8fa9ca" />
+</p>
+
+**Descrição:** Ao clicar em **Remover**, é exibido um pop-up solicitando a confirmação da ação.
+
+<p align="center">
+  <img width="445" height="141" alt="Confirmação de remoção" src="https://github.com/user-attachments/assets/4c73250b-59c8-4f55-9f78-95cea29cb6fb" />
+</p>
+
 
 ## 5. Arquitetura de Software
 
