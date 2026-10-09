@@ -11,12 +11,7 @@ export default function ExamNew() {
   const [description, setDescription] = useState('');
   const [selected, setSelected] = useState({});
 
-  const toggle = (id) => {
-    setSelected((prev) => {
-      const cur = prev[id] || { checked: false, score: 5 };
-      return { ...prev, [id]: { ...cur, checked: !cur.checked } };
-    });
-  };
+   const toggle = (id) => { setSelected((prev) => { const cur = prev[id] || { checked: false, score: 5 }; const willCheck = !cur.checked; if (willCheck && selectedCount >= 20) { return prev; } return { ...prev, [id]: { ...cur, checked: willCheck } }; }); };
 
   const setScore = (id, score) => {
     setSelected((prev) => {
@@ -64,7 +59,7 @@ export default function ExamNew() {
             </div>
 
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-strong)', marginBottom: 12 }}>
-              Banco de questões — selecione até 20
+              Banco de questões — selecione até 20 {selectedCount >= 20 ? '(limite atingido)' : ''}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {questions.map((q) => {
