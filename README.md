@@ -125,15 +125,14 @@ Fora do escopo do semestre (ponto em aberto, a validar com o cliente e com a pro
 
 Diagrama de casos de uso, diagrama de classes e diagrama de atividades do sistema (e demais diagramas que forem necessários). Exporte cada diagrama como imagem (PNG ou SVG) e salve em `docs/uml/`, depois insira aqui:
 
-```
 
-- CRIAÇÃO DOS DIAGRAMAS
 ![Diagrama de Casos de Uso](docs/uml/casos-de-uso.png)
+
+O diagrama acima representa a parte de Provas e Aplicações do SGP (RF04 e RF05). O único ator é o Professor, já que o sistema não oferece acesso a alunos. Os casos de uso cobrem a montagem de provas (montar, editar, arquivar e consultar), que sempre inclui a seleção de questões do banco, e o ciclo das aplicações (criar a aplicação para uma turma, gerar as provas em PDF, publicar o gabarito e consultar as aplicações). A relação «include» indica o passo obrigatório de selecionar questões ao montar uma prova. As relações «extend» indicam passos opcionais: editar ou arquivar partem da consulta de provas, e publicar o gabarito só é possível depois que as provas em PDF foram geradas.
 
 ![Diagrama de Classes](docs/uml/diagrama-classes.png)
 
 ![Diagrama de Atividades](docs/uml/diagrama-atividades.png)
-```
 
 Abaixo de cada imagem, escreva um parágrafo curto explicando o que o diagrama representa.
 
