@@ -355,19 +355,34 @@ Se a equipe usar outras bibliotecas relevantes (ex.: JWT para autenticação, bc
 📌 **N1**, atualizada conforme o projeto cresce
 
 ```
-src/
-  routes/        # define os endpoints e direciona para os controllers
-  controllers/    # recebe a requisição, valida e chama o service
-  services/       # regras de negócio
-  repositories/   # acesso ao banco de dados
-  models/         # representação das entidades
-docs/
-  uml/
-  telas/
-  arquitetura/
-  adr/
-  modelo-dados/
-  api/
+Projeto-e-Arquitetura-5-fase/
+├── client/                       # Aplicação web React com Vite
+│   ├── public/                   # Arquivos estáticos usados pelo frontend
+│   ├── src/
+│   │   ├── components/           # Componentes reutilizáveis e modais
+│   │   ├── context/              # Estado e dados compartilhados da aplicação
+│   │   ├── data/                 # Arquivos JSON com dados de exemplo (mock)
+│   │   ├── layouts/              # Estruturas visuais compartilhadas
+│   │   ├── pages/                # Telas do sistema
+│   │   ├── utils/                # Funções auxiliares
+│   │   ├── App.jsx               # Rotas e composição das telas
+│   │   ├── index.css             # Estilos globais
+│   │   └── main.jsx              # Ponto de entrada do React
+│   ├── index.html
+│   ├── package.json              # Dependências e comandos do frontend
+│   ├── package-lock.json
+│   └── vite.config.js
+├── docs/
+│   └── uml/                      # Diagramas UML do projeto
+├── public/                       # Páginas HTML e estilos estáticos presentes no projeto
+│   ├── aplicacoes.html
+│   ├── banco-questoes.html
+│   ├── nova-aplicacao.html
+│   ├── nova-prova.html
+│   ├── provas.html
+│   ├── turmas.html
+│   └── styles.css
+└── README.md
 ```
 
 ## 10. Como Executar o Projeto
@@ -420,7 +435,7 @@ Nome: principais contribuições no projeto (ex.: telas de cadastro, integraçã
 - **Bruno**: Autenticação e Perfil (cadastro/login, JWT/refresh, anonimização de conta).
 - **Camila**: Turmas e Questões (turmas, matrícula, banco de questões).
 - **Felipe dos Santos**: Provas e Aplicações (montagem e aplicação de provas às turmas).
-- **Matheus**: Provas e Aplicações (montagem e aplicação de provas às turmas).
+- **Matheus**: Geração de PDF e Gabarito (versões, embaralhamento de questões/alternativas, identificação do aluno, publicação de gabarito).
 - **Miguel**: Correção e Notas (fluxo de correção, lançamento manual, relatórios, histórico do aluno).
 
 ---
