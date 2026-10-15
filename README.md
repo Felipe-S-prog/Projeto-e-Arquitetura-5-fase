@@ -367,11 +367,21 @@ Tecnologias usadas no projeto e por que cada uma foi escolhida. A stack obrigat�
 ![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)
 
-- **Node.js**: ambiente de execução do back-end.
-- **Express**: framework para as rotas e a API REST.
-- **MySQL**: banco de dados relacional.
+```markdown
+**Back-end (`server/`)**
 
-Se a equipe usar outras bibliotecas relevantes (ex.: JWT para autenticação, bcrypt para senhas, dotenv para variáveis de ambiente), liste aqui também, com uma linha dizendo para que serve cada uma.
+- **Node.js 20.19+**: ambiente de execução (testado com Node 22).
+- **Express 5**: rotas e API REST.
+- **MySQL 8** com **mysql2**: banco de dados relacional e driver de conexão (pool).
+- **cors**: libera apenas o endereço do front-end para chamar a API.
+- **helmet**: cabeçalhos HTTP de segurança.
+- **dotenv**: leitura das variáveis de ambiente do arquivo `.env`.
+
+**Front-end (`client/`)**
+
+- **React 19** com **Vite 8**: interface e servidor de desenvolvimento.
+- **React Router 7**: navegação entre as telas.
+```
 
 ## 9. Estrutura de Pastas
 
@@ -395,16 +405,27 @@ Projeto-e-Arquitetura-5-fase/
 │   ├── package.json              # Dependências e comandos do frontend
 │   ├── package-lock.json
 │   └── vite.config.js
+├── server/                       # API Node.js + Express + MySQL (arquitetura em camadas)
+│   ├── database/migrations/      # Scripts .sql do banco, aplicados em ordem
+│   ├── src/
+│   │   ├── routes/               # Endpoints, ligados aos controllers
+│   │   ├── controllers/          # Recebem a requisição e devolvem a resposta
+│   │   ├── services/             # Regras de negócio
+│   │   ├── repositories/         # Acesso ao banco (único lugar com SQL)
+│   │   ├── models/               # Representação das entidades
+│   │   ├── middlewares/          # Tratamento de erros, 404 e log de requisições
+│   │   ├── errors/               # Erros esperados da aplicação (AppError)
+│   │   ├── database/             # Pool de conexão e migrations
+│   │   ├── config/               # Leitura das variáveis de ambiente
+│   │   ├── utils/                # Funções auxiliares
+│   │   ├── app.js                # Montagem do Express
+│   │   └── server.js             # Ponto de entrada da API
+│   ├── test/                     # Testes automatizados
+│   ├── .env.example              # Modelo das variáveis de ambiente
+│   ├── docker-compose.yml        # MySQL 8 para desenvolvimento
+│   └── package.json
 ├── docs/
 │   └── uml/                      # Diagramas UML do projeto
-├── public/                       # Páginas HTML e estilos estáticos presentes no projeto
-│   ├── aplicacoes.html
-│   ├── banco-questoes.html
-│   ├── nova-aplicacao.html
-│   ├── nova-prova.html
-│   ├── provas.html
-│   ├── turmas.html
-│   └── styles.css
 └── README.md
 ```
 
@@ -412,15 +433,32 @@ Projeto-e-Arquitetura-5-fase/
 
 📌 **N1**, revisado a cada entrega
 
-Passo a passo para clonar e rodar o projeto localmente, incluindo as versões usadas (ex.: Node 20.x):
+````markdown
+Versões usadas: **Node.js 20.19 ou superior** (testado com Node 22; o deploy no Netlify usa Node 24) e **MySQL 8.0**.
+
+**Front-end (telas)**
 
 ```
 1. git clone https://github.com/Felipe-S-prog/Projeto-e-Arquitetura-5-fase.git
-2. cd Projeto-e-Arquitetura-5-fase
+2. cd Projeto-e-Arquitetura-5-fase/client
 3. npm install
-4. copiar .env.example para .env e configurar as variáveis (ex.: dados de acesso ao MySQL)
-5. npm run dev
+4. npm run dev        # abre em http://localhost:5173
 ```
+
+**Back-end (API e banco de dados)**
+
+```
+1. cd server
+2. npm install
+3. copiar .env.example para .env e ajustar o acesso ao MySQL (DB_USER, DB_PASSWORD)
+4. subir o MySQL: o instalado na máquina, ou "docker compose up -d" na pasta server
+5. npm run db:migrate  # cria o banco e aplica as migrations
+6. npm run dev         # API em http://localhost:3333 (teste: /api/health e /api/health/db)
+```
+
+Detalhes (variáveis, migrations, testes e como criar um recurso novo) em [`server/README.md`](server/README.md).
+Por enquanto o front-end ainda usa dados de exemplo (mock); a integração com a API é feita frente a frente ao longo da N2.
+````
 
 ## 11. Especificação da API
 
