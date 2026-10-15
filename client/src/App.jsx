@@ -18,6 +18,7 @@ import PdfConfig from './pages/PdfConfig';
 import PdfPreview from './pages/PdfPreview';
 import AnswerKey from './pages/AnswerKey';
 import PublicAnswerKey from './pages/PublicAnswerKey';
+import QrReaderTest from './pages/QrReaderTest';
 import Admin from './pages/Admin';
 
 function RequireAuth({ children }) {
@@ -56,6 +57,7 @@ function AppRoutes() {
         <Route path="aplicacoes/:id/pdf" element={<PdfConfig />} />
         <Route path="aplicacoes/:id/pdf/preview" element={<PdfPreview />} />
         <Route path="aplicacoes/:id/gabarito" element={<AnswerKey />} />
+        <Route path="leitor-qr" element={<QrReaderTest />} />
         <Route path="admin" element={<Admin />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

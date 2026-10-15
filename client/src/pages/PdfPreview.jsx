@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { Breadcrumb, PrimaryButton, SecondaryButton } from '../components/ui';
-import { ExamSheetIcon, QrMarkerIcon } from '../components/icons';
+import { ExamSheetIcon } from '../components/icons';
+import QrCode from '../components/QrCode';
 import DownloadModal from '../components/DownloadModal';
 
 const LINE_WIDTHS = [
@@ -56,6 +57,7 @@ export default function PdfPreview() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+          <SecondaryButton onClick={() => navigate('/leitor-qr')}>Ler QR Code</SecondaryButton>
           <SecondaryButton onClick={() => navigate(`/aplicacoes/${app.id}/gabarito`)}>Gerar gabarito</SecondaryButton>
           <PrimaryButton onClick={() => setShowModal(true)}>Baixar todas em PDF</PrimaryButton>
         </div>
@@ -119,8 +121,9 @@ export default function PdfPreview() {
                           {copy.studentName ? `Nome: ${copy.studentName}` : 'Nome: ______________________'}
                         </div>
                       </div>
-                      <div style={{ color: 'var(--navy)' }}>
-                        <QrMarkerIcon size={20} />
+                      <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                        <QrCode code={copy.code} size={60} />
+                        <div style={{ fontSize: 7, color: 'var(--muted-3)', marginTop: 1 }}>Prova: {copy.code}</div>
                       </div>
                     </div>
                     {LINE_WIDTHS.map(([w1, w2], li) => (
