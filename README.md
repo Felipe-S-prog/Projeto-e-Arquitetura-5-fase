@@ -125,16 +125,40 @@ Fora do escopo do semestre (ponto em aberto, a validar com o cliente e com a pro
 
 Diagrama de casos de uso, diagrama de classes e diagrama de atividades do sistema (e demais diagramas que forem necessários). Exporte cada diagrama como imagem (PNG ou SVG) e salve em `docs/uml/`, depois insira aqui:
 
+## Diagrama de Casos de Uso
 
 ![Diagrama de Casos de Uso](docs/uml/casos-de-uso.png)
 
 O diagrama acima representa a parte de Provas e Aplicações do SGP (RF04 e RF05). O único ator é o Professor, já que o sistema não oferece acesso a alunos. Os casos de uso cobrem a montagem de provas (montar, editar, arquivar e consultar), que sempre inclui a seleção de questões do banco, e o ciclo das aplicações (criar a aplicação para uma turma, gerar as provas em PDF, publicar o gabarito e consultar as aplicações). A relação «include» indica o passo obrigatório de selecionar questões ao montar uma prova. As relações «extend» indicam passos opcionais: editar ou arquivar partem da consulta de provas, e publicar o gabarito só é possível depois que as provas em PDF foram geradas.
 
+## Diagrama de Classes
+
 ![Diagrama de Classes](docs/uml/diagrama-classes.png)
+
+## Diagrama de Atividades
 
 ![Diagrama de Atividades](docs/uml/diagrama-atividades.png)
 
-Abaixo de cada imagem, escreva um parágrafo curto explicando o que o diagrama representa.
+Escolha do fluxo
+
+O caso de uso do grupo (`caso-de-uso.png`) tem várias ações do Professor: *Criar Aplicação*, *Gerar Provas em PDF* e *Publicar Gabarito*. Elas formam **um único fluxo de ponta a ponta**, e é o único em que o processo passa por mais de um participante (Professor, Sistema e, no final, o Aluno). Por isso foi o escolhido, e por isso o diagrama usa **raias**.
+
+Início e fim
+
+| | Descrição |
+|---|---|
+| **Início** | O Professor decide aplicar uma prova e seleciona prova, turma e quantidade de pessoas. |
+| **Fim 1** | Aluno informa um código que não existe → vê o aviso "código não encontrado". |
+| **Fim 2** | Código existe, mas o professor ainda não publicou → aviso "gabarito ainda não publicado". |
+| **Fim 3** | Código existe e o gabarito está publicado → aluno consulta as respostas corretas. |
+
+| Raia | Responsabilidades |
+|---|---|
+| **Professor** | Configurar e pedir a geração, revisar, confirmar o download, publicar e divulgar o gabarito |
+| **Sistema (SGP)** | Criar aplicação, gerar cópias, exibir pré-visualização, disponibilizar PDF, marcar como publicado, buscar cópia por código |
+| **Aluno (sem login)** | Acessar a página pública, informar o código e consultar o resultado |
+
+> O Aluno **não tem conta nem login** (decisão de escopo do projeto): o único contato dele com o sistema é a consulta pública do gabarito por código.
 
 ## 4. Telas do Sistema
 
