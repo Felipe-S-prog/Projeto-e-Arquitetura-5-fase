@@ -367,7 +367,7 @@ Tecnologias usadas no projeto e por que cada uma foi escolhida. A stack obrigat�
 ![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)
 
-```markdown
+
 **Back-end (`server/`)**
 
 - **Node.js 20.19+**: ambiente de execução (testado com Node 22).
@@ -381,7 +381,7 @@ Tecnologias usadas no projeto e por que cada uma foi escolhida. A stack obrigat�
 
 - **React 19** com **Vite 8**: interface e servidor de desenvolvimento.
 - **React Router 7**: navegação entre as telas.
-```
+
 
 ## 9. Estrutura de Pastas
 
@@ -433,7 +433,7 @@ Projeto-e-Arquitetura-5-fase/
 
 📌 **N1**, revisado a cada entrega
 
-````markdown
+
 Versões usadas: **Node.js 20.19 ou superior** (testado com Node 22; o deploy no Netlify usa Node 24) e **MySQL 8.0**.
 
 **Front-end (telas)**
@@ -458,7 +458,7 @@ Versões usadas: **Node.js 20.19 ou superior** (testado com Node 22; o deploy no
 
 Detalhes (variáveis, migrations, testes e como criar um recurso novo) em [`server/README.md`](server/README.md).
 Por enquanto o front-end ainda usa dados de exemplo (mock); a integração com a API é feita frente a frente ao longo da N2.
-````
+
 
 ## 11. Especificação da API
 
