@@ -1,0 +1,25 @@
+# MySQL 8 para desenvolvimento local.  Uso:  docker compose up -d
+# Lê DB_USER, DB_PASSWORD e DB_NAME do arquivo .env desta pasta.
+services:
+  db:
+    image: mysql:8.0
+    container_name: sgp-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-sgp_dev}
+      MYSQL_DATABASE: ${DB_NAME:-sgp}
+      MYSQL_USER: ${DB_USER:-sgp}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-sgp_dev}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - sgp-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${DB_PASSWORD:-sgp_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  sgp-mysql-data:
