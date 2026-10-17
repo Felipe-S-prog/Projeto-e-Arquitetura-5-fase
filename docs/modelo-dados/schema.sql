@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS `aluno` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Identificador único do registro',
   `nome` VARCHAR(120) NOT NULL COMMENT 'Nome do aluno',
   `email` VARCHAR(160) NOT NULL COMMENT 'E-mail do aluno; único',
+  `numero_matricula` VARCHAR(30) NULL COMMENT 'Número de matrícula acadêmica, quando informado (atributo matricula do diagrama de classes)',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_aluno_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Registro do aluno informado pelo professor (nome e e-mail). Não gera conta de acesso (RF03).';
@@ -104,11 +105,12 @@ CREATE TABLE IF NOT EXISTS `alternativa` (
   `questao_id` INT UNSIGNED NOT NULL COMMENT 'Questão a que a alternativa pertence',
   `texto` TEXT NOT NULL COMMENT 'Texto da alternativa',
   `correta` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 se for a alternativa correta',
-  `ordem` TINYINT UNSIGNED NOT NULL COMMENT 'Posição original da alternativa na questão (0 = primeira)',
+  `ordem` TINYINT UNSIGNED NOT NULL COMMENT 'Posição original da alternativa, de 0 a 4 (no máximo 5 por questão); única dentro da questão',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_alternativa_questao_id_ordem` (`questao_id`, `ordem`),
-  CONSTRAINT `fk_alternativa_questao_id` FOREIGN KEY (`questao_id`) REFERENCES `questao` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Alternativas das questões objetivas. Questões discursivas não têm alternativas.';
+  CONSTRAINT `fk_alternativa_questao_id` FOREIGN KEY (`questao_id`) REFERENCES `questao` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `ck_alternativa_1` CHECK (ordem BETWEEN 0 AND 4)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Alternativas das questões objetivas, no máximo 5 por questão (o mínimo de 2 é validado na API). Questões discursivas não têm alternativas.';
 
 -- prova (Provas e Aplicações - Felipe)
 CREATE TABLE IF NOT EXISTS `prova` (
@@ -174,11 +176,13 @@ CREATE TABLE IF NOT EXISTS `correcao` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Identificador único do registro',
   `aluno_id` INT UNSIGNED NULL COMMENT 'Aluno dono da nota; nos lançamentos manuais é o aluno escolhido pelo professor',
   `copia_prova_id` INT UNSIGNED NOT NULL COMMENT 'Cópia corrigida; no máximo uma correção por cópia',
+  `professor_id` INT UNSIGNED NOT NULL COMMENT 'Professor que corrigiu ou lançou a nota',
   `nota` DECIMAL(5,2) NOT NULL COMMENT 'Soma da pontuação das questões corretas',
   `tipo` ENUM('AUTOMATICA','MANUAL') NOT NULL COMMENT 'Como a nota foi obtida',
   `corrigida_em` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Data e hora da correção ou do lançamento',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_correcao_copia_prova_id` (`copia_prova_id`),
   CONSTRAINT `fk_correcao_aluno_id` FOREIGN KEY (`aluno_id`) REFERENCES `aluno` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_correcao_copia_prova_id` FOREIGN KEY (`copia_prova_id`) REFERENCES `copia_prova` (`id`) ON DELETE CASCADE
+  CONSTRAINT `fk_correcao_copia_prova_id` FOREIGN KEY (`copia_prova_id`) REFERENCES `copia_prova` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_correcao_professor_id` FOREIGN KEY (`professor_id`) REFERENCES `usuario` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Correção de uma cópia: nota calculada automaticamente (RF09) ou lançada manualmente (RF10).';

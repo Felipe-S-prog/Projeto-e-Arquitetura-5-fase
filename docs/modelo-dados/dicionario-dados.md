@@ -52,6 +52,7 @@ Registro do aluno informado pelo professor (nome e e-mail). Não gera conta de a
 | id | INT UNSIGNED (PK) | Identificador único do registro |
 | nome | VARCHAR(120) | Nome do aluno |
 | email | VARCHAR(160) (UQ) | E-mail do aluno; único |
+| numero_matricula | VARCHAR(30) (aceita nulo) | Número de matrícula acadêmica, quando informado (atributo matricula do diagrama de classes) |
 
 ### matricula
 
@@ -96,7 +97,7 @@ Associa tags a questões. Resolve a relação N:N entre questão e tag.
 
 ### alternativa
 
-Alternativas das questões objetivas. Questões discursivas não têm alternativas.
+Alternativas das questões objetivas, no máximo 5 por questão (o mínimo de 2 é validado na API). Questões discursivas não têm alternativas.
 
 | Campo | Tipo | Descrição |
 |---|---|---|
@@ -104,7 +105,7 @@ Alternativas das questões objetivas. Questões discursivas não têm alternativ
 | questao_id | INT UNSIGNED (FK → questao.id) | Questão a que a alternativa pertence |
 | texto | TEXT | Texto da alternativa |
 | correta | TINYINT(1) | 1 se for a alternativa correta |
-| ordem | TINYINT UNSIGNED | Posição original da alternativa na questão (0 = primeira) |
+| ordem | TINYINT UNSIGNED | Posição original da alternativa, de 0 a 4 (no máximo 5 por questão); única dentro da questão |
 
 ### prova
 
@@ -171,6 +172,7 @@ Correção de uma cópia: nota calculada automaticamente (RF09) ou lançada manu
 | id | INT UNSIGNED (PK) | Identificador único do registro |
 | aluno_id | INT UNSIGNED (FK → aluno.id, aceita nulo) | Aluno dono da nota; nos lançamentos manuais é o aluno escolhido pelo professor |
 | copia_prova_id | INT UNSIGNED (FK → copia_prova.id, UQ) | Cópia corrigida; no máximo uma correção por cópia |
+| professor_id | INT UNSIGNED (FK → usuario.id) | Professor que corrigiu ou lançou a nota |
 | nota | DECIMAL(5,2) | Soma da pontuação das questões corretas |
 | tipo | ENUM('AUTOMATICA','MANUAL') | Como a nota foi obtida |
 | corrigida_em | DATETIME | Data e hora da correção ou do lançamento |
