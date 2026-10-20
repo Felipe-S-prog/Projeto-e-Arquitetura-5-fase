@@ -176,3 +176,16 @@ Correção de uma cópia: nota calculada automaticamente (RF09) ou lançada manu
 | nota | DECIMAL(5,2) | Soma da pontuação das questões corretas |
 | tipo | ENUM('AUTOMATICA','MANUAL') | Como a nota foi obtida |
 | corrigida_em | DATETIME | Data e hora da correção ou do lançamento |
+
+### correcao_resposta
+
+Resposta de cada questão em uma correção pelas respostas marcadas (migration `003_correcao_respostas.sql`). Lançamentos manuais não têm linhas aqui.
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| correcao_id | INT UNSIGNED (PK, FK → correcao.id) | Correção a que a resposta pertence |
+| questao_id | INT UNSIGNED (PK, FK → questao.id) | Questão respondida |
+| numero | TINYINT UNSIGNED (UQ com correcao_id) | Número da questão como foi impressa nesta cópia (1 a 20) |
+| letra_marcada | CHAR(1) (aceita nulo) | Letra marcada pelo aluno, na ordem impressa da cópia; nulo quando ficou em branco ou é discursiva |
+| correta | TINYINT(1) (aceita nulo) | 1 se a letra marcada é a correta; nulo nas discursivas |
+| pontos | DECIMAL(5,2) | Pontos obtidos na questão |
