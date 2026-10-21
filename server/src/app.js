@@ -12,7 +12,8 @@ export function createApp({ pool, config }) {
   const app = express();
 
   app.use(helmet()); // cabeçalhos de segurança
-  app.use(cors({ origin: config.corsOrigins })); // só o front autorizado pode chamar a API
+  // só o front autorizado pode chamar a API; Content-Disposition liberado para o front ler o nome dos arquivos baixados
+  app.use(cors({ origin: config.corsOrigins, exposedHeaders: ['Content-Disposition'] }));
   app.use(express.json({ limit: '1mb' }));
   if (config.nodeEnv !== 'test') app.use(requestLogger);
 
