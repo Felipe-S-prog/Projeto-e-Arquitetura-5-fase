@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="860" viewBox="0 0 1000 860" font-family="Inter, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="seta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#3b4a5e"/>
+    </marker>
+    <marker id="seta-erro" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#b4413a"/>
+    </marker>
+    <style>
+      .titulo { font-size: 15px; font-weight: 700; fill: #14213d; }
+      .texto { font-size: 12.5px; fill: #3b4a5e; }
+      .pasta { font-size: 11.5px; fill: #6b7a8f; font-family: Menlo, Consolas, monospace; }
+      .rotulo { font-size: 11.5px; fill: #3b4a5e; }
+      .erro { font-size: 11.5px; fill: #b4413a; }
+      .grupo { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; fill: #6b7a8f; }
+    </style>
+  </defs>
+
+  <rect width="1000" height="860" fill="#ffffff"/>
+  <text x="500" y="36" text-anchor="middle" font-size="20" font-weight="800" fill="#14213d">SGP — Arquitetura em camadas da API</text>
+  <text x="500" y="58" text-anchor="middle" class="texto">rota → controller → service → repository → model (RNF01)</text>
+
+  <!-- Front-end -->
+  <rect x="300" y="80" width="400" height="62" rx="10" fill="#eef2fb" stroke="#24406e" stroke-width="1.5"/>
+  <text x="500" y="106" text-anchor="middle" class="titulo">Front-end (React + Vite)</text>
+  <text x="500" y="126" text-anchor="middle" class="texto">client/ · publicado no Netlify · página pública do gabarito</text>
+
+  <line x1="485" y1="142" x2="485" y2="190" stroke="#3b4a5e" stroke-width="1.6" marker-end="url(#seta)"/>
+  <line x1="515" y1="190" x2="515" y2="142" stroke="#3b4a5e" stroke-width="1.6" marker-end="url(#seta)"/>
+  <text x="475" y="171" text-anchor="end" class="rotulo">requisição HTTP + JSON</text>
+  <text x="525" y="171" class="rotulo">resposta JSON</text>
+
+  <!-- API -->
+  <rect x="60" y="192" width="880" height="586" rx="14" fill="#f7f9fc" stroke="#c9d3e1" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="84" y="218" class="grupo">API — server/ (Node.js + Express 5)</text>
+
+  <!-- app.js -->
+  <rect x="250" y="232" width="500" height="56" rx="10" fill="#ffffff" stroke="#8a99ad" stroke-width="1.3"/>
+  <text x="500" y="255" text-anchor="middle" class="titulo">app.js — entrada da requisição</text>
+  <text x="500" y="275" text-anchor="middle" class="texto">helmet · CORS (só o front) · leitor de JSON · log · /api</text>
+
+  <!-- camadas -->
+  <g>
+    <rect x="250" y="314" width="500" height="58" rx="10" fill="#e8f0ff" stroke="#24406e" stroke-width="1.5"/>
+    <text x="270" y="338" class="titulo">Rota</text>
+    <text x="270" y="358" class="texto">método + caminho → controller; monta as camadas</text>
+    <text x="730" y="338" text-anchor="end" class="pasta">src/routes/</text>
+
+    <rect x="250" y="398" width="500" height="58" rx="10" fill="#e8f0ff" stroke="#24406e" stroke-width="1.5"/>
+    <text x="270" y="422" class="titulo">Controller</text>
+    <text x="270" y="442" class="texto">fala HTTP: lê params/query/body e responde</text>
+    <text x="730" y="422" text-anchor="end" class="pasta">src/controllers/</text>
+
+    <rect x="250" y="482" width="500" height="58" rx="10" fill="#e8f0ff" stroke="#24406e" stroke-width="1.5"/>
+    <text x="270" y="506" class="titulo">Service</text>
+    <text x="270" y="526" class="texto">regras de negócio e validações; lança AppError</text>
+    <text x="730" y="506" text-anchor="end" class="pasta">src/services/</text>
+
+    <rect x="250" y="566" width="500" height="58" rx="10" fill="#e8f0ff" stroke="#24406e" stroke-width="1.5"/>
+    <text x="270" y="590" class="titulo">Repository</text>
+    <text x="270" y="610" class="texto">única camada com SQL (sempre com parâmetros ?)</text>
+    <text x="730" y="590" text-anchor="end" class="pasta">src/repositories/</text>
+  </g>
+
+  <g stroke="#3b4a5e" stroke-width="1.6">
+    <line x1="500" y1="288" x2="500" y2="312" marker-end="url(#seta)"/>
+    <line x1="500" y1="372" x2="500" y2="396" marker-end="url(#seta)"/>
+    <line x1="500" y1="456" x2="500" y2="480" marker-end="url(#seta)"/>
+    <line x1="500" y1="540" x2="500" y2="564" marker-end="url(#seta)"/>
+  </g>
+
+  <!-- Model -->
+  <rect x="790" y="566" width="130" height="58" rx="10" fill="#fff7e8" stroke="#a5741d" stroke-width="1.5"/>
+  <text x="855" y="590" text-anchor="middle" class="titulo">Model</text>
+  <text x="855" y="610" text-anchor="middle" class="pasta">src/models/</text>
+  <line x1="750" y1="595" x2="788" y2="595" stroke="#3b4a5e" stroke-width="1.6" marker-end="url(#seta)"/>
+  <text x="855" y="646" text-anchor="middle" class="rotulo">linha do banco →</text>
+  <text x="855" y="662" text-anchor="middle" class="rotulo">objeto da API</text>
+
+  <!-- Erros -->
+  <rect x="80" y="398" width="140" height="142" rx="10" fill="#fdf0ef" stroke="#b4413a" stroke-width="1.5"/>
+  <text x="150" y="424" text-anchor="middle" class="titulo">errorHandler</text>
+  <text x="150" y="444" text-anchor="middle" class="pasta">src/middlewares/</text>
+  <text x="150" y="472" text-anchor="middle" class="erro">AppError → 4xx</text>
+  <text x="150" y="490" text-anchor="middle" class="erro">MySQL → 409 / 503</text>
+  <text x="150" y="508" text-anchor="middle" class="erro">bug → 500 seguro</text>
+  <text x="150" y="526" text-anchor="middle" class="erro">JSON de erro padrão</text>
+  <text x="235" y="503" text-anchor="middle" class="erro">erro</text>
+  <line x1="248" y1="511" x2="222" y2="511" stroke="#b4413a" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#seta-erro)"/>
+  <line x1="248" y1="595" x2="190" y2="595" stroke="#b4413a" stroke-width="1.4" stroke-dasharray="4 3"/>
+  <line x1="190" y1="595" x2="190" y2="542" stroke="#b4413a" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#seta-erro)"/>
+
+  <!-- Transversais -->
+  <rect x="80" y="690" width="390" height="70" rx="10" fill="#ffffff" stroke="#c9d3e1" stroke-width="1.3"/>
+  <text x="100" y="714" class="grupo">TRANSVERSAIS</text>
+  <text x="100" y="740" class="texto">config/ (variáveis de ambiente) · database/ (pool, migrations)</text>
+  <rect x="530" y="690" width="390" height="70" rx="10" fill="#ffffff" stroke="#c9d3e1" stroke-width="1.3"/>
+  <text x="550" y="714" class="grupo">TRANSVERSAIS</text>
+  <text x="550" y="740" class="texto">errors/ (AppError) · utils/ (snake_case → camelCase)</text>
+
+  <!-- MySQL -->
+  <line x1="500" y1="624" x2="500" y2="800" stroke="#3b4a5e" stroke-width="1.6" marker-end="url(#seta)"/>
+  <text x="512" y="672" class="rotulo">pool mysql2</text>
+  <rect x="380" y="800" width="240" height="50" rx="25" fill="#e9f6ee" stroke="#2f7a4b" stroke-width="1.5"/>
+  <text x="500" y="823" text-anchor="middle" class="titulo">MySQL 8</text>
+  <text x="500" y="841" text-anchor="middle" class="pasta">database/migrations/*.sql</text>
+</svg>

@@ -305,14 +305,21 @@ Cada imagem é acompanhada de uma breve descrição de sua funcionalidade.
 
 📌 **N3** (pode ser esboçada antes, mas passa a ser obrigatória na entrega final)
 
-Estilo em camadas usado no projeto: `rota → controle → serviço → repositório → model`. Explique, em poucas linhas, a responsabilidade de cada camada (o que ela pode e não pode fazer) e como uma requisição passa por elas até chegar no banco de dados e voltar como resposta.
+A API (`server/`) segue a arquitetura em camadas da disciplina: `rota → controle → serviço → repositório → model`. Cada requisição do front-end atravessa as camadas sempre na mesma ordem e volta pelo mesmo caminho como JSON, e cada camada só conhece a de baixo:
 
-Insira aqui o **desenho da arquitetura** (diagrama de componentes/camadas), exportado como imagem e salvo em `docs/arquitetura/`:
+| Camada | Responsabilidade | Não pode |
+|---|---|---|
+| **Rota** (`routes/`) | Liga método + caminho ao controller e monta as camadas do recurso | Ter regra de negócio ou SQL |
+| **Controle** (`controllers/`) | Fala HTTP: lê parâmetros e corpo, chama o serviço e devolve a resposta | Decidir regra de negócio ou acessar o banco |
+| **Serviço** (`services/`) | Regras de negócio e validações; lança `AppError` quando algo é inválido | Conhecer `req`/`res` ou escrever SQL |
+| **Repositório** (`repositories/`) | Única camada com SQL, sempre com parâmetros (`?`) | Ter regra de negócio |
+| **Model** (`models/`) | Converte a linha do banco no objeto usado pela API | Acessar banco ou HTTP |
 
-```
-- CRIAÇÃO E APRIMORAMENTO DOS DIAGRAMAS
+Erros não são respondidos pelas camadas: elas lançam, e o middleware `errorHandler` transforma tudo no mesmo formato JSON (`{ "error": { "code", "message" } }`), sem vazar detalhes internos. As camadas recebem a de baixo por parâmetro (injeção de dependências), o que permite testar regras e rotas sem MySQL.
+
 ![Diagrama de arquitetura em camadas](docs/arquitetura/diagrama-camadas.png)
-```
+
+Documento completo, com o caminho de uma requisição passo a passo, tratamento de erros, segurança e como criar um recurso novo: [`docs/arquitetura/arquitetura-em-camadas.md`](docs/arquitetura/arquitetura-em-camadas.md).
 
 ## 6. Decisões Arquiteturais (ADRs)
 
@@ -425,6 +432,8 @@ Projeto-e-Arquitetura-5-fase/
 │   ├── docker-compose.yml        # MySQL 8 para desenvolvimento
 │   └── package.json
 ├── docs/
+│   ├── arquitetura/              # Documento e diagrama da arquitetura em camadas
+│   ├── modelo-dados/             # MER/DER, script SQL e dicionário de dados
 │   └── uml/                      # Diagramas UML do projeto
 └── README.md
 ```
