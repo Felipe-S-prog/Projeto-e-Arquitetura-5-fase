@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogoMark, BubbleIcon, ExamSheetIcon, QrMarkerIcon, ClassroomGridIcon, AdminIcon } from '../components/icons';
+import { LogoMark, BubbleIcon, ExamSheetIcon, QrMarkerIcon, ClassroomGridIcon, AdminIcon, CorrectionIcon } from '../components/icons';
 
 function NavItem({ to, icon, children }) {
   return (
@@ -80,6 +80,11 @@ export default function AppLayout() {
         </NavItem>
         <NavItem to="/turmas" icon={<ClassroomGridIcon width={18} height={14} />}>
           Turmas
+        </NavItem>
+
+        <SectionLabel>AVALIAÇÃO</SectionLabel>
+        <NavItem to="/correcao" icon={<CorrectionIcon size={16} />}>
+          Correção
         </NavItem>
 
         <SectionLabel>SISTEMA</SectionLabel>

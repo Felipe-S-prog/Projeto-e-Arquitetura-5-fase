@@ -20,6 +20,7 @@ import AnswerKey from './pages/AnswerKey';
 import PublicAnswerKey from './pages/PublicAnswerKey';
 import QrReaderTest from './pages/QrReaderTest';
 import Admin from './pages/Admin';
+import Grading from './pages/Grading';
 
 function RequireAuth({ children }) {
   const { isAuthenticated } = useAuth();
@@ -58,6 +59,7 @@ function AppRoutes() {
         <Route path="aplicacoes/:id/pdf/preview" element={<PdfPreview />} />
         <Route path="aplicacoes/:id/gabarito" element={<AnswerKey />} />
         <Route path="leitor-qr" element={<QrReaderTest />} />
+        <Route path="correcao" element={<Grading />} />
         <Route path="admin" element={<Admin />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
