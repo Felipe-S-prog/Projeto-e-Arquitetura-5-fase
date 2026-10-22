@@ -78,6 +78,7 @@ O arquivo `.env` **nunca** vai para o GitHub (está no `.gitignore`); só o `.en
 | `npm start` | API em modo normal |
 | `npm run db:migrate` | Cria o banco e aplica as migrations pendentes |
 | `npm run db:reset` | **Apaga o banco** e aplica tudo de novo (só desenvolvimento; bloqueado com `NODE_ENV=production`) |
+| `npm run db:seed` | Insere os dados de demonstração de `database/seeds/` (só desenvolvimento; pode rodar várias vezes) |
 | `npm test` | Roda os testes automatizados |
 
 ## Migrations
@@ -92,6 +93,15 @@ grupo chega ao mesmo banco com `npm run db:migrate`.
   `npm run db:reset` recria tudo do zero.
 - No MySQL, `CREATE`/`ALTER TABLE` não têm *rollback*: se uma migration falhar no meio, o que veio antes
   dela no arquivo já foi aplicado. Por isso prefira arquivos pequenos.
+
+## Dados de demonstração (seeds)
+
+Os arquivos `.sql` de `database/seeds/` inserem dados de exemplo para testar as telas sem cadastrar tudo
+à mão. Ao contrário das migrations, **não** são registrados no banco: rodam sempre que você chamar
+`npm run db:seed` e são escritos para não duplicar nada (`INSERT IGNORE` com ids fixos a partir de 9001).
+
+- `001_demo_correcao.sql`: turma, alunos, prova e cópias já geradas para testar Correção, Relatórios e
+  Histórico do aluno (códigos e passo a passo no próprio arquivo).
 
 ## Estrutura e responsabilidade de cada camada
 
