@@ -20,6 +20,7 @@ import AnswerKey from './pages/AnswerKey';
 import PublicAnswerKey from './pages/PublicAnswerKey';
 import QrReaderTest from './pages/QrReaderTest';
 import Admin from './pages/Admin';
+import ClassEdit from './pages/ClassEdit';
 
 function RequireAuth({ children }) {
   const { isAuthenticated } = useAuth();
@@ -34,6 +35,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/questoes" replace /> : <Login />} />
       <Route path="/gabarito" element={<PublicAnswerKey />} />
+      <Route path="turmas/:id/editar" element={<ClassEdit />} />
       <Route
         path="/"
         element={
@@ -47,6 +49,7 @@ function AppRoutes() {
         <Route path="questoes/nova" element={<QuestionNew />} />
         <Route path="turmas" element={<ClassesList />} />
         <Route path="turmas/nova" element={<ClassNew />} />
+        <Route path="turmas/:id/editar" element={<ClassEdit />} />
         <Route path="turmas/:id" element={<ClassDetail />} />
         <Route path="provas" element={<ExamsList />} />
         <Route path="provas/nova" element={<ExamNew />} />
