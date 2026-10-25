@@ -21,6 +21,9 @@ import AnswerKey from './pages/AnswerKey';
 import PublicAnswerKey from './pages/PublicAnswerKey';
 import QrReaderTest from './pages/QrReaderTest';
 import Admin from './pages/Admin';
+import Grading from './pages/Grading';
+import GradeReports from './pages/GradeReports';
+import StudentHistory from './pages/StudentHistory';
 import ClassEdit from './pages/ClassEdit';
 
 function RequireAuth({ children }) {
@@ -63,6 +66,9 @@ function AppRoutes() {
         <Route path="aplicacoes/:id/pdf/teste" element={<PdfTest />} />
         <Route path="aplicacoes/:id/gabarito" element={<AnswerKey />} />
         <Route path="leitor-qr" element={<QrReaderTest />} />
+        <Route path="correcao" element={<Grading />} />
+        <Route path="relatorios" element={<GradeReports />} />
+        <Route path="relatorios/alunos/:id" element={<StudentHistory />} />
         <Route path="admin" element={<Admin />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -11,6 +11,9 @@ const STATUS_COLORS = {
   Convidado: ['var(--neutral-bg)', 'var(--neutral-text)'],
   Publicado: ['var(--green-bg)', 'var(--green-text)'],
   'Não publicado': ['var(--neutral-bg)', 'var(--neutral-text)'],
+  Corrigida: ['var(--green-bg)', 'var(--green-text)'],
+  Automática: ['var(--navy-chip-bg)', 'var(--navy)'],
+  Manual: ['var(--amber-bg)', 'var(--amber-text)'],
 };
 
 export function statusColors(status) {

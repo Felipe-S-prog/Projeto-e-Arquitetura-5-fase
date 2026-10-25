@@ -186,3 +186,20 @@ CREATE TABLE IF NOT EXISTS `correcao` (
   CONSTRAINT `fk_correcao_copia_prova_id` FOREIGN KEY (`copia_prova_id`) REFERENCES `copia_prova` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_correcao_professor_id` FOREIGN KEY (`professor_id`) REFERENCES `usuario` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Correção de uma cópia: nota calculada automaticamente (RF09) ou lançada manualmente (RF10).';
+
+-- correcao_resposta (Correção e Notas - Miguel)
+CREATE TABLE IF NOT EXISTS `correcao_resposta` (
+  `correcao_id` INT UNSIGNED NOT NULL COMMENT 'Correção a que a resposta pertence',
+  `questao_id` INT UNSIGNED NOT NULL COMMENT 'Questão respondida',
+  `numero` TINYINT UNSIGNED NOT NULL COMMENT 'Número da questão como foi impressa nesta cópia (1 a 20)',
+  `letra_marcada` CHAR(1) NULL COMMENT 'Letra marcada pelo aluno, na ordem impressa da cópia; nulo quando ficou em branco ou é discursiva',
+  `correta` TINYINT(1) NULL COMMENT '1 se a letra marcada é a correta; nulo nas discursivas',
+  `pontos` DECIMAL(5,2) NOT NULL COMMENT 'Pontos obtidos na questão',
+  PRIMARY KEY (`correcao_id`, `questao_id`),
+  UNIQUE KEY `uq_correcao_resposta_correcao_id_numero` (`correcao_id`, `numero`),
+  KEY `idx_correcao_resposta_questao_id` (`questao_id`),
+  CONSTRAINT `fk_correcao_resposta_correcao_id` FOREIGN KEY (`correcao_id`) REFERENCES `correcao` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_correcao_resposta_questao_id` FOREIGN KEY (`questao_id`) REFERENCES `questao` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `ck_correcao_resposta_1` CHECK (letra_marcada IN ('A','B','C','D','E')),
+  CONSTRAINT `ck_correcao_resposta_2` CHECK (pontos >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Respostas de uma correção, uma por questão da prova (T29/T30).';

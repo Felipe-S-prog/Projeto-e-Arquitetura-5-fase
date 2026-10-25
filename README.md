@@ -473,6 +473,10 @@ Tabela com os principais endpoints da API. Se a lista crescer muito, mova para u
 | PUT | /api/recurso/:id | Atualiza um recurso existente |
 | DELETE | /api/recurso/:id | Remove um recurso |
 
+Especificação detalhada por frente:
+
+- **Correção e Notas** (correção automática, lançamento manual, relatórios e histórico do aluno): [`docs/api/correcao-e-notas.md`](docs/api/correcao-e-notas.md)
+
 ## 12. Testes e Validações
 
 📌 **N3** (validações e tratamento de erros/casos de borda passam a ser cobrados nesta entrega)
