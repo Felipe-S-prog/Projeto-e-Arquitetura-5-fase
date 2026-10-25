@@ -16,11 +16,12 @@ import { buildApplicationCopies } from '../utils/answerKey';
 
 const DataContext = createContext(null);
 
-const API_BASE_URL = 'http://localhost:3333/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:3333/api';
 
 // ID temporário para desenvolvimento.
 // Corresponde ao professor de teste cadastrado no banco.
-const DEFAULT_PROFESSOR_ID = 1;
+const DEFAULT_PROFESSOR_ID = Number(import.meta.env.VITE_PROFESSOR_ID || 1);
 
 async function adminApiRequest(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -60,10 +61,68 @@ function normalizeClass(cls) {
   };
 }
 
+// Monta o corpo enviado para a API de questões.
+function buildQuestionPayload(question) {
+  return {
+    professor_id: DEFAULT_PROFESSOR_ID,
+    tipo: 'OBJETIVA',
+    enunciado: question.excerpt,
+    imagem_url: question.imageUrl || null,
+    tags: question.tags || [],
+    alternativas: (question.alternatives || []).map((alternative) => ({
+      texto: alternative.text,
+      correta: Boolean(alternative.correct),
+    })),
+  };
+}
+
+function unwrapQuestion(payload) {
+  return payload?.question || payload?.data || payload;
+}
+
 const DataProvider = ({ children }) => {
   const [questions, setQuestions] = useState(() =>
     questionsSeed.map((question) => ({ ...question })),
   );
+
+  // Carrega as questões da API.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadQuestions() {
+      try {
+        const payload = await adminApiRequest(
+          `/questoes?professor_id=${DEFAULT_PROFESSOR_ID}`,
+        );
+
+        const apiQuestions = Array.isArray(payload)
+          ? payload
+          : payload?.data || [];
+
+        if (cancelled) return;
+
+        setQuestions((current) => {
+          const apiIds = new Set(
+            apiQuestions.map((question) => String(question.id)),
+          );
+
+          const localQuestions = current.filter(
+            (question) => !apiIds.has(String(question.id)),
+          );
+
+          return [...apiQuestions, ...localQuestions];
+        });
+      } catch (error) {
+        console.error('Erro ao carregar questões:', error);
+      }
+    }
+
+    loadQuestions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Turmas passam a vir da API, não mais do classes.json.
   const [classes, setClasses] = useState([]);
@@ -175,21 +234,48 @@ const DataProvider = ({ children }) => {
     };
   }, []);
 
-  const addQuestion = useCallback((question) => {
-    setQuestions((previous) => {
-      const id =
-        previous.reduce(
-          (max, item) => Math.max(max, Number(item.id) || 0),
-          0,
-        ) + 1;
+  // Cria uma questão na API.
+  const addQuestion = useCallback(async (question) => {
+    const saved = unwrapQuestion(
+      await adminApiRequest('/questoes', {
+        method: 'POST',
+        body: JSON.stringify(buildQuestionPayload(question)),
+      }),
+    );
 
-      return [...previous, { id, ...question }];
-    });
+    setQuestions((previous) => [
+      saved,
+      ...previous.filter((item) => String(item.id) !== String(saved.id)),
+    ]);
+
+    return saved;
   }, []);
 
-  const deleteQuestion = useCallback((id) => {
+  // Atualiza uma questão existente na API.
+  const updateQuestion = useCallback(async (id, question) => {
+    const saved = unwrapQuestion(
+      await adminApiRequest(`/questoes/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(buildQuestionPayload(question)),
+      }),
+    );
+
     setQuestions((previous) =>
-      previous.filter((question) => question.id !== id),
+      previous.map((item) => (String(item.id) === String(id) ? saved : item)),
+    );
+
+    return saved;
+  }, []);
+
+  // Exclui uma questão pela API.
+  const deleteQuestion = useCallback(async (id) => {
+    await adminApiRequest(
+      `/questoes/${id}?professor_id=${DEFAULT_PROFESSOR_ID}`,
+      { method: 'DELETE' },
+    );
+
+    setQuestions((previous) =>
+      previous.filter((question) => String(question.id) !== String(id)),
     );
   }, []);
 
@@ -661,6 +747,7 @@ const DataProvider = ({ children }) => {
       settingsLoading,
       settingsError,
       addQuestion,
+      updateQuestion,
       deleteQuestion,
       addClass,
       updateClass,
@@ -700,6 +787,7 @@ const DataProvider = ({ children }) => {
       settingsLoading,
       settingsError,
       addQuestion,
+      updateQuestion,
       deleteQuestion,
       addClass,
       updateClass,
