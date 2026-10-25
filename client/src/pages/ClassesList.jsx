@@ -1,25 +1,82 @@
+
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import { PageHeader, PrimaryButton, Badge } from '../components/ui';
+import {
+  PageHeader,
+  PrimaryButton,
+  Badge,
+  EmptyState,
+} from '../components/ui';
 
 export default function ClassesList() {
-  const { classes, applications } = useData();
+  const {
+    classes,
+    applications,
+    classesLoading,
+    classesError,
+  } = useData();
+
   const navigate = useNavigate();
 
   return (
     <div>
       <PageHeader
         title="Turmas"
-        description="Contexto usado para organizar provas e aplicações. Turmas arquivadas preservam o histórico."
-        actions={<PrimaryButton onClick={() => navigate('/turmas/nova')}>+ Criar turma</PrimaryButton>}
+        description="Gerencie suas turmas. As turmas arquivadas preservam seu histórico."
+        actions={
+          <PrimaryButton onClick={() => navigate('/turmas/nova')}>
+            + Criar turma
+          </PrimaryButton>
+        }
       />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-        {classes.map((c) => {
-          const appCount = applications.filter((a) => a.classId === c.id).length;
+
+      {classesLoading && <p>Carregando turmas...</p>}
+
+      {classesError && (
+        <div
+          role="alert"
+          style={{ color: '#b42318', marginBottom: 16, fontSize: 14 }}
+        >
+          Não foi possível carregar as turmas: {classesError}
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            style={{ marginLeft: 8 }}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {!classesLoading && !classesError && classes.length === 0 && (
+        <EmptyState>
+          Nenhuma turma cadastrada. Clique em “Criar turma” para começar.
+        </EmptyState>
+      )}
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: 16,
+        }}
+      >
+        {classes.map((cls) => {
+          const appCount = applications.filter(
+            (application) => application.classId === cls.id,
+          ).length;
+
           return (
             <div
-              key={c.id}
-              onClick={() => navigate(`/turmas/${c.id}`)}
+              key={cls.id}
+              onClick={() => navigate(`/turmas/${cls.id}`)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  navigate(`/turmas/${cls.id}`);
+                }
+              }}
+              role="button"
+              tabIndex={0}
               style={{
                 background: 'white',
                 border: '1px solid var(--border)',
@@ -31,13 +88,32 @@ export default function ClassesList() {
                 gap: 14,
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-strong)', lineHeight: 1.3 }}>{c.name}</div>
-                <Badge status={c.status} />
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 700,
+                    color: 'var(--text-strong)',
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {cls.name}
+                </div>
+
+                <Badge status={cls.status} />
               </div>
+
               <div style={{ fontSize: 13, color: 'var(--muted)' }}>
-                {c.subject} · {c.period}
+                {cls.subject} · {cls.period}
               </div>
+
               <div
                 style={{
                   display: 'flex',
@@ -47,8 +123,13 @@ export default function ClassesList() {
                   borderTop: '1px solid var(--border-light)',
                 }}
               >
-                <div style={{ fontSize: 12.5, color: 'var(--muted-2)' }}>{appCount} aplicações</div>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>Abrir →</span>
+                <div style={{ fontSize: 12.5, color: 'var(--muted-2)' }}>
+                  {appCount} aplicações
+                </div>
+
+                <span style={{ fontSize: 13, fontWeight: 700 }}>
+                  Abrir →
+                </span>
               </div>
             </div>
           );

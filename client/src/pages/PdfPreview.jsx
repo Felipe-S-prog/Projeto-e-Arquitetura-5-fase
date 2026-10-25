@@ -57,6 +57,7 @@ export default function PdfPreview() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+          <SecondaryButton onClick={() => navigate(`/aplicacoes/${app.id}/pdf/teste`)}>Testar PDF real</SecondaryButton>
           <SecondaryButton onClick={() => navigate('/leitor-qr')}>Ler QR Code</SecondaryButton>
           <SecondaryButton onClick={() => navigate(`/aplicacoes/${app.id}/gabarito`)}>Gerar gabarito</SecondaryButton>
           <PrimaryButton onClick={() => setShowModal(true)}>Baixar todas em PDF</PrimaryButton>

@@ -16,6 +16,7 @@ import ApplicationNew from './pages/ApplicationNew';
 import ApplicationDetail from './pages/ApplicationDetail';
 import PdfConfig from './pages/PdfConfig';
 import PdfPreview from './pages/PdfPreview';
+import PdfTest from './pages/PdfTest';
 import AnswerKey from './pages/AnswerKey';
 import PublicAnswerKey from './pages/PublicAnswerKey';
 import QrReaderTest from './pages/QrReaderTest';
@@ -23,6 +24,7 @@ import Admin from './pages/Admin';
 import Grading from './pages/Grading';
 import GradeReports from './pages/GradeReports';
 import StudentHistory from './pages/StudentHistory';
+import ClassEdit from './pages/ClassEdit';
 
 function RequireAuth({ children }) {
   const { isAuthenticated } = useAuth();
@@ -37,6 +39,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/questoes" replace /> : <Login />} />
       <Route path="/gabarito" element={<PublicAnswerKey />} />
+      <Route path="turmas/:id/editar" element={<ClassEdit />} />
       <Route
         path="/"
         element={
@@ -50,6 +53,7 @@ function AppRoutes() {
         <Route path="questoes/nova" element={<QuestionNew />} />
         <Route path="turmas" element={<ClassesList />} />
         <Route path="turmas/nova" element={<ClassNew />} />
+        <Route path="turmas/:id/editar" element={<ClassEdit />} />
         <Route path="turmas/:id" element={<ClassDetail />} />
         <Route path="provas" element={<ExamsList />} />
         <Route path="provas/nova" element={<ExamNew />} />
@@ -59,6 +63,7 @@ function AppRoutes() {
         <Route path="aplicacoes/:id" element={<ApplicationDetail />} />
         <Route path="aplicacoes/:id/pdf" element={<PdfConfig />} />
         <Route path="aplicacoes/:id/pdf/preview" element={<PdfPreview />} />
+        <Route path="aplicacoes/:id/pdf/teste" element={<PdfTest />} />
         <Route path="aplicacoes/:id/gabarito" element={<AnswerKey />} />
         <Route path="leitor-qr" element={<QrReaderTest />} />
         <Route path="correcao" element={<Grading />} />

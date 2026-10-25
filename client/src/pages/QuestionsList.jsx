@@ -106,9 +106,16 @@ export default function QuestionsList() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 14, fontSize: 13, paddingTop: 4, flexShrink: 0 }}>
-              <a href="#" style={{ textDecoration: 'none', fontWeight: 600 }} onClick={(e) => e.preventDefault()}>
-                Editar
-              </a>
+             <a
+             href={`/questoes/nova?editar=${q.id}`}
+             style={{ textDecoration: 'none', fontWeight: 600 }}
+             onClick={(e) => {
+             e.preventDefault();
+              navigate(`/questoes/nova?editar=${q.id}`);
+           }}
+            >
+              Editar
+             </a>
               <a
                 href="#"
                 style={{ textDecoration: 'none', fontWeight: 600, color: 'var(--red-text)' }}
