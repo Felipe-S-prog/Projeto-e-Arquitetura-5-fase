@@ -9,7 +9,6 @@ import {
 } from 'react';
 
 import questionsSeed from '../data/questions.json';
-import classesSeed from '../data/classes.json';
 import examsSeed from '../data/exams.json';
 import applicationsSeed from '../data/applications.json';
 import { todayBR } from '../utils/status';
@@ -18,6 +17,10 @@ import { buildApplicationCopies } from '../utils/answerKey';
 const DataContext = createContext(null);
 
 const API_BASE_URL = 'http://localhost:3333/api';
+
+// ID temporário para desenvolvimento.
+// Corresponde ao professor de teste cadastrado no banco.
+const DEFAULT_PROFESSOR_ID = 1;
 
 async function adminApiRequest(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -30,8 +33,11 @@ async function adminApiRequest(path, options = {}) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+
     throw new Error(
-      errorData.message || `Erro na API (${response.status}).`,
+      errorData.error?.message ||
+        errorData.message ||
+        `Erro na API (${response.status}).`,
     );
   }
 
@@ -40,25 +46,39 @@ async function adminApiRequest(path, options = {}) {
   return response.json();
 }
 
-function nextId(list) {
-  return list.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+function normalizeClass(cls) {
+  return {
+    id: Number(cls.id),
+    name: cls.name ?? cls.nome,
+    subject: cls.subject ?? cls.disciplina,
+    period: cls.period ?? cls.periodo,
+    status:
+      cls.status === 'ARQUIVADA' || cls.status === 'Arquivada'
+        ? 'Arquivada'
+        : 'Ativa',
+    students: cls.students ?? [],
+  };
 }
 
-export function DataProvider({ children }) {
+const DataProvider = ({ children }) => {
   const [questions, setQuestions] = useState(() =>
-    questionsSeed.map((q) => ({ ...q })),
+    questionsSeed.map((question) => ({ ...question })),
   );
 
-  const [classes, setClasses] = useState(() =>
-    classesSeed.map((c) => ({ ...c })),
-  );
+  // Turmas passam a vir da API, não mais do classes.json.
+  const [classes, setClasses] = useState([]);
+  const [classesLoading, setClassesLoading] = useState(true);
+  const [classesError, setClassesError] = useState('');
 
   const [exams, setExams] = useState(() =>
-    examsSeed.map((e) => ({ ...e })),
+    examsSeed.map((exam) => ({ ...exam })),
   );
 
   const [applications, setApplications] = useState(() =>
-    applicationsSeed.map((a) => ({ ...a, copies: a.copies || [] })),
+    applicationsSeed.map((application) => ({
+      ...application,
+      copies: application.copies || [],
+    })),
   );
 
   const [adminUsers, setAdminUsers] = useState([]);
@@ -73,9 +93,36 @@ export function DataProvider({ children }) {
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [settingsError, setSettingsError] = useState('');
 
-  // Carrega usuários e configurações da API.
+  // Carrega turmas, usuários administrativos e configurações.
   useEffect(() => {
     let cancelled = false;
+
+    async function loadClasses() {
+      setClassesLoading(true);
+      setClassesError('');
+
+      try {
+        const result = await adminApiRequest(
+          `/turmas?professor_id=${DEFAULT_PROFESSOR_ID}`,
+        );
+
+        if (!Array.isArray(result)) {
+          throw new Error('A API retornou uma lista de turmas inválida.');
+        }
+
+        if (!cancelled) {
+          setClasses(result.map(normalizeClass));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setClassesError(error.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setClassesLoading(false);
+        }
+      }
+    }
 
     async function loadAdminUsers() {
       setAdminUsersLoading(true);
@@ -119,6 +166,7 @@ export function DataProvider({ children }) {
       }
     }
 
+    loadClasses();
     loadAdminUsers();
     loadSettings();
 
@@ -128,118 +176,270 @@ export function DataProvider({ children }) {
   }, []);
 
   const addQuestion = useCallback((question) => {
-    setQuestions((prev) => {
-      const id = nextId(prev);
-      return [...prev, { id, ...question }];
+    setQuestions((previous) => {
+      const id =
+        previous.reduce(
+          (max, item) => Math.max(max, Number(item.id) || 0),
+          0,
+        ) + 1;
+
+      return [...previous, { id, ...question }];
     });
   }, []);
 
   const deleteQuestion = useCallback((id) => {
-    setQuestions((prev) => prev.filter((q) => q.id !== id));
-  }, []);
-
-  const addClass = useCallback((cls) => {
-    setClasses((prev) => [
-      ...prev,
-      { id: nextId(prev), status: 'Ativa', students: [], ...cls },
-    ]);
-  }, []);
-
-  const archiveClass = useCallback((id) => {
-    setClasses((prev) =>
-      prev.map((c) =>
-        c.id === id ? { ...c, status: 'Arquivada' } : c,
-      ),
+    setQuestions((previous) =>
+      previous.filter((question) => question.id !== id),
     );
   }, []);
 
-  const addExam = useCallback((exam) => {
-    setExams((prev) => {
-      const id = nextId(prev);
-      return [...prev, { id, status: 'Rascunho', ...exam }];
-    });
-  }, []);
+  // Cadastra uma turma no MySQL.
+  const addClass = useCallback(async (cls) => {
+    setClassesError('');
 
-  const createApplication = useCallback(({ examId, classId, quantity }) => {
-    let newId;
+    const name = cls.name?.trim();
+    const subject = cls.subject?.trim();
+    const period = cls.period?.trim();
 
-    setApplications((prev) => {
-      newId = nextId(prev);
+    if (!name || !subject || !period) {
+      throw new Error('Preencha o nome, a disciplina e o período.');
+    }
 
-      return [
-        ...prev,
+    const duplicate = classes.some(
+      (item) =>
+        item.name.trim().toLowerCase() === name.toLowerCase() &&
+        item.subject.trim().toLowerCase() === subject.toLowerCase() &&
+        item.period.trim().toLowerCase() === period.toLowerCase(),
+    );
+
+    if (duplicate) {
+      throw new Error(
+        'Já existe uma turma com esse nome, disciplina e período.',
+      );
+    }
+
+    try {
+      const createdClass = await adminApiRequest('/turmas', {
+        method: 'POST',
+        body: JSON.stringify({
+          professor_id: DEFAULT_PROFESSOR_ID,
+          nome: name,
+          disciplina: subject,
+          periodo: period,
+        }),
+      });
+
+      const normalized = normalizeClass(createdClass);
+
+      setClasses((previous) => [normalized, ...previous]);
+
+      return normalized;
+    } catch (error) {
+      setClassesError(error.message);
+      throw error;
+    }
+  }, [classes]);
+
+  // Atualiza uma turma existente no MySQL.
+  const updateClass = useCallback(async (id, changes) => {
+    setClassesError('');
+
+    const name = changes.name?.trim();
+    const subject = changes.subject?.trim();
+    const period = changes.period?.trim();
+
+    if (!name || !subject || !period) {
+      throw new Error('Preencha o nome, a disciplina e o período.');
+    }
+
+    const duplicate = classes.some(
+      (item) =>
+        item.id !== Number(id) &&
+        item.name.trim().toLowerCase() === name.toLowerCase() &&
+        item.subject.trim().toLowerCase() === subject.toLowerCase() &&
+        item.period.trim().toLowerCase() === period.toLowerCase(),
+    );
+
+    if (duplicate) {
+      throw new Error(
+        'Já existe outra turma com esse nome, disciplina e período.',
+      );
+    }
+
+    try {
+      const updatedClass = await adminApiRequest(`/turmas/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          professor_id: DEFAULT_PROFESSOR_ID,
+          nome: name,
+          disciplina: subject,
+          periodo: period,
+        }),
+      });
+
+      const normalized = normalizeClass(updatedClass);
+
+      setClasses((previous) =>
+        previous.map((item) =>
+          item.id === Number(id) ? normalized : item,
+        ),
+      );
+
+      return normalized;
+    } catch (error) {
+      setClassesError(error.message);
+      throw error;
+    }
+  }, [classes]);
+
+  // Arquiva a turma no MySQL.
+  const archiveClass = useCallback(async (id) => {
+    setClassesError('');
+
+    try {
+      const archivedClass = await adminApiRequest(
+        `/turmas/${id}/arquivar`,
         {
-          id: newId,
-          examId,
-          classId,
-          status: 'Pendente',
-          quantity,
-          date: null,
-          shuffleQuestions: true,
-          shuffleAlternatives: true,
-          linkToRoster: false,
-          copies: [],
+          method: 'PATCH',
+          body: JSON.stringify({
+            professor_id: DEFAULT_PROFESSOR_ID,
+          }),
         },
-      ];
-    });
+      );
 
-    return newId;
+      const normalized = normalizeClass(archivedClass);
+
+      setClasses((previous) =>
+        previous.map((item) =>
+          item.id === Number(id) ? normalized : item,
+        ),
+      );
+
+      return normalized;
+    } catch (error) {
+      setClassesError(error.message);
+      throw error;
+    }
   }, []);
+
+  const addExam = useCallback((exam) => {
+    setExams((previous) => {
+      const id =
+        previous.reduce(
+          (max, item) => Math.max(max, Number(item.id) || 0),
+          0,
+        ) + 1;
+
+      return [...previous, { id, status: 'Rascunho', ...exam }];
+    });
+  }, []);
+
+  const createApplication = useCallback(
+    ({ examId, classId, quantity }) => {
+      let newId;
+
+      setApplications((previous) => {
+        newId =
+          previous.reduce(
+            (max, item) => Math.max(max, Number(item.id) || 0),
+            0,
+          ) + 1;
+
+        return [
+          ...previous,
+          {
+            id: newId,
+            examId,
+            classId,
+            status: 'Pendente',
+            quantity,
+            date: null,
+            shuffleQuestions: true,
+            shuffleAlternatives: true,
+            linkToRoster: false,
+            copies: [],
+          },
+        ];
+      });
+
+      return newId;
+    },
+    [],
+  );
 
   const updateApplication = useCallback((id, patch) => {
-    setApplications((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+    setApplications((previous) =>
+      previous.map((application) =>
+        application.id === id
+          ? { ...application, ...patch }
+          : application,
+      ),
     );
   }, []);
 
   const confirmApplicationDownload = useCallback((id) => {
-    setApplications((prev) =>
-      prev.map((a) =>
-        a.id === id
-          ? { ...a, status: 'Aplicada', date: a.date || todayBR() }
-          : a,
+    setApplications((previous) =>
+      previous.map((application) =>
+        application.id === id
+          ? {
+              ...application,
+              status: 'Aplicada',
+              date: application.date || todayBR(),
+            }
+          : application,
       ),
     );
   }, []);
 
-  // Gera as cópias da prova para uma aplicação.
+  // Gera cópias da prova para uma aplicação.
   const generateApplicationCopies = useCallback(
     (applicationId) => {
-      setApplications((prev) => {
-        const app = prev.find((a) => a.id === Number(applicationId));
-        if (!app) return prev;
+      setApplications((previous) => {
+        const application = previous.find(
+          (item) => item.id === Number(applicationId),
+        );
 
-        const exam = exams.find((e) => e.id === app.examId);
-        if (!exam) return prev;
+        if (!application) return previous;
+
+        const exam = exams.find(
+          (item) => item.id === application.examId,
+        );
+
+        if (!exam) return previous;
 
         const examQuestions = exam.questions
           .map(({ questionId }) =>
-            questions.find((q) => q.id === questionId),
+            questions.find((question) => question.id === questionId),
           )
           .filter(Boolean);
 
-        const cls = classes.find((c) => c.id === app.classId);
-        const studentNames = app.linkToRoster
-          ? (cls?.students || []).map((s) => s.name)
+        const cls = classes.find(
+          (item) => item.id === application.classId,
+        );
+
+        const studentNames = application.linkToRoster
+          ? (cls?.students || []).map((student) => student.name)
           : null;
 
-        const otherCodes = prev.flatMap((a) =>
-          a.id === app.id ? [] : (a.copies || []).map((c) => c.code),
+        const otherCodes = previous.flatMap((item) =>
+          item.id === application.id
+            ? []
+            : (item.copies || []).map((copy) => copy.code),
         );
 
         const copies = buildApplicationCopies({
           examQuestions,
-          quantity: app.quantity,
-          shuffleQuestions: app.shuffleQuestions,
-          shuffleAlternatives: app.shuffleAlternatives,
+          quantity: application.quantity,
+          shuffleQuestions: application.shuffleQuestions,
+          shuffleAlternatives: application.shuffleAlternatives,
           studentNames,
           existingCodes: otherCodes,
         });
 
-        return prev.map((a) =>
-          a.id === app.id
-            ? { ...a, copies, quantity: copies.length }
-            : a,
+        return previous.map((item) =>
+          item.id === application.id
+            ? { ...item, copies, quantity: copies.length }
+            : item,
         );
       });
     },
@@ -250,21 +450,23 @@ export function DataProvider({ children }) {
   const publishAnswerKey = useCallback((applicationId, code) => {
     const now = new Date().toISOString();
 
-    setApplications((prev) =>
-      prev.map((a) => {
-        if (a.id !== Number(applicationId)) return a;
+    setApplications((previous) =>
+      previous.map((application) => {
+        if (application.id !== Number(applicationId)) {
+          return application;
+        }
 
-        const copies = (a.copies || []).map((c) =>
-          code === 'all' || c.code === code
+        const copies = (application.copies || []).map((copy) =>
+          code === 'all' || copy.code === code
             ? {
-                ...c,
+                ...copy,
                 answerKeyPublished: true,
                 answerKeyPublishedAt: now,
               }
-            : c,
+            : copy,
         );
 
-        return { ...a, copies };
+        return { ...application, copies };
       }),
     );
   }, []);
@@ -272,14 +474,15 @@ export function DataProvider({ children }) {
   const findCopyByCode = useCallback(
     (code) => {
       const normalized = (code || '').trim().toUpperCase();
+
       if (!normalized) return null;
 
-      for (const app of applications) {
-        const copy = (app.copies || []).find(
-          (c) => c.code === normalized,
+      for (const application of applications) {
+        const copy = (application.copies || []).find(
+          (item) => item.code === normalized,
         );
 
-        if (copy) return { application: app, copy };
+        if (copy) return { application, copy };
       }
 
       return null;
@@ -289,7 +492,7 @@ export function DataProvider({ children }) {
 
   const classStudents = useCallback(
     (classId) =>
-      classes.find((c) => c.id === Number(classId))?.students || [],
+      classes.find((item) => item.id === Number(classId))?.students || [],
     [classes],
   );
 
@@ -302,7 +505,7 @@ export function DataProvider({ children }) {
         body: JSON.stringify(user),
       });
 
-      setAdminUsers((prev) => [createdUser, ...prev]);
+      setAdminUsers((previous) => [createdUser, ...previous]);
 
       return createdUser;
     } catch (error) {
@@ -323,8 +526,8 @@ export function DataProvider({ children }) {
         },
       );
 
-      setAdminUsers((prev) =>
-        prev.map((user) =>
+      setAdminUsers((previous) =>
+        previous.map((user) =>
           user.id === updatedUser.id ? updatedUser : user,
         ),
       );
@@ -344,8 +547,8 @@ export function DataProvider({ children }) {
         method: 'DELETE',
       });
 
-      setAdminUsers((prev) =>
-        prev.filter((user) => user.id !== Number(id)),
+      setAdminUsers((previous) =>
+        previous.filter((user) => user.id !== Number(id)),
       );
     } catch (error) {
       setAdminUsersError(error.message);
@@ -353,7 +556,7 @@ export function DataProvider({ children }) {
     }
   }, []);
 
-  // Atualiza as configurações no MySQL pela API.
+  // Atualiza as configurações pela API.
   const updateSettings = useCallback(async (patch) => {
     setSettingsError('');
 
@@ -376,35 +579,39 @@ export function DataProvider({ children }) {
   }, []);
 
   const getClassById = useCallback(
-    (id) => classes.find((c) => c.id === Number(id)),
+    (id) => classes.find((item) => item.id === Number(id)),
     [classes],
   );
 
   const getExamById = useCallback(
-    (id) => exams.find((e) => e.id === Number(id)),
+    (id) => exams.find((item) => item.id === Number(id)),
     [exams],
   );
 
   const getApplicationById = useCallback(
-    (id) => applications.find((a) => a.id === Number(id)),
+    (id) =>
+      applications.find((item) => item.id === Number(id)),
     [applications],
   );
 
   const getQuestionById = useCallback(
-    (id) => questions.find((q) => q.id === Number(id)),
+    (id) => questions.find((item) => item.id === Number(id)),
     [questions],
   );
 
   const examQuestionsDetailed = useCallback(
     (examId) => {
       const exam = getExamById(examId);
+
       if (!exam) return [];
 
       return exam.questions
         .map(({ questionId, score }) => {
-          const q = getQuestionById(questionId);
-          if (!q) return null;
-          return { ...q, score };
+          const question = getQuestionById(questionId);
+
+          if (!question) return null;
+
+          return { ...question, score };
         })
         .filter(Boolean);
     },
@@ -413,21 +620,23 @@ export function DataProvider({ children }) {
 
   const classApplications = useCallback(
     (classId) =>
-      applications.filter((a) => a.classId === Number(classId)),
+      applications.filter(
+        (application) => application.classId === Number(classId),
+      ),
     [applications],
   );
 
   const selectableClasses = useMemo(
-    () => classes.filter((c) => c.status !== 'Arquivada'),
+    () => classes.filter((item) => item.status !== 'Arquivada'),
     [classes],
   );
 
   const selectableExams = useMemo(
-    () => exams.filter((e) => e.status !== 'Arquivada'),
+    () => exams.filter((item) => item.status !== 'Arquivada'),
     [exams],
   );
 
-  // Gera cópias para aplicações que já nasceram como "Aplicada" no seed.
+  // Mantém o comportamento existente das aplicações de exemplo.
   useEffect(() => {
     applicationsSeed.forEach((seed) => {
       if (seed.status === 'Aplicada') {
@@ -441,6 +650,8 @@ export function DataProvider({ children }) {
     () => ({
       questions,
       classes,
+      classesLoading,
+      classesError,
       exams,
       applications,
       adminUsers,
@@ -452,6 +663,7 @@ export function DataProvider({ children }) {
       addQuestion,
       deleteQuestion,
       addClass,
+      updateClass,
       archiveClass,
       addExam,
       createApplication,
@@ -477,6 +689,8 @@ export function DataProvider({ children }) {
     [
       questions,
       classes,
+      classesLoading,
+      classesError,
       exams,
       applications,
       adminUsers,
@@ -488,6 +702,7 @@ export function DataProvider({ children }) {
       addQuestion,
       deleteQuestion,
       addClass,
+      updateClass,
       archiveClass,
       addExam,
       createApplication,
@@ -517,14 +732,16 @@ export function DataProvider({ children }) {
       {children}
     </DataContext.Provider>
   );
-}
+};
 
 export function useData() {
-  const ctx = useContext(DataContext);
+  const context = useContext(DataContext);
 
-  if (!ctx) {
+  if (!context) {
     throw new Error('useData must be used within DataProvider');
   }
 
-  return ctx;
+  return context;
 }
+
+export { DataProvider };
