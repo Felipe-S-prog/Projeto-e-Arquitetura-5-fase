@@ -16,6 +16,7 @@ import ApplicationNew from './pages/ApplicationNew';
 import ApplicationDetail from './pages/ApplicationDetail';
 import PdfConfig from './pages/PdfConfig';
 import PdfPreview from './pages/PdfPreview';
+import PdfTest from './pages/PdfTest';
 import AnswerKey from './pages/AnswerKey';
 import PublicAnswerKey from './pages/PublicAnswerKey';
 import QrReaderTest from './pages/QrReaderTest';
@@ -59,6 +60,7 @@ function AppRoutes() {
         <Route path="aplicacoes/:id" element={<ApplicationDetail />} />
         <Route path="aplicacoes/:id/pdf" element={<PdfConfig />} />
         <Route path="aplicacoes/:id/pdf/preview" element={<PdfPreview />} />
+        <Route path="aplicacoes/:id/pdf/teste" element={<PdfTest />} />
         <Route path="aplicacoes/:id/gabarito" element={<AnswerKey />} />
         <Route path="leitor-qr" element={<QrReaderTest />} />
         <Route path="admin" element={<Admin />} />
