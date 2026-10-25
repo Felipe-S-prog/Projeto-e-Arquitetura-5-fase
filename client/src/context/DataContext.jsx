@@ -1,3 +1,4 @@
+
 import {
   createContext,
   useCallback,
@@ -8,11 +9,8 @@ import {
 } from 'react';
 
 import questionsSeed from '../data/questions.json';
-import classesSeed from '../data/classes.json';
 import examsSeed from '../data/exams.json';
 import applicationsSeed from '../data/applications.json';
-import adminUsersSeed from '../data/adminUsers.json';
-import settingsSeed from '../data/settings.json';
 import { todayBR } from '../utils/status';
 import { buildApplicationCopies } from '../utils/answerKey';
 
@@ -21,41 +19,70 @@ const DataContext = createContext(null);
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:3333/api';
 
-const PROFESSOR_ID = Number(import.meta.env.VITE_PROFESSOR_ID || 1);
+// ID temporário para desenvolvimento.
+// Corresponde ao professor de teste cadastrado no banco.
+const DEFAULT_PROFESSOR_ID = Number(import.meta.env.VITE_PROFESSOR_ID || 1);
 
-// Chaves usadas no localStorage.
-const ADMIN_USERS_STORAGE_KEY = 'sgp:adminUsers';
-const SETTINGS_STORAGE_KEY = 'sgp:settings';
+async function adminApiRequest(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
 
-function loadPersisted(key, fallback) {
-  try {
-    const raw = window.localStorage.getItem(key);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
 
-    if (!raw) return fallback;
-
-    const parsed = JSON.parse(raw);
-
-    return parsed ?? fallback;
-  } catch {
-    return fallback;
+    throw new Error(
+      errorData.error?.message ||
+        errorData.message ||
+        `Erro na API (${response.status}).`,
+    );
   }
+
+  if (response.status === 204) return null;
+
+  return response.json();
 }
 
-function persist(key, value) {
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // A sessão continua funcionando mesmo se o armazenamento falhar.
-  }
+function normalizeClass(cls) {
+  return {
+    id: Number(cls.id),
+    name: cls.name ?? cls.nome,
+    subject: cls.subject ?? cls.disciplina,
+    period: cls.period ?? cls.periodo,
+    status:
+      cls.status === 'ARQUIVADA' || cls.status === 'Arquivada'
+        ? 'Arquivada'
+        : 'Ativa',
+    students: cls.students ?? [],
+  };
 }
 
-function nextId(list) {
-  return list.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+// Monta o corpo enviado para a API de questões.
+function buildQuestionPayload(question) {
+  return {
+    professor_id: DEFAULT_PROFESSOR_ID,
+    tipo: 'OBJETIVA',
+    enunciado: question.excerpt,
+    imagem_url: question.imageUrl || null,
+    tags: question.tags || [],
+    alternativas: (question.alternatives || []).map((alternative) => ({
+      texto: alternative.text,
+      correta: Boolean(alternative.correct),
+    })),
+  };
 }
 
-export function DataProvider({ children }) {
+function unwrapQuestion(payload) {
+  return payload?.question || payload?.data || payload;
+}
+
+const DataProvider = ({ children }) => {
   const [questions, setQuestions] = useState(() =>
-    questionsSeed.map((q) => ({ ...q }))
+    questionsSeed.map((question) => ({ ...question })),
   );
 
   // Carrega as questões da API.
@@ -64,15 +91,9 @@ export function DataProvider({ children }) {
 
     async function loadQuestions() {
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/questoes?professor_id=${PROFESSOR_ID}`
+        const payload = await adminApiRequest(
+          `/questoes?professor_id=${DEFAULT_PROFESSOR_ID}`,
         );
-
-        if (!response.ok) {
-          throw new Error('Não foi possível carregar as questões da API.');
-        }
-
-        const payload = await response.json();
 
         const apiQuestions = Array.isArray(payload)
           ? payload
@@ -82,11 +103,11 @@ export function DataProvider({ children }) {
 
         setQuestions((current) => {
           const apiIds = new Set(
-            apiQuestions.map((question) => String(question.id))
+            apiQuestions.map((question) => String(question.id)),
           );
 
           const localQuestions = current.filter(
-            (question) => !apiIds.has(String(question.id))
+            (question) => !apiIds.has(String(question.id)),
           );
 
           return [...apiQuestions, ...localQuestions];
@@ -103,75 +124,128 @@ export function DataProvider({ children }) {
     };
   }, []);
 
-  const [classes, setClasses] = useState(() =>
-    classesSeed.map((c) => ({ ...c }))
-  );
+  // Turmas passam a vir da API, não mais do classes.json.
+  const [classes, setClasses] = useState([]);
+  const [classesLoading, setClassesLoading] = useState(true);
+  const [classesError, setClassesError] = useState('');
 
   const [exams, setExams] = useState(() =>
-    examsSeed.map((e) => ({ ...e }))
+    examsSeed.map((exam) => ({ ...exam })),
   );
 
   const [applications, setApplications] = useState(() =>
-    applicationsSeed.map((a) => ({
-      ...a,
-      copies: a.copies || [],
-    }))
+    applicationsSeed.map((application) => ({
+      ...application,
+      copies: application.copies || [],
+    })),
   );
 
-  const [adminUsers, setAdminUsers] = useState(() =>
-    loadPersisted(
-      ADMIN_USERS_STORAGE_KEY,
-      adminUsersSeed.map((u) => ({ ...u }))
-    )
-  );
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [adminUsersLoading, setAdminUsersLoading] = useState(true);
+  const [adminUsersError, setAdminUsersError] = useState('');
 
-  const [settings, setSettings] = useState(() =>
-    loadPersisted(SETTINGS_STORAGE_KEY, { ...settingsSeed })
-  );
+  const [settings, setSettings] = useState({
+    institutionName: '',
+    defaultPeriod: '',
+  });
 
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsError, setSettingsError] = useState('');
+
+  // Carrega turmas, usuários administrativos e configurações.
   useEffect(() => {
-    persist(ADMIN_USERS_STORAGE_KEY, adminUsers);
-  }, [adminUsers]);
+    let cancelled = false;
 
-  useEffect(() => {
-    persist(SETTINGS_STORAGE_KEY, settings);
-  }, [settings]);
+    async function loadClasses() {
+      setClassesLoading(true);
+      setClassesError('');
+
+      try {
+        const result = await adminApiRequest(
+          `/turmas?professor_id=${DEFAULT_PROFESSOR_ID}`,
+        );
+
+        if (!Array.isArray(result)) {
+          throw new Error('A API retornou uma lista de turmas inválida.');
+        }
+
+        if (!cancelled) {
+          setClasses(result.map(normalizeClass));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setClassesError(error.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setClassesLoading(false);
+        }
+      }
+    }
+
+    async function loadAdminUsers() {
+      setAdminUsersLoading(true);
+      setAdminUsersError('');
+
+      try {
+        const users = await adminApiRequest('/admin/usuarios');
+
+        if (!cancelled) {
+          setAdminUsers(users);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setAdminUsersError(error.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setAdminUsersLoading(false);
+        }
+      }
+    }
+
+    async function loadSettings() {
+      setSettingsLoading(true);
+      setSettingsError('');
+
+      try {
+        const savedSettings = await adminApiRequest('/settings');
+
+        if (!cancelled) {
+          setSettings(savedSettings);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSettingsError(error.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setSettingsLoading(false);
+        }
+      }
+    }
+
+    loadClasses();
+    loadAdminUsers();
+    loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Cria uma questão na API.
   const addQuestion = useCallback(async (question) => {
-    const response = await fetch(`${API_BASE_URL}/questoes`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        professor_id: PROFESSOR_ID,
-        tipo: 'OBJETIVA',
-        enunciado: question.excerpt,
-        imagem_url: question.imageUrl || null,
-        tags: question.tags || [],
-        alternativas: (question.alternatives || []).map((a) => ({
-          texto: a.text,
-          correta: Boolean(a.correct),
-        })),
+    const saved = unwrapQuestion(
+      await adminApiRequest('/questoes', {
+        method: 'POST',
+        body: JSON.stringify(buildQuestionPayload(question)),
       }),
-    });
+    );
 
-    const payload = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      throw new Error(
-        payload?.message ||
-          payload?.error ||
-          'Não foi possível criar a questão.'
-      );
-    }
-
-    const saved = payload?.question || payload?.data || payload;
-
-    setQuestions((prev) => [
+    setQuestions((previous) => [
       saved,
-      ...prev.filter((q) => String(q.id) !== String(saved.id)),
+      ...previous.filter((item) => String(item.id) !== String(saved.id)),
     ]);
 
     return saved;
@@ -179,40 +253,15 @@ export function DataProvider({ children }) {
 
   // Atualiza uma questão existente na API.
   const updateQuestion = useCallback(async (id, question) => {
-    const response = await fetch(`${API_BASE_URL}/questoes/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        professor_id: PROFESSOR_ID,
-        tipo: 'OBJETIVA',
-        enunciado: question.excerpt,
-        imagem_url: question.imageUrl || null,
-        tags: question.tags || [],
-        alternativas: (question.alternatives || []).map((a) => ({
-          texto: a.text,
-          correta: Boolean(a.correct),
-        })),
+    const saved = unwrapQuestion(
+      await adminApiRequest(`/questoes/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(buildQuestionPayload(question)),
       }),
-    });
+    );
 
-    const payload = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      throw new Error(
-        payload?.message ||
-          payload?.error ||
-          'Não foi possível atualizar a questão.'
-      );
-    }
-
-    const saved = payload?.question || payload?.data || payload;
-
-    setQuestions((prev) =>
-      prev.map((q) =>
-        String(q.id) === String(id) ? saved : q
-      )
+    setQuestions((previous) =>
+      previous.map((item) => (String(item.id) === String(id) ? saved : item)),
     );
 
     return saved;
@@ -220,257 +269,420 @@ export function DataProvider({ children }) {
 
   // Exclui uma questão pela API.
   const deleteQuestion = useCallback(async (id) => {
-    const response = await fetch(
-      `${API_BASE_URL}/questoes/${id}?professor_id=${PROFESSOR_ID}`,
-      { method: 'DELETE' }
+    await adminApiRequest(
+      `/questoes/${id}?professor_id=${DEFAULT_PROFESSOR_ID}`,
+      { method: 'DELETE' },
     );
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => null);
+    setQuestions((previous) =>
+      previous.filter((question) => String(question.id) !== String(id)),
+    );
+  }, []);
 
+  // Cadastra uma turma no MySQL.
+  const addClass = useCallback(async (cls) => {
+    setClassesError('');
+
+    const name = cls.name?.trim();
+    const subject = cls.subject?.trim();
+    const period = cls.period?.trim();
+
+    if (!name || !subject || !period) {
+      throw new Error('Preencha o nome, a disciplina e o período.');
+    }
+
+    const duplicate = classes.some(
+      (item) =>
+        item.name.trim().toLowerCase() === name.toLowerCase() &&
+        item.subject.trim().toLowerCase() === subject.toLowerCase() &&
+        item.period.trim().toLowerCase() === period.toLowerCase(),
+    );
+
+    if (duplicate) {
       throw new Error(
-        payload?.message ||
-          payload?.error ||
-          'Não foi possível excluir a questão.'
+        'Já existe uma turma com esse nome, disciplina e período.',
       );
     }
 
-    setQuestions((prev) =>
-      prev.filter((q) => String(q.id) !== String(id))
+    try {
+      const createdClass = await adminApiRequest('/turmas', {
+        method: 'POST',
+        body: JSON.stringify({
+          professor_id: DEFAULT_PROFESSOR_ID,
+          nome: name,
+          disciplina: subject,
+          periodo: period,
+        }),
+      });
+
+      const normalized = normalizeClass(createdClass);
+
+      setClasses((previous) => [normalized, ...previous]);
+
+      return normalized;
+    } catch (error) {
+      setClassesError(error.message);
+      throw error;
+    }
+  }, [classes]);
+
+  // Atualiza uma turma existente no MySQL.
+  const updateClass = useCallback(async (id, changes) => {
+    setClassesError('');
+
+    const name = changes.name?.trim();
+    const subject = changes.subject?.trim();
+    const period = changes.period?.trim();
+
+    if (!name || !subject || !period) {
+      throw new Error('Preencha o nome, a disciplina e o período.');
+    }
+
+    const duplicate = classes.some(
+      (item) =>
+        item.id !== Number(id) &&
+        item.name.trim().toLowerCase() === name.toLowerCase() &&
+        item.subject.trim().toLowerCase() === subject.toLowerCase() &&
+        item.period.trim().toLowerCase() === period.toLowerCase(),
     );
-  }, []);
 
-  const addClass = useCallback((cls) => {
-    let duplicateFound = false;
+    if (duplicate) {
+      throw new Error(
+        'Já existe outra turma com esse nome, disciplina e período.',
+      );
+    }
 
-    setClasses((prev) => {
-      const normalize = (value) => (value || '').trim().toLowerCase();
+    try {
+      const updatedClass = await adminApiRequest(`/turmas/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          professor_id: DEFAULT_PROFESSOR_ID,
+          nome: name,
+          disciplina: subject,
+          periodo: period,
+        }),
+      });
 
-      duplicateFound = prev.some(
-        (c) =>
-          normalize(c.name) === normalize(cls.name) &&
-          normalize(c.subject) === normalize(cls.subject) &&
-          normalize(c.period) === normalize(cls.period)
+      const normalized = normalizeClass(updatedClass);
+
+      setClasses((previous) =>
+        previous.map((item) =>
+          item.id === Number(id) ? normalized : item,
+        ),
       );
 
-      if (duplicateFound) {
-        return prev;
-      }
+      return normalized;
+    } catch (error) {
+      setClassesError(error.message);
+      throw error;
+    }
+  }, [classes]);
 
-      return [
-        ...prev,
+  // Arquiva a turma no MySQL.
+  const archiveClass = useCallback(async (id) => {
+    setClassesError('');
+
+    try {
+      const archivedClass = await adminApiRequest(
+        `/turmas/${id}/arquivar`,
         {
-          id: nextId(prev),
-          status: 'Ativa',
-          students: [],
-          ...cls,
+          method: 'PATCH',
+          body: JSON.stringify({
+            professor_id: DEFAULT_PROFESSOR_ID,
+          }),
         },
-      ];
-    });
+      );
 
-    return !duplicateFound;
-  }, []);
+      const normalized = normalizeClass(archivedClass);
 
-  const archiveClass = useCallback((id) => {
-    setClasses((prev) =>
-      prev.map((c) =>
-        c.id === id ? { ...c, status: 'Arquivada' } : c
-      )
-    );
+      setClasses((previous) =>
+        previous.map((item) =>
+          item.id === Number(id) ? normalized : item,
+        ),
+      );
+
+      return normalized;
+    } catch (error) {
+      setClassesError(error.message);
+      throw error;
+    }
   }, []);
 
   const addExam = useCallback((exam) => {
-    setExams((prev) => {
-      const id = nextId(prev);
+    setExams((previous) => {
+      const id =
+        previous.reduce(
+          (max, item) => Math.max(max, Number(item.id) || 0),
+          0,
+        ) + 1;
 
-      return [...prev, { id, status: 'Rascunho', ...exam }];
+      return [...previous, { id, status: 'Rascunho', ...exam }];
     });
   }, []);
 
-  const createApplication = useCallback(({ examId, classId, quantity }) => {
-    let newId;
+  const createApplication = useCallback(
+    ({ examId, classId, quantity }) => {
+      let newId;
 
-    setApplications((prev) => {
-      newId = nextId(prev);
+      setApplications((previous) => {
+        newId =
+          previous.reduce(
+            (max, item) => Math.max(max, Number(item.id) || 0),
+            0,
+          ) + 1;
 
-      return [
-        ...prev,
-        {
-          id: newId,
-          examId,
-          classId,
-          status: 'Pendente',
-          quantity,
-          date: null,
-          shuffleQuestions: true,
-          shuffleAlternatives: true,
-          linkToRoster: false,
-          copies: [],
-        },
-      ];
-    });
+        return [
+          ...previous,
+          {
+            id: newId,
+            examId,
+            classId,
+            status: 'Pendente',
+            quantity,
+            date: null,
+            shuffleQuestions: true,
+            shuffleAlternatives: true,
+            linkToRoster: false,
+            copies: [],
+          },
+        ];
+      });
 
-    return newId;
-  }, []);
+      return newId;
+    },
+    [],
+  );
 
   const updateApplication = useCallback((id, patch) => {
-    setApplications((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, ...patch } : a))
+    setApplications((previous) =>
+      previous.map((application) =>
+        application.id === id
+          ? { ...application, ...patch }
+          : application,
+      ),
     );
   }, []);
 
   const confirmApplicationDownload = useCallback((id) => {
-    setApplications((prev) =>
-      prev.map((a) =>
-        a.id === id
-          ? { ...a, status: 'Aplicada', date: a.date || todayBR() }
-          : a
-      )
+    setApplications((previous) =>
+      previous.map((application) =>
+        application.id === id
+          ? {
+              ...application,
+              status: 'Aplicada',
+              date: application.date || todayBR(),
+            }
+          : application,
+      ),
     );
   }, []);
 
-  // Gera as cópias da prova de uma aplicação.
+  // Gera cópias da prova para uma aplicação.
   const generateApplicationCopies = useCallback(
     (applicationId) => {
-      setApplications((prev) => {
-        const app = prev.find(
-          (a) => a.id === Number(applicationId)
+      setApplications((previous) => {
+        const application = previous.find(
+          (item) => item.id === Number(applicationId),
         );
 
-        if (!app) return prev;
+        if (!application) return previous;
 
-        const exam = exams.find((e) => e.id === app.examId);
+        const exam = exams.find(
+          (item) => item.id === application.examId,
+        );
 
-        if (!exam) return prev;
+        if (!exam) return previous;
 
         const examQuestions = exam.questions
           .map(({ questionId }) =>
-            questions.find((q) => q.id === questionId)
+            questions.find((question) => question.id === questionId),
           )
           .filter(Boolean);
 
-        const cls = classes.find((c) => c.id === app.classId);
+        const cls = classes.find(
+          (item) => item.id === application.classId,
+        );
 
-        const studentNames = app.linkToRoster
-          ? (cls?.students || []).map((s) => s.name)
+        const studentNames = application.linkToRoster
+          ? (cls?.students || []).map((student) => student.name)
           : null;
 
-        const otherCodes = prev.flatMap((a) =>
-          a.id === app.id
+        const otherCodes = previous.flatMap((item) =>
+          item.id === application.id
             ? []
-            : (a.copies || []).map((c) => c.code)
+            : (item.copies || []).map((copy) => copy.code),
         );
 
         const copies = buildApplicationCopies({
           examQuestions,
-          quantity: app.quantity,
-          shuffleQuestions: app.shuffleQuestions,
-          shuffleAlternatives: app.shuffleAlternatives,
+          quantity: application.quantity,
+          shuffleQuestions: application.shuffleQuestions,
+          shuffleAlternatives: application.shuffleAlternatives,
           studentNames,
           existingCodes: otherCodes,
         });
 
-        return prev.map((a) =>
-          a.id === app.id
-            ? { ...a, copies, quantity: copies.length }
-            : a
+        return previous.map((item) =>
+          item.id === application.id
+            ? { ...item, copies, quantity: copies.length }
+            : item,
         );
       });
     },
-    [exams, questions, classes]
+    [exams, questions, classes],
   );
 
   // Publica o gabarito de uma cópia ou de todas.
   const publishAnswerKey = useCallback((applicationId, code) => {
     const now = new Date().toISOString();
 
-    setApplications((prev) =>
-      prev.map((a) => {
-        if (a.id !== Number(applicationId)) return a;
+    setApplications((previous) =>
+      previous.map((application) => {
+        if (application.id !== Number(applicationId)) {
+          return application;
+        }
 
-        const copies = (a.copies || []).map((c) =>
-          code === 'all' || c.code === code
+        const copies = (application.copies || []).map((copy) =>
+          code === 'all' || copy.code === code
             ? {
-                ...c,
+                ...copy,
                 answerKeyPublished: true,
                 answerKeyPublishedAt: now,
               }
-            : c
+            : copy,
         );
 
-        return { ...a, copies };
-      })
+        return { ...application, copies };
+      }),
     );
   }, []);
 
-  // Busca uma cópia pelo código.
   const findCopyByCode = useCallback(
     (code) => {
       const normalized = (code || '').trim().toUpperCase();
 
       if (!normalized) return null;
 
-      for (const app of applications) {
-        const copy = (app.copies || []).find(
-          (c) => c.code === normalized
+      for (const application of applications) {
+        const copy = (application.copies || []).find(
+          (item) => item.code === normalized,
         );
 
-        if (copy) return { application: app, copy };
+        if (copy) return { application, copy };
       }
 
       return null;
     },
-    [applications]
+    [applications],
   );
 
   const classStudents = useCallback(
     (classId) =>
-      classes.find((c) => c.id === Number(classId))?.students || [],
-    [classes]
+      classes.find((item) => item.id === Number(classId))?.students || [],
+    [classes],
   );
 
-  const addAdminUser = useCallback((user) => {
-    setAdminUsers((prev) => {
-      const id = nextId(prev);
+  const addAdminUser = useCallback(async (user) => {
+    setAdminUsersError('');
 
-      return [...prev, { id, status: 'Convidado', ...user }];
-    });
+    try {
+      const createdUser = await adminApiRequest('/admin/usuarios', {
+        method: 'POST',
+        body: JSON.stringify(user),
+      });
+
+      setAdminUsers((previous) => [createdUser, ...previous]);
+
+      return createdUser;
+    } catch (error) {
+      setAdminUsersError(error.message);
+      throw error;
+    }
   }, []);
 
-  const updateAdminUser = useCallback((id, patch) => {
-    setAdminUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, ...patch } : u))
-    );
+  const updateAdminUser = useCallback(async (id, patch) => {
+    setAdminUsersError('');
+
+    try {
+      const updatedUser = await adminApiRequest(
+        `/admin/usuarios/${id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(patch),
+        },
+      );
+
+      setAdminUsers((previous) =>
+        previous.map((user) =>
+          user.id === updatedUser.id ? updatedUser : user,
+        ),
+      );
+
+      return updatedUser;
+    } catch (error) {
+      setAdminUsersError(error.message);
+      throw error;
+    }
   }, []);
 
-  const removeAdminUser = useCallback((id) => {
-    setAdminUsers((prev) =>
-      prev.filter((u) => u.id !== id)
-    );
+  const removeAdminUser = useCallback(async (id) => {
+    setAdminUsersError('');
+
+    try {
+      await adminApiRequest(`/admin/usuarios/${id}`, {
+        method: 'DELETE',
+      });
+
+      setAdminUsers((previous) =>
+        previous.filter((user) => user.id !== Number(id)),
+      );
+    } catch (error) {
+      setAdminUsersError(error.message);
+      throw error;
+    }
   }, []);
 
-  const updateSettings = useCallback((patch) => {
-    setSettings((prev) => ({ ...prev, ...patch }));
+  // Atualiza as configurações pela API.
+  const updateSettings = useCallback(async (patch) => {
+    setSettingsError('');
+
+    try {
+      const updatedSettings = await adminApiRequest('/settings', {
+        method: 'PUT',
+        body: JSON.stringify({
+          institutionName: patch.institutionName,
+          defaultPeriod: patch.defaultPeriod,
+        }),
+      });
+
+      setSettings(updatedSettings);
+
+      return updatedSettings;
+    } catch (error) {
+      setSettingsError(error.message);
+      throw error;
+    }
   }, []);
 
   const getClassById = useCallback(
-    (id) => classes.find((c) => c.id === Number(id)),
-    [classes]
+    (id) => classes.find((item) => item.id === Number(id)),
+    [classes],
   );
 
   const getExamById = useCallback(
-    (id) => exams.find((e) => e.id === Number(id)),
-    [exams]
+    (id) => exams.find((item) => item.id === Number(id)),
+    [exams],
   );
 
   const getApplicationById = useCallback(
-    (id) => applications.find((a) => a.id === Number(id)),
-    [applications]
+    (id) =>
+      applications.find((item) => item.id === Number(id)),
+    [applications],
   );
 
   const getQuestionById = useCallback(
-    (id) => questions.find((q) => q.id === Number(id)),
-    [questions]
+    (id) => questions.find((item) => item.id === Number(id)),
+    [questions],
   );
 
   const examQuestionsDetailed = useCallback(
@@ -481,41 +693,42 @@ export function DataProvider({ children }) {
 
       return exam.questions
         .map(({ questionId, score }) => {
-          const q = getQuestionById(questionId);
+          const question = getQuestionById(questionId);
 
-          if (!q) return null;
+          if (!question) return null;
 
-          return { ...q, score };
+          return { ...question, score };
         })
         .filter(Boolean);
     },
-    [getExamById, getQuestionById]
+    [getExamById, getQuestionById],
   );
 
   const classApplications = useCallback(
     (classId) =>
-      applications.filter((a) => a.classId === Number(classId)),
-    [applications]
+      applications.filter(
+        (application) => application.classId === Number(classId),
+      ),
+    [applications],
   );
 
   const selectableClasses = useMemo(
-    () => classes.filter((c) => c.status !== 'Arquivada'),
-    [classes]
+    () => classes.filter((item) => item.status !== 'Arquivada'),
+    [classes],
   );
 
   const selectableExams = useMemo(
-    () => exams.filter((e) => e.status !== 'Arquivada'),
-    [exams]
+    () => exams.filter((item) => item.status !== 'Arquivada'),
+    [exams],
   );
 
-  // Gera as cópias para aplicações que já vieram aplicadas no mock.
+  // Mantém o comportamento existente das aplicações de exemplo.
   useEffect(() => {
     applicationsSeed.forEach((seed) => {
       if (seed.status === 'Aplicada') {
         generateApplicationCopies(seed.id);
       }
     });
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -523,81 +736,83 @@ export function DataProvider({ children }) {
     () => ({
       questions,
       classes,
+      classesLoading,
+      classesError,
       exams,
       applications,
       adminUsers,
+      adminUsersLoading,
+      adminUsersError,
       settings,
-
+      settingsLoading,
+      settingsError,
       addQuestion,
       updateQuestion,
       deleteQuestion,
-
       addClass,
+      updateClass,
       archiveClass,
       addExam,
-
       createApplication,
       updateApplication,
       confirmApplicationDownload,
       generateApplicationCopies,
       publishAnswerKey,
       findCopyByCode,
-
       classStudents,
       addAdminUser,
       updateAdminUser,
       removeAdminUser,
       updateSettings,
-
       getClassById,
       getExamById,
       getApplicationById,
       getQuestionById,
       examQuestionsDetailed,
       classApplications,
-
       selectableClasses,
       selectableExams,
     }),
     [
       questions,
       classes,
+      classesLoading,
+      classesError,
       exams,
       applications,
       adminUsers,
+      adminUsersLoading,
+      adminUsersError,
       settings,
-
+      settingsLoading,
+      settingsError,
       addQuestion,
       updateQuestion,
       deleteQuestion,
-
       addClass,
+      updateClass,
       archiveClass,
       addExam,
-
       createApplication,
       updateApplication,
       confirmApplicationDownload,
       generateApplicationCopies,
       publishAnswerKey,
       findCopyByCode,
-
       classStudents,
       addAdminUser,
       updateAdminUser,
       removeAdminUser,
       updateSettings,
-
       getClassById,
       getExamById,
       getApplicationById,
       getQuestionById,
       examQuestionsDetailed,
       classApplications,
-
       selectableClasses,
       selectableExams,
-    ]
+    ],
   );
 
   return (
@@ -605,14 +820,16 @@ export function DataProvider({ children }) {
       {children}
     </DataContext.Provider>
   );
-}
+};
 
 export function useData() {
-  const ctx = useContext(DataContext);
+  const context = useContext(DataContext);
 
-  if (!ctx) {
+  if (!context) {
     throw new Error('useData must be used within DataProvider');
   }
 
-  return ctx;
+  return context;
 }
+
+export { DataProvider };

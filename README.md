@@ -125,16 +125,40 @@ Fora do escopo do semestre (ponto em aberto, a validar com o cliente e com a pro
 
 Diagrama de casos de uso, diagrama de classes e diagrama de atividades do sistema (e demais diagramas que forem necessários). Exporte cada diagrama como imagem (PNG ou SVG) e salve em `docs/uml/`, depois insira aqui:
 
+## Diagrama de Casos de Uso
 
 ![Diagrama de Casos de Uso](docs/uml/casos-de-uso.png)
 
 O diagrama acima representa a parte de Provas e Aplicações do SGP (RF04 e RF05). O único ator é o Professor, já que o sistema não oferece acesso a alunos. Os casos de uso cobrem a montagem de provas (montar, editar, arquivar e consultar), que sempre inclui a seleção de questões do banco, e o ciclo das aplicações (criar a aplicação para uma turma, gerar as provas em PDF, publicar o gabarito e consultar as aplicações). A relação «include» indica o passo obrigatório de selecionar questões ao montar uma prova. As relações «extend» indicam passos opcionais: editar ou arquivar partem da consulta de provas, e publicar o gabarito só é possível depois que as provas em PDF foram geradas.
 
+## Diagrama de Classes
+
 ![Diagrama de Classes](docs/uml/diagrama-classes.png)
+
+## Diagrama de Atividades
 
 ![Diagrama de Atividades](docs/uml/diagrama-atividades.png)
 
-Abaixo de cada imagem, escreva um parágrafo curto explicando o que o diagrama representa.
+Escolha do fluxo
+
+O caso de uso do grupo (`caso-de-uso.png`) tem várias ações do Professor: *Criar Aplicação*, *Gerar Provas em PDF* e *Publicar Gabarito*. Elas formam **um único fluxo de ponta a ponta**, e é o único em que o processo passa por mais de um participante (Professor, Sistema e, no final, o Aluno). Por isso foi o escolhido, e por isso o diagrama usa **raias**.
+
+Início e fim
+
+| | Descrição |
+|---|---|
+| **Início** | O Professor decide aplicar uma prova e seleciona prova, turma e quantidade de pessoas. |
+| **Fim 1** | Aluno informa um código que não existe → vê o aviso "código não encontrado". |
+| **Fim 2** | Código existe, mas o professor ainda não publicou → aviso "gabarito ainda não publicado". |
+| **Fim 3** | Código existe e o gabarito está publicado → aluno consulta as respostas corretas. |
+
+| Raia | Responsabilidades |
+|---|---|
+| **Professor** | Configurar e pedir a geração, revisar, confirmar o download, publicar e divulgar o gabarito |
+| **Sistema (SGP)** | Criar aplicação, gerar cópias, exibir pré-visualização, disponibilizar PDF, marcar como publicado, buscar cópia por código |
+| **Aluno (sem login)** | Acessar a página pública, informar o código e consultar o resultado |
+
+> O Aluno **não tem conta nem login** (decisão de escopo do projeto): o único contato dele com o sistema é a consulta pública do gabarito por código.
 
 ## 4. Telas do Sistema
 
@@ -343,11 +367,21 @@ Tecnologias usadas no projeto e por que cada uma foi escolhida. A stack obrigat�
 ![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)
 
-- **Node.js**: ambiente de execução do back-end.
-- **Express**: framework para as rotas e a API REST.
-- **MySQL**: banco de dados relacional.
 
-Se a equipe usar outras bibliotecas relevantes (ex.: JWT para autenticação, bcrypt para senhas, dotenv para variáveis de ambiente), liste aqui também, com uma linha dizendo para que serve cada uma.
+**Back-end (`server/`)**
+
+- **Node.js 20.19+**: ambiente de execução (testado com Node 22).
+- **Express 5**: rotas e API REST.
+- **MySQL 8** com **mysql2**: banco de dados relacional e driver de conexão (pool).
+- **cors**: libera apenas o endereço do front-end para chamar a API.
+- **helmet**: cabeçalhos HTTP de segurança.
+- **dotenv**: leitura das variáveis de ambiente do arquivo `.env`.
+
+**Front-end (`client/`)**
+
+- **React 19** com **Vite 8**: interface e servidor de desenvolvimento.
+- **React Router 7**: navegação entre as telas.
+
 
 ## 9. Estrutura de Pastas
 
@@ -371,16 +405,27 @@ Projeto-e-Arquitetura-5-fase/
 │   ├── package.json              # Dependências e comandos do frontend
 │   ├── package-lock.json
 │   └── vite.config.js
+├── server/                       # API Node.js + Express + MySQL (arquitetura em camadas)
+│   ├── database/migrations/      # Scripts .sql do banco, aplicados em ordem
+│   ├── src/
+│   │   ├── routes/               # Endpoints, ligados aos controllers
+│   │   ├── controllers/          # Recebem a requisição e devolvem a resposta
+│   │   ├── services/             # Regras de negócio
+│   │   ├── repositories/         # Acesso ao banco (único lugar com SQL)
+│   │   ├── models/               # Representação das entidades
+│   │   ├── middlewares/          # Tratamento de erros, 404 e log de requisições
+│   │   ├── errors/               # Erros esperados da aplicação (AppError)
+│   │   ├── database/             # Pool de conexão e migrations
+│   │   ├── config/               # Leitura das variáveis de ambiente
+│   │   ├── utils/                # Funções auxiliares
+│   │   ├── app.js                # Montagem do Express
+│   │   └── server.js             # Ponto de entrada da API
+│   ├── test/                     # Testes automatizados
+│   ├── .env.example              # Modelo das variáveis de ambiente
+│   ├── docker-compose.yml        # MySQL 8 para desenvolvimento
+│   └── package.json
 ├── docs/
 │   └── uml/                      # Diagramas UML do projeto
-├── public/                       # Páginas HTML e estilos estáticos presentes no projeto
-│   ├── aplicacoes.html
-│   ├── banco-questoes.html
-│   ├── nova-aplicacao.html
-│   ├── nova-prova.html
-│   ├── provas.html
-│   ├── turmas.html
-│   └── styles.css
 └── README.md
 ```
 
@@ -388,15 +433,32 @@ Projeto-e-Arquitetura-5-fase/
 
 📌 **N1**, revisado a cada entrega
 
-Passo a passo para clonar e rodar o projeto localmente, incluindo as versões usadas (ex.: Node 20.x):
+
+Versões usadas: **Node.js 20.19 ou superior** (testado com Node 22; o deploy no Netlify usa Node 24) e **MySQL 8.0**.
+
+**Front-end (telas)**
 
 ```
 1. git clone https://github.com/Felipe-S-prog/Projeto-e-Arquitetura-5-fase.git
-2. cd Projeto-e-Arquitetura-5-fase
+2. cd Projeto-e-Arquitetura-5-fase/client
 3. npm install
-4. copiar .env.example para .env e configurar as variáveis (ex.: dados de acesso ao MySQL)
-5. npm run dev
+4. npm run dev        # abre em http://localhost:5173
 ```
+
+**Back-end (API e banco de dados)**
+
+```
+1. cd server
+2. npm install
+3. copiar .env.example para .env e ajustar o acesso ao MySQL (DB_USER, DB_PASSWORD)
+4. subir o MySQL: o instalado na máquina, ou "docker compose up -d" na pasta server
+5. npm run db:migrate  # cria o banco e aplica as migrations
+6. npm run dev         # API em http://localhost:3333 (teste: /api/health e /api/health/db)
+```
+
+Detalhes (variáveis, migrations, testes e como criar um recurso novo) em [`server/README.md`](server/README.md).
+Por enquanto o front-end ainda usa dados de exemplo (mock); a integração com a API é feita frente a frente ao longo da N2.
+
 
 ## 11. Especificação da API
 

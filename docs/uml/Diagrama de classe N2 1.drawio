@@ -1,0 +1,309 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Classes - SGP" id="classes-sgp">
+    <mxGraphModel dx="1406" dy="780" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="professor_grp" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="158" width="200" x="600" y="286" as="geometry" />
+        </mxCell>
+        <mxCell id="professor_h" parent="professor_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontStyle=1;align=center;verticalAlign=middle;fontSize=13;" value="Professor" vertex="1">
+          <mxGeometry height="30" width="200" as="geometry" />
+        </mxCell>
+        <mxCell id="professor_a" parent="professor_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="-idProfessor: Int&#xa;-nome: String&#xa;-email: String" vertex="1">
+          <mxGeometry height="74" width="200" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="professor_m" parent="professor_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="+criarQuestao()&#xa;+montarProva()" vertex="1">
+          <mxGeometry height="54" width="200" y="104" as="geometry" />
+        </mxCell>
+        <mxCell id="aluno_grp" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="104" width="200" x="600" y="2" as="geometry" />
+        </mxCell>
+        <mxCell id="aluno_h" parent="aluno_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontStyle=1;align=center;verticalAlign=middle;fontSize=13;" value="Aluno" vertex="1">
+          <mxGeometry height="30" width="200" as="geometry" />
+        </mxCell>
+        <mxCell id="aluno_a" parent="aluno_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="-idAluno: Int&#xa;-nome: String&#xa;-matricula: String" vertex="1">
+          <mxGeometry height="74" width="200" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="turma_grp" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="124" width="200" x="600" y="132" as="geometry" />
+        </mxCell>
+        <mxCell id="turma_h" parent="turma_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontStyle=1;align=center;verticalAlign=middle;fontSize=13;" value="Turma" vertex="1">
+          <mxGeometry height="30" width="200" as="geometry" />
+        </mxCell>
+        <mxCell id="turma_a" parent="turma_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="-idTurma: Int&#xa;-nome: String&#xa;-disciplina: String&#xa;-codigoConvite: String" vertex="1">
+          <mxGeometry height="94" width="200" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="questao_grp" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="104" width="200" x="910" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="questao_h" parent="questao_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontStyle=1;align=center;verticalAlign=middle;fontSize=13;" value="Questao" vertex="1">
+          <mxGeometry height="30" width="200" as="geometry" />
+        </mxCell>
+        <mxCell id="questao_a" parent="questao_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="-idQuestao: Int&#xa;-enunciado: String&#xa;-imagemUrl: String" vertex="1">
+          <mxGeometry height="74" width="200" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="alternativa_grp" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="104" width="200" x="910" y="152" as="geometry" />
+        </mxCell>
+        <mxCell id="alternativa_h" parent="alternativa_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontStyle=1;align=center;verticalAlign=middle;fontSize=13;" value="Alternativa" vertex="1">
+          <mxGeometry height="30" width="200" as="geometry" />
+        </mxCell>
+        <mxCell id="alternativa_a" parent="alternativa_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="-idAlternativa: Int&#xa;-texto: String&#xa;-correta: Boolean" vertex="1">
+          <mxGeometry height="74" width="200" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="prova_grp" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="104" width="200" x="600" y="498" as="geometry" />
+        </mxCell>
+        <mxCell id="prova_h" parent="prova_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontStyle=1;align=center;verticalAlign=middle;fontSize=13;" value="Prova" vertex="1">
+          <mxGeometry height="30" width="200" as="geometry" />
+        </mxCell>
+        <mxCell id="prova_a" parent="prova_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="-idProva: Int&#xa;-titulo: String&#xa;-status: String" vertex="1">
+          <mxGeometry height="74" width="200" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="aplicacao_grp" connectable="0" parent="1" style="group;fillColor=light-dark(#008A00,#0050BA);fontColor=#ffffff;strokeColor=#005700;" value="" vertex="1">
+          <mxGeometry height="158" width="200" y="162" as="geometry" />
+        </mxCell>
+        <mxCell id="aplicacao_h" parent="aplicacao_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontStyle=1;align=center;verticalAlign=middle;fontSize=13;" value="Aplicacao" vertex="1">
+          <mxGeometry height="30" width="200" as="geometry" />
+        </mxCell>
+        <mxCell id="aplicacao_a" parent="aplicacao_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="-idAplicacao: Int&#xa;-quantidade: Int&#xa;-embaralharQuestoes: Boolean&#xa;-embaralharAlternativas: Boolean" vertex="1">
+          <mxGeometry height="94" width="200" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="aplicacao_m" parent="aplicacao_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="+gerarPdf()" vertex="1">
+          <mxGeometry height="34" width="200" y="124" as="geometry" />
+        </mxCell>
+        <mxCell id="copiadaprova_grp" connectable="0" parent="1" style="group;fillColor=none;" value="" vertex="1">
+          <mxGeometry height="138" width="200" x="280" as="geometry" />
+        </mxCell>
+        <mxCell id="copiadaprova_h" parent="copiadaprova_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontStyle=1;align=center;verticalAlign=middle;fontSize=13;" value="CopiaDaProva" vertex="1">
+          <mxGeometry height="30" width="200" as="geometry" />
+        </mxCell>
+        <mxCell id="copiadaprova_a" parent="copiadaprova_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="-idCopia: Int&#xa;-codigo: String&#xa;-gabaritoPublicado: Boolean" vertex="1">
+          <mxGeometry height="74" width="200" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="copiadaprova_m" parent="copiadaprova_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="+publicarGabarito()" vertex="1">
+          <mxGeometry height="34" width="200" y="104" as="geometry" />
+        </mxCell>
+        <mxCell id="correcao_grp" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="138" width="200" x="250" y="296" as="geometry" />
+        </mxCell>
+        <mxCell id="correcao_h" parent="correcao_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontStyle=1;align=center;verticalAlign=middle;fontSize=13;" value="Correcao" vertex="1">
+          <mxGeometry height="30" width="200" as="geometry" />
+        </mxCell>
+        <mxCell id="correcao_a" parent="correcao_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="-idCorrecao: Int&#xa;-notaTotal: Float&#xa;-dataConfirmacao: DateTime" vertex="1">
+          <mxGeometry height="74" width="200" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="correcao_m" parent="correcao_grp" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=12;" value="+calcularNota()" vertex="1">
+          <mxGeometry height="34" width="200" y="104" as="geometry" />
+        </mxCell>
+        <mxCell id="e0" edge="1" parent="1" source="professor_grp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;fontSize=11;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;" target="turma_grp" value="leciona">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="860" y="322" />
+              <mxPoint x="860" y="232" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e0_ms" connectable="0" parent="e0" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e0_md" connectable="0" parent="e0" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="professor_grp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;fontSize=11;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;" target="questao_grp" value="cria">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="860" y="380" />
+              <mxPoint x="860" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e1_ms" connectable="0" parent="e1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e1_md" connectable="0" parent="e1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="professor_grp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;fontSize=11;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;" target="prova_grp" value="monta">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="870" y="432" />
+              <mxPoint x="870" y="520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2_ms" connectable="0" parent="e2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2_md" connectable="0" parent="e2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="turma_grp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;fontSize=11;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;" target="aluno_grp" value="matricula">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="860" y="172" />
+              <mxPoint x="860" y="62" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3_ms" connectable="0" parent="e3" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="-0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e3_md" connectable="0" parent="e3" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="prova_grp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;fontSize=11;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;" target="questao_grp" value="contem">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4_ms" connectable="0" parent="e4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-0.8" y="-10" as="geometry">
+            <mxPoint x="-22" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4_md" connectable="0" parent="e4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="1..20" vertex="1">
+          <mxGeometry relative="1" x="0.8" y="-10" as="geometry">
+            <mxPoint x="10" y="-16" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="questao_grp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;fontSize=11;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;" target="alternativa_grp" value="possui">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1010" y="300" />
+              <mxPoint x="1010" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5_ms" connectable="0" parent="e5" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-0.8" y="-10" as="geometry">
+            <mxPoint y="-7" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e5_md" connectable="0" parent="e5" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="2..5" vertex="1">
+          <mxGeometry relative="1" x="0.8" y="-10" as="geometry">
+            <mxPoint x="10" y="6" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="aplicacao_grp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;fontSize=11;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;" target="prova_grp" value="referencia">
+          <mxGeometry relative="1" x="-0.0405" as="geometry">
+            <Array as="points">
+              <mxPoint x="90" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6_ms" connectable="0" parent="e6" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="-0.8" y="-10" as="geometry">
+            <mxPoint x="20" y="-60" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6_md" connectable="0" parent="e6" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="1" vertex="1">
+          <mxGeometry relative="1" x="0.7919" y="-10" as="geometry">
+            <mxPoint x="57" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="aplicacao_grp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;fontSize=11;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;fillColor=light-dark(#A20025,#FF0000);strokeColor=light-dark(#6F0000,#FF0000);" target="turma_grp" value="destinada a">
+          <mxGeometry relative="1" x="0.3043" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="240" y="242" />
+              <mxPoint x="240" y="242" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7_ms" connectable="0" parent="e7" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="-0.8" y="-10" as="geometry">
+            <mxPoint x="-20" y="-2" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e7_md" connectable="0" parent="e7" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="1" vertex="1">
+          <mxGeometry relative="1" x="0.8" y="-10" as="geometry">
+            <mxPoint x="20" y="-2" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" edge="1" parent="1" source="aplicacao_grp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;fontSize=11;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;" target="copiadaprova_grp" value="gera">
+          <mxGeometry relative="1" x="-0.0357" as="geometry">
+            <Array as="points">
+              <mxPoint x="90" y="72" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8_ms" connectable="0" parent="e8" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-0.8" y="-10" as="geometry">
+            <mxPoint y="11" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8_md" connectable="0" parent="e8" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="0.7929" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9" edge="1" parent="1" source="copiadaprova_grp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;fontSize=11;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;" target="aluno_grp" value="pertence a">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="62" />
+              <mxPoint x="510" y="62" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9_ms" connectable="0" parent="e9" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="-0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e9_md" connectable="0" parent="e9" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="0..1" vertex="1">
+          <mxGeometry relative="1" x="0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10" edge="1" parent="1" source="copiadaprova_grp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;fontSize=11;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;fillColor=#60a917;strokeColor=light-dark(#2D7600,#00FFFF);" target="correcao_grp" value="recebe">
+          <mxGeometry relative="1" x="-0.2152" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="370" y="222" />
+              <mxPoint x="370" y="222" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10_ms" connectable="0" parent="e10" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="1" vertex="1">
+          <mxGeometry relative="1" x="-0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e10_md" connectable="0" parent="e10" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="0..1" vertex="1">
+          <mxGeometry relative="1" x="0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" edge="1" parent="1" source="correcao_grp" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endFill=0;fontSize=11;labelBackgroundColor=#ffffff;align=center;verticalAlign=middle;" target="professor_grp" value="corrigida por">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11_ms" connectable="0" parent="e11" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="0..*" vertex="1">
+          <mxGeometry relative="1" x="-0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11_md" connectable="0" parent="e11" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;labelBackgroundColor=#ffffff;" value="1" vertex="1">
+          <mxGeometry relative="1" x="0.8" y="-10" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
