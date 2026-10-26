@@ -22,6 +22,14 @@ export function toHttpError(err) {
     return { status: err.statusCode, body: { error } };
   }
 
+  // Erros do leitor de JSON do Express
+  if (err?.type === 'entity.parse.failed') {
+    return { status: 400, body: { error: { code: 'INVALID_JSON', message: 'O corpo da requisição não é um JSON válido.' } } };
+  }
+  if (err?.type === 'entity.too.large') {
+    return { status: 413, body: { error: { code: 'PAYLOAD_TOO_LARGE', message: 'O corpo da requisição é grande demais.' } } };
+  }
+
   // Algumas rotas antigas ainda lançam Error com statusCode em vez de AppError.
   if ([400, 401, 403, 404, 409].includes(err?.statusCode)) {
     const code = err.statusCode === 400 ? 'BAD_REQUEST'
@@ -29,14 +37,6 @@ export function toHttpError(err) {
         : err.statusCode === 403 ? 'FORBIDDEN'
           : err.statusCode === 404 ? 'NOT_FOUND' : 'CONFLICT';
     return { status: err.statusCode, body: { error: { code, message: err.message || 'A requisição não pôde ser concluída.' } } };
-  }
-
-  // Erros do leitor de JSON do Express
-  if (err?.type === 'entity.parse.failed') {
-    return { status: 400, body: { error: { code: 'INVALID_JSON', message: 'O corpo da requisição não é um JSON válido.' } } };
-  }
-  if (err?.type === 'entity.too.large') {
-    return { status: 413, body: { error: { code: 'PAYLOAD_TOO_LARGE', message: 'O corpo da requisição é grande demais.' } } };
   }
 
   // Erros do MySQL que acontecem em CRUD comum, para ninguém precisar tratar um por um
