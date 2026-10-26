@@ -1,11 +1,11 @@
-
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { createCorrecaoRoutes } from './correcao.routes.js';
 import { createHealthRoutes } from './health.routes.js';
 import { createAlunoHistoricoRoutes, createRelatorioRoutes } from './relatorio.routes.js';
 import { createAdminRoutes } from './admin.routes.js';
 import { createSettingsRoutes } from './settings.routes.js';
 import { createTurmasRoutes } from './turmas.routes.js';
+import { createQuestoesRoutes } from './questoes.routes.js';
 
 export function createRoutes({ pool }) {
   const router = Router();
@@ -17,6 +17,7 @@ export function createRoutes({ pool }) {
   router.use('/admin', createAdminRoutes({ pool }));
   router.use('/settings', createSettingsRoutes({ pool }));
   router.use('/turmas', createTurmasRoutes({ pool }));
+  router.use('/questoes', createQuestoesRoutes({ pool }));
 
   return router;
 }
