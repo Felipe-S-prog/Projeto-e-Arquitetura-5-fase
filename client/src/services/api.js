@@ -1,13 +1,51 @@
-// Cliente HTTP da API do SGP (pasta server/).
-// O endereço vem de VITE_API_URL (veja client/.env.example); sem ele, usa a API local.
+import {
+  clearAuthSession,
+  getAccessToken,
+  getRefreshToken,
+  saveAuthSession,
+} from './authStorage';
+
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3333/api').replace(/\/+$/, '');
 
-// Enquanto o login com JWT (T07) não existe, cada requisição informa o professor
-// em "professor_id", o mesmo combinado das rotas de turmas. Em desenvolvimento é o 1.
-const PROFESSOR_ID = import.meta.env.VITE_PROFESSOR_ID || '1';
+let refreshPromise = null;
 
-// Erro da API com o status e o código padronizados pelo back-end
-// ({ error: { code, message, details } }), para as telas tratarem cada caso.
+function notifyAuthExpired() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('sgp:auth-expired'));
+  }
+}
+
+async function refreshSession() {
+  if (!refreshPromise) {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      clearAuthSession();
+      notifyAuthExpired();
+      throw new ApiError(401, 'UNAUTHORIZED', 'Sua sessão expirou. Entre novamente.');
+    }
+
+    refreshPromise = (async () => {
+      const response = await rawSend('/auth/refresh', {
+        method: 'POST',
+        body: { refreshToken },
+      });
+      if (!response.ok) {
+        throw new ApiError(401, 'UNAUTHORIZED', 'Sua sessão expirou. Entre novamente.');
+      }
+      const session = await response.json();
+      saveAuthSession(session);
+      return session;
+    })().catch((error) => {
+      clearAuthSession();
+      notifyAuthExpired();
+      throw error;
+    }).finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
 export class ApiError extends Error {
   constructor(status, code, message, details) {
     super(message);
@@ -19,21 +57,50 @@ export class ApiError extends Error {
 }
 
 function buildUrl(path) {
-  const url = new URL(API_URL + path);
-  url.searchParams.set('professor_id', PROFESSOR_ID);
-  return url;
+  return new URL(API_URL + path);
 }
 
-async function send(path, { method = 'GET', body } = {}) {
-  let response;
+async function rawSend(path, { method = 'GET', body, headers = {} } = {}) {
+  const requestHeaders = { ...headers };
+  if (body !== undefined && !Object.keys(requestHeaders).some((key) => key.toLowerCase() === 'content-type')) {
+    requestHeaders['Content-Type'] = 'application/json';
+  }
+  const accessToken = getAccessToken();
+  if (accessToken && !Object.keys(requestHeaders).some((key) => key.toLowerCase() === 'authorization')) {
+    requestHeaders.Authorization = `Bearer ${accessToken}`;
+  }
+
   try {
-    response = await fetch(buildUrl(path), {
+    return await fetch(buildUrl(path), {
       method,
-      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      headers: requestHeaders,
+      body: body === undefined ? undefined : (typeof body === 'string' ? body : JSON.stringify(body)),
     });
   } catch {
     throw new ApiError(0, 'NETWORK_ERROR', 'Não foi possível conectar à API. Confira se o servidor está rodando.');
+  }
+}
+
+function shouldTryRefresh(path) {
+  return ![
+    '/auth/login',
+    '/auth/register',
+    '/auth/bootstrap-admin',
+    '/auth/bootstrap-status',
+    '/auth/refresh',
+  ].includes(path);
+}
+
+async function send(path, options = {}) {
+  let response = await rawSend(path, options);
+
+  if (response.status === 401 && shouldTryRefresh(path) && getRefreshToken()) {
+    try {
+      await refreshSession();
+      response = await rawSend(path, options);
+    } catch {
+      // A resposta original 401 será devolvida e o contexto encerrará a sessão.
+    }
   }
 
   if (!response.ok) {
@@ -42,18 +109,17 @@ async function send(path, { method = 'GET', body } = {}) {
       response.status,
       data.error?.code ?? 'HTTP_ERROR',
       data.error?.message ?? data.message ?? `Erro na API (${response.status}).`,
-      data.error?.details
+      data.error?.details,
     );
   }
   return response;
 }
 
-export async function apiRequest(path, options) {
+export async function apiRequest(path, options = {}) {
   const response = await send(path, options);
   return response.status === 204 ? null : response.json();
 }
 
-// Baixa um arquivo gerado pela API (ex.: relatório CSV) com o nome que ela sugerir.
 export async function apiDownload(path, fallbackName) {
   const response = await send(path);
   const disposition = response.headers.get('Content-Disposition') ?? '';

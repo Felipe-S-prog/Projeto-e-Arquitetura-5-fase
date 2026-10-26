@@ -13,38 +13,13 @@ import examsSeed from '../data/exams.json';
 import applicationsSeed from '../data/applications.json';
 import { todayBR } from '../utils/status';
 import { buildApplicationCopies } from '../utils/answerKey';
+import { useAuth } from './AuthContext';
+import { apiRequest } from '../services/api';
 
 const DataContext = createContext(null);
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'http://localhost:3333/api';
-
-// ID temporário para desenvolvimento.
-// Corresponde ao professor de teste cadastrado no banco.
-const DEFAULT_PROFESSOR_ID = Number(import.meta.env.VITE_PROFESSOR_ID || 1);
-
 async function adminApiRequest(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-
-    throw new Error(
-      errorData.error?.message ||
-        errorData.message ||
-        `Erro na API (${response.status}).`,
-    );
-  }
-
-  if (response.status === 204) return null;
-
-  return response.json();
+  return apiRequest(path, options);
 }
 
 function normalizeClass(cls) {
@@ -64,7 +39,6 @@ function normalizeClass(cls) {
 // Monta o corpo enviado para a API de questões.
 function buildQuestionPayload(question) {
   return {
-    professor_id: DEFAULT_PROFESSOR_ID,
     tipo: 'OBJETIVA',
     enunciado: question.excerpt,
     imagem_url: question.imageUrl || null,
@@ -81,18 +55,20 @@ function unwrapQuestion(payload) {
 }
 
 const DataProvider = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
   const [questions, setQuestions] = useState(() =>
     questionsSeed.map((question) => ({ ...question })),
   );
 
   // Carrega as questões da API.
   useEffect(() => {
+    if (!isAuthenticated || user?.role !== 'PROFESSOR') return undefined;
     let cancelled = false;
 
     async function loadQuestions() {
       try {
         const payload = await adminApiRequest(
-          `/questoes?professor_id=${DEFAULT_PROFESSOR_ID}`,
+          '/questoes',
         );
 
         const apiQuestions = Array.isArray(payload)
@@ -122,7 +98,7 @@ const DataProvider = ({ children }) => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthenticated, user?.id, user?.role]);
 
   // Turmas passam a vir da API, não mais do classes.json.
   const [classes, setClasses] = useState([]);
@@ -152,8 +128,24 @@ const DataProvider = ({ children }) => {
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [settingsError, setSettingsError] = useState('');
 
+  useEffect(() => {
+    setQuestions(questionsSeed.map((question) => ({ ...question })));
+    setClasses([]);
+    setAdminUsers([]);
+    setSettings({ institutionName: '', defaultPeriod: '' });
+    setClassesError('');
+    setAdminUsersError('');
+    setSettingsError('');
+  }, [user?.id]);
+
   // Carrega turmas, usuários administrativos e configurações.
   useEffect(() => {
+    if (!isAuthenticated) {
+      setClassesLoading(false);
+      setAdminUsersLoading(false);
+      setSettingsLoading(false);
+      return undefined;
+    }
     let cancelled = false;
 
     async function loadClasses() {
@@ -162,7 +154,7 @@ const DataProvider = ({ children }) => {
 
       try {
         const result = await adminApiRequest(
-          `/turmas?professor_id=${DEFAULT_PROFESSOR_ID}`,
+          '/turmas',
         );
 
         if (!Array.isArray(result)) {
@@ -225,14 +217,16 @@ const DataProvider = ({ children }) => {
       }
     }
 
-    loadClasses();
-    loadAdminUsers();
-    loadSettings();
+    if (user?.role === 'PROFESSOR') loadClasses();
+    if (user?.role === 'ADMINISTRADOR') {
+      loadAdminUsers();
+      loadSettings();
+    }
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthenticated, user?.id, user?.role]);
 
   // Cria uma questão na API.
   const addQuestion = useCallback(async (question) => {
@@ -270,7 +264,7 @@ const DataProvider = ({ children }) => {
   // Exclui uma questão pela API.
   const deleteQuestion = useCallback(async (id) => {
     await adminApiRequest(
-      `/questoes/${id}?professor_id=${DEFAULT_PROFESSOR_ID}`,
+      `/questoes/${id}`,
       { method: 'DELETE' },
     );
 
@@ -308,7 +302,6 @@ const DataProvider = ({ children }) => {
       const createdClass = await adminApiRequest('/turmas', {
         method: 'POST',
         body: JSON.stringify({
-          professor_id: DEFAULT_PROFESSOR_ID,
           nome: name,
           disciplina: subject,
           periodo: period,
@@ -356,7 +349,6 @@ const DataProvider = ({ children }) => {
       const updatedClass = await adminApiRequest(`/turmas/${id}`, {
         method: 'PUT',
         body: JSON.stringify({
-          professor_id: DEFAULT_PROFESSOR_ID,
           nome: name,
           disciplina: subject,
           periodo: period,
@@ -383,15 +375,9 @@ const DataProvider = ({ children }) => {
     setClassesError('');
 
     try {
-      const archivedClass = await adminApiRequest(
-        `/turmas/${id}/arquivar`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({
-            professor_id: DEFAULT_PROFESSOR_ID,
-          }),
-        },
-      );
+      const archivedClass = await adminApiRequest(`/turmas/${id}/arquivar`, {
+        method: 'PATCH',
+      });
 
       const normalized = normalizeClass(archivedClass);
 

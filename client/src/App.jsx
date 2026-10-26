@@ -26,28 +26,32 @@ import GradeReports from './pages/GradeReports';
 import StudentHistory from './pages/StudentHistory';
 import ClassEdit from './pages/ClassEdit';
 
-function RequireAuth({ children }) {
-  const { isAuthenticated } = useAuth();
+function LoadingScreen() {
+  return <div style={{ padding: 32, color: 'var(--muted)' }}>Verificando sessão...</div>;
+}
+
+function RequireRole({ role, children }) {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  if (isLoading) return <LoadingScreen />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (role && user?.role !== role) {
+    return <Navigate to={user?.role === 'ADMINISTRADOR' ? '/admin' : '/questoes'} replace />;
+  }
   return children;
 }
 
 function AppRoutes() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const homePath = user?.role === 'ADMINISTRADOR' ? '/admin' : '/questoes';
 
   return (
     <Routes>
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/questoes" replace /> : <Login />} />
+      <Route path="/login" element={isLoading ? <LoadingScreen /> : isAuthenticated ? <Navigate to={homePath} replace /> : <Login />} />
       <Route path="/gabarito" element={<PublicAnswerKey />} />
-      <Route path="turmas/:id/editar" element={<ClassEdit />} />
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <AppLayout />
-          </RequireAuth>
-        }
-      >
+      <Route path="/admin" element={<RequireRole role="ADMINISTRADOR"><AppLayout /></RequireRole>}>
+        <Route index element={<Admin />} />
+      </Route>
+      <Route path="/" element={<RequireRole role="PROFESSOR"><AppLayout /></RequireRole>}>
         <Route index element={<Navigate to="/questoes" replace />} />
         <Route path="questoes" element={<QuestionsList />} />
         <Route path="questoes/nova" element={<QuestionNew />} />
@@ -69,9 +73,8 @@ function AppRoutes() {
         <Route path="correcao" element={<Grading />} />
         <Route path="relatorios" element={<GradeReports />} />
         <Route path="relatorios/alunos/:id" element={<StudentHistory />} />
-        <Route path="admin" element={<Admin />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to={isAuthenticated ? homePath : '/login'} replace />} />
     </Routes>
   );
 }
