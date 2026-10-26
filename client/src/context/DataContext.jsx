@@ -9,7 +9,6 @@ import {
 } from 'react';
 
 import questionsSeed from '../data/questions.json';
-import examsSeed from '../data/exams.json';
 import applicationsSeed from '../data/applications.json';
 import { todayBR } from '../utils/status';
 import { buildApplicationCopies } from '../utils/answerKey';
@@ -76,6 +75,20 @@ function buildQuestionPayload(question) {
   };
 }
 
+// Normaliza uma prova vinda da API: { id, title, description, status, questions: [{ questionId, score }] }.
+function normalizeExam(exam) {
+  return {
+    id: Number(exam.id),
+    title: exam.title,
+    description: exam.description ?? '',
+    status: exam.status,
+    questions: (exam.questions ?? []).map((item) => ({
+      questionId: Number(item.questionId),
+      score: Number(item.score),
+    })),
+  };
+}
+
 function unwrapQuestion(payload) {
   return payload?.question || payload?.data || payload;
 }
@@ -129,9 +142,10 @@ const DataProvider = ({ children }) => {
   const [classesLoading, setClassesLoading] = useState(true);
   const [classesError, setClassesError] = useState('');
 
-  const [exams, setExams] = useState(() =>
-    examsSeed.map((exam) => ({ ...exam })),
-  );
+  // Provas passam a vir da API, não mais do exams.json.
+  const [exams, setExams] = useState([]);
+  const [examsLoading, setExamsLoading] = useState(true);
+  const [examsError, setExamsError] = useState('');
 
   const [applications, setApplications] = useState(() =>
     applicationsSeed.map((application) => ({
@@ -225,7 +239,35 @@ const DataProvider = ({ children }) => {
       }
     }
 
+    async function loadExams() {
+      setExamsLoading(true);
+      setExamsError('');
+
+      try {
+        const result = await adminApiRequest(
+          `/provas?professor_id=${DEFAULT_PROFESSOR_ID}`,
+        );
+
+        if (!Array.isArray(result)) {
+          throw new Error('A API retornou uma lista de provas inválida.');
+        }
+
+        if (!cancelled) {
+          setExams(result.map(normalizeExam));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setExamsError(error.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setExamsLoading(false);
+        }
+      }
+    }
+
     loadClasses();
+    loadExams();
     loadAdminUsers();
     loadSettings();
 
@@ -408,16 +450,26 @@ const DataProvider = ({ children }) => {
     }
   }, []);
 
-  const addExam = useCallback((exam) => {
-    setExams((previous) => {
-      const id =
-        previous.reduce(
-          (max, item) => Math.max(max, Number(item.id) || 0),
-          0,
-        ) + 1;
-
-      return [...previous, { id, status: 'Rascunho', ...exam }];
+  // Cria a prova na API (nasce em Rascunho) e devolve a prova salva.
+  const addExam = useCallback(async (exam) => {
+    const created = await adminApiRequest('/provas', {
+      method: 'POST',
+      body: JSON.stringify({
+        professor_id: DEFAULT_PROFESSOR_ID,
+        title: exam.title,
+        description: exam.description,
+        questions: exam.questions,
+      }),
     });
+
+    const saved = normalizeExam(created);
+
+    setExams((previous) => [
+      ...previous.filter((item) => item.id !== saved.id),
+      saved,
+    ]);
+
+    return saved;
   }, []);
 
   const createApplication = useCallback(
@@ -739,6 +791,8 @@ const DataProvider = ({ children }) => {
       classesLoading,
       classesError,
       exams,
+      examsLoading,
+      examsError,
       applications,
       adminUsers,
       adminUsersLoading,
@@ -779,6 +833,8 @@ const DataProvider = ({ children }) => {
       classesLoading,
       classesError,
       exams,
+      examsLoading,
+      examsError,
       applications,
       adminUsers,
       adminUsersLoading,

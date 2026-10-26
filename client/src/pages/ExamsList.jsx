@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import { PageHeader, PrimaryButton, Badge } from '../components/ui';
+import { PageHeader, PrimaryButton, Badge, EmptyState } from '../components/ui';
 import { ExamSheetIcon } from '../components/icons';
 
 const FILTERS = ['Todas', 'Rascunho', 'Pronta', 'Arquivada'];
 
 export default function ExamsList() {
-  const { exams } = useData();
+  const { exams, examsLoading, examsError } = useData();
   const navigate = useNavigate();
   const [filter, setFilter] = useState('Todas');
 
@@ -43,6 +43,15 @@ export default function ExamsList() {
           );
         })}
       </div>
+      {examsLoading && <p>Carregando provas...</p>}
+      {examsError && (
+        <div role="alert" style={{ color: '#b42318', marginBottom: 16, fontSize: 14 }}>
+          Não foi possível carregar as provas: {examsError}
+        </div>
+      )}
+      {!examsLoading && !examsError && exams.length === 0 && (
+        <EmptyState>Nenhuma prova criada. Clique em “Criar prova” para começar.</EmptyState>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
         {filtered.map((e) => {
           const questionsCount = e.questions.length;
@@ -83,7 +92,7 @@ export default function ExamsList() {
             </div>
           );
         })}
-        {filtered.length === 0 && (
+        {exams.length > 0 && filtered.length === 0 && (
           <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted-3)', fontSize: 13.5 }}>
             Nenhuma prova neste filtro.
           </div>
