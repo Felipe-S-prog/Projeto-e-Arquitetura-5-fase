@@ -21,59 +21,73 @@ API do Sistema de Geração de Provas: **Node.js + Express + MySQL**, organizada
 
 ## Como rodar
 
+Use **uma** das opções de MySQL: o banco deste Docker Compose ou um MySQL que já esteja instalado no computador.
+
+### 1. Instalar e configurar
+
+Na pasta `server`:
+
 ```powershell
-cd server
 npm install
-Copy-Item .env.example .env      # Linux/Mac: cp .env.example .env
+Copy-Item .env.example .env
 ```
 
-Escolha **uma** das opções de banco:
+No Linux/macOS, use `cp .env.example .env` no lugar de `Copy-Item`.
 
-**A) MySQL instalado na sua máquina** — edite o `.env` com o seu acesso, por exemplo:
+O `.env` de desenvolvimento é local e não deve ser commitado. Os valores do exemplo são `DB_USER=sgp`, `DB_PASSWORD=sgp_dev` e `DB_NAME=sgp` para o Docker Compose deste diretório.
 
-```
-DB_USER=root
-DB_PASSWORD=a_senha_do_seu_mysql
-DB_NAME=sgp
-```
+### 2. Escolher o banco
 
-**B) MySQL no Docker** — não precisa mudar o `.env` (os valores já batem com o `docker-compose.yml`):
+**A) MySQL no Docker (recomendado para um ambiente novo)**
 
 ```powershell
 docker compose up -d
 ```
 
-Depois:
+Se a porta `3306` estiver ocupada por outro MySQL, altere `DB_PORT=3307` no `server/.env` e execute o comando novamente. O Compose publicará a porta 3307 no computador e manterá a porta 3306 dentro do contêiner; o servidor Node também usará 3307 porque lê a mesma variável.
+
+Se um volume Docker já foi inicializado, mudar a senha no `.env` não altera automaticamente as credenciais existentes nesse volume. Não remova o volume de dados sem ter certeza de que pode apagar o banco local.
+
+**B) MySQL já instalado no computador**
+
+Não execute `docker compose up -d`. Ajuste `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME` para o seu servidor. O usuário precisa ter permissão para criar o banco e as tabelas.
+
+### 3. Aplicar as migrations e iniciar a API
 
 ```powershell
-npm run db:migrate    # cria o banco "sgp" (se não existir) e aplica as migrations pendentes
-npm run dev           # sobe a API em http://localhost:3333 (reinicia sozinha ao salvar)
+npm run db:migrate
+npm test
+npm run dev
 ```
 
-Conferindo:
+A API fica em <http://localhost:3333>. Deixe o terminal aberto enquanto estiver usando o front-end.
 
-- <http://localhost:3333/api/health> → a API está de pé.
-- <http://localhost:3333/api/health/db> → o MySQL respondeu (mostra o nome do banco e a latência).
+- <http://localhost:3333/api/health> → indica que a API está respondendo; ver um JSON aqui é esperado.
+- <http://localhost:3333/api/health/db> → verifica a conexão com o MySQL.
+
+Não é necessário criar tabelas manualmente no MySQL Workbench. `npm run db:migrate` cria o banco quando necessário e aplica as migrations pendentes.
+
 
 ## Variáveis de ambiente (`.env`)
 
-| Variável | Padrão | Para que serve |
+| Variável | Padrão local | Para que serve |
 |---|---|---|
 | `PORT` | `3333` | Porta da API |
-| `CLIENT_ORIGIN` | `http://localhost:5173` | Endereço(s) do front autorizados a chamar a API (CORS); vários separados por vírgula |
-| `DB_HOST` | `127.0.0.1` | Servidor do MySQL |
-| `DB_PORT` | `3306` | Porta do MySQL |
-| `DB_USER` | — (obrigatória) | Usuário do MySQL |
-| `DB_PASSWORD` | — (obrigatória, pode ser vazia) | Senha do MySQL |
-| `DB_NAME` | — (obrigatória) | Nome do banco (só letras, números e `_`) |
-| `JWT_ACCESS_SECRET` | segredo de desenvolvimento | Segredo JWT; obrigatório e exclusivo em produção (mínimo de 32 caracteres) |
+| `CLIENT_ORIGIN` | `http://localhost:5173` | Origem(ns) do front permitidas pelo CORS; múltiplas separadas por vírgula |
+| `DB_HOST` | `127.0.0.1` | Servidor MySQL |
+| `DB_PORT` | `3306` | Porta do MySQL no computador; use, por exemplo, `3307` se a 3306 estiver ocupada e estiver usando o Docker |
+| `DB_USER` | `sgp` no Docker | Usuário do MySQL |
+| `DB_PASSWORD` | `sgp_dev` no Docker | Senha do MySQL; pode ser vazia para uma instalação local que a use assim |
+| `DB_NAME` | `sgp` | Nome do banco |
+| `JWT_ACCESS_SECRET` | segredo exclusivo de desenvolvimento | Segredo usado para assinar JWT; configure um valor aleatório exclusivo com pelo menos 32 caracteres em produção |
 | `JWT_ACCESS_TTL_SECONDS` | `900` | Validade do token de acesso, em segundos |
 | `REFRESH_TOKEN_TTL_DAYS` | `30` | Validade do refresh token, em dias |
-| `ALLOW_ADMIN_BOOTSTRAP` | `true` em desenvolvimento; `false` em produção | Habilita a configuração inicial do administrador na tela de login |
-| `ADMIN_EMAIL_DOMAINS` | `catolicasc.org.br` | Domínios aceitos para administradores, separados por vírgula |
-| `PROFESSOR_EMAIL_DOMAINS` | `catolicasc.org.br,catolicasc.edu.br` | Domínios aceitos para professores, separados por vírgula |
+| `ALLOW_ADMIN_BOOTSTRAP` | `true` em desenvolvimento; `false` por padrão em produção | Permite configurar o primeiro administrador na tela de login |
+| `ADMIN_EMAIL_DOMAINS` | `catolicasc.org.br` | Domínios permitidos para administradores, separados por vírgula e sem `@` |
+| `PROFESSOR_EMAIL_DOMAINS` | `catolicasc.org.br,catolicasc.edu.br` | Domínios permitidos para professores, separados por vírgula e sem `@` |
 
-O arquivo `.env` **nunca** vai para o GitHub (está no `.gitignore`); só o `.env.example`.
+O `.env.example` deve documentar as variáveis necessárias, mas o `.env` real nunca deve ser enviado ao GitHub. O `.gitignore` ignora o `.env`.
+
 
 ## Autenticação (T07)
 
@@ -174,12 +188,10 @@ Toda resposta de erro tem o mesmo formato:
 | Banco fora do ar ou credencial recusada | 503 | `DB_UNAVAILABLE` |
 | Bug inesperado | 500 | `INTERNAL_ERROR` (sem detalhe interno) |
 
-## Conferindo no seu MySQL (2 minutos)
+## Conferindo o banco
 
-Para ver o sistema de migrations funcionando de verdade:
+Depois de executar `npm run db:migrate`, abra o MySQL Workbench (se estiver usando-o) e atualize a lista de schemas. O banco `sgp` e as tabelas devem aparecer após a aplicação das migrations.
 
-1. Crie `database/migrations/000_teste.sql` com `CREATE TABLE teste (id INT PRIMARY KEY);`
-2. `npm run db:migrate` → mostra `aplicada: 000_teste.sql`.
-3. Rode de novo → `0 aplicada(s), 1 já estavam aplicadas`.
-4. Edite o conteúdo do arquivo e rode de novo → aviso de que a migration foi alterada.
-5. **Apague** o arquivo de teste e rode `npm run db:reset` para voltar ao estado limpo. Não commite esse arquivo.
+Para conferir a conexão pelo servidor, acesse <http://localhost:3333/api/health/db>. Também é possível executar `npm test` na pasta `server` para rodar os testes automatizados.
+
+Evite criar migrations temporárias na pasta compartilhada ou editar migrations que já foram aplicadas. Para qualquer mudança estrutural, crie uma nova migration numerada depois da última existente. O comando `npm run db:reset` apaga e recria o banco local; use-o somente quando realmente quiser descartar os dados.
