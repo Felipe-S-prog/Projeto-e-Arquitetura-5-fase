@@ -10,10 +10,9 @@ API do Sistema de Geração de Provas: **Node.js + Express + MySQL**, organizada
 - Conexão com o MySQL por *pool* (`mysql2`), configurada por variáveis de ambiente.
 - Sistema de **migrations**: scripts `.sql` aplicados uma única vez por banco, na ordem do nome.
 - Uma fatia de exemplo completa, `health`, que percorre todas as camadas (use como modelo).
-- Testes automatizados (`npm test`) que não precisam de MySQL.
-
-> As **tabelas** ainda não existem: elas vêm do script SQL do MER/DER (tarefa T02) e entram como a
-> primeira migration (veja "Migrations" abaixo).
+- Testes automatizados (`npm test`) para validar as regras e utilitários sem precisar subir o servidor.
+- Migrations compartilhadas `001`, `002` e `003` para criar a estrutura atual do banco.
+- Autenticação com senha bcrypt, JWT de acesso e refresh token rotativo (T07).
 
 ## Requisitos
 
@@ -67,8 +66,27 @@ Conferindo:
 | `DB_USER` | — (obrigatória) | Usuário do MySQL |
 | `DB_PASSWORD` | — (obrigatória, pode ser vazia) | Senha do MySQL |
 | `DB_NAME` | — (obrigatória) | Nome do banco (só letras, números e `_`) |
+| `JWT_ACCESS_SECRET` | segredo de desenvolvimento | Segredo JWT; obrigatório e exclusivo em produção (mínimo de 32 caracteres) |
+| `JWT_ACCESS_TTL_SECONDS` | `900` | Validade do token de acesso, em segundos |
+| `REFRESH_TOKEN_TTL_DAYS` | `30` | Validade do refresh token, em dias |
+| `ALLOW_ADMIN_BOOTSTRAP` | `true` em desenvolvimento; `false` em produção | Habilita a configuração inicial do administrador na tela de login |
+| `ADMIN_EMAIL_DOMAINS` | `catolicasc.org.br` | Domínios aceitos para administradores, separados por vírgula |
+| `PROFESSOR_EMAIL_DOMAINS` | `catolicasc.org.br,catolicasc.edu.br` | Domínios aceitos para professores, separados por vírgula |
 
 O arquivo `.env` **nunca** vai para o GitHub (está no `.gitignore`); só o `.env.example`.
+
+## Autenticação (T07)
+
+- `GET /api/auth/bootstrap-status`: informa se ainda falta criar o primeiro administrador.
+- `POST /api/auth/bootstrap-admin`: cria o primeiro administrador; só funciona enquanto não houver administrador não anonimizado.
+- `POST /api/auth/register`: ativa um convite criado pelo administrador, definindo a senha inicial.
+- `POST /api/auth/login`: valida e-mail e senha e emite JWT de acesso + refresh token.
+- `POST /api/auth/refresh`: troca o refresh token por um novo par de tokens; o token anterior é revogado.
+- `POST /api/auth/logout`: revoga o refresh token da sessão atual.
+
+As senhas são armazenadas com bcrypt. O banco guarda apenas o hash SHA-256 dos refresh tokens. As rotas de negócio exigem `Authorization: Bearer <accessToken>`; a API consulta a conta no banco e valida o papel antes de permitir o acesso. As listas de domínios devem ser ajustadas em `.env` para os endereços institucionais usados pela equipe.
+
+O primeiro uso deve ser feito na tela de login, em **Configurar o primeiro administrador**. Em produção, defina `JWT_ACCESS_SECRET` com um valor aleatório exclusivo (a variável fica vazia no `.env.example` de propósito). Para configurar o primeiro administrador em produção, habilite `ALLOW_ADMIN_BOOTSTRAP=true` temporariamente; depois do cadastro, desabilite a opção no provedor de hospedagem. Depois, o administrador cadastra os usuários como **Convidado**; a pessoa convidada usa **Primeiro acesso? Ative seu convite** para escolher a senha. O status de usuário não substitui a validação de senha: convidados não conseguem fazer login.
 
 ## Scripts
 
@@ -87,7 +105,7 @@ Cada arquivo `.sql` em `database/migrations/` roda **uma vez** por banco, em ord
 (`001_...`, `002_...`). O nome fica registrado na tabela `schema_migrations`, então todo mundo do
 grupo chega ao mesmo banco com `npm run db:migrate`.
 
-- O script de criação das tabelas (T02) entra como `database/migrations/001_schema_inicial.sql`.
+- A migration inicial compartilhada é `database/migrations/001_criar_tabelas.sql`; as migrations já aplicadas não devem ser editadas.
 - **Não edite uma migration já aplicada**: o sistema detecta a mudança (checksum) e para com um aviso.
   Para alterar o banco, crie um arquivo novo (`002_ajuste_xyz.sql`). Se for só no seu computador,
   `npm run db:reset` recria tudo do zero.

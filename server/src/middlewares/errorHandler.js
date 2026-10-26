@@ -22,6 +22,15 @@ export function toHttpError(err) {
     return { status: err.statusCode, body: { error } };
   }
 
+  // Algumas rotas antigas ainda lançam Error com statusCode em vez de AppError.
+  if ([400, 401, 403, 404, 409].includes(err?.statusCode)) {
+    const code = err.statusCode === 400 ? 'BAD_REQUEST'
+      : err.statusCode === 401 ? 'UNAUTHORIZED'
+        : err.statusCode === 403 ? 'FORBIDDEN'
+          : err.statusCode === 404 ? 'NOT_FOUND' : 'CONFLICT';
+    return { status: err.statusCode, body: { error: { code, message: err.message || 'A requisição não pôde ser concluída.' } } };
+  }
+
   // Erros do leitor de JSON do Express
   if (err?.type === 'entity.parse.failed') {
     return { status: 400, body: { error: { code: 'INVALID_JSON', message: 'O corpo da requisição não é um JSON válido.' } } };

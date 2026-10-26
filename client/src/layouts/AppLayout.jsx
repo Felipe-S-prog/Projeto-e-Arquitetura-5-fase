@@ -35,12 +35,12 @@ function SectionLabel({ children }) {
 }
 
 export default function AppLayout() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try { await logout(); } catch { /* A sessão local também deve ser encerrada se a API estiver indisponível. */ }
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -66,34 +66,41 @@ export default function AppLayout() {
           </div>
         </div>
 
-        <SectionLabel>CONTEÚDO</SectionLabel>
-        <NavItem to="/questoes" icon={<BubbleIcon size={16} />}>
-          Questões
-        </NavItem>
-        <NavItem to="/provas" icon={<ExamSheetIcon width={14} height={16} />}>
-          Provas
-        </NavItem>
+        {user?.role === 'PROFESSOR' && (
+          <>
+            <SectionLabel>CONTEÚDO</SectionLabel>
+            <NavItem to="/questoes" icon={<BubbleIcon size={16} />}>
+              Questões
+            </NavItem>
+            <NavItem to="/provas" icon={<ExamSheetIcon width={14} height={16} />}>
+              Provas
+            </NavItem>
 
-        <SectionLabel>OPERAÇÃO</SectionLabel>
-        <NavItem to="/aplicacoes" icon={<QrMarkerIcon size={16} />}>
-          Aplicações
-        </NavItem>
-        <NavItem to="/turmas" icon={<ClassroomGridIcon width={18} height={14} />}>
-          Turmas
-        </NavItem>
+            <SectionLabel>OPERAÇÃO</SectionLabel>
+            <NavItem to="/aplicacoes" icon={<QrMarkerIcon size={16} />}>
+              Aplicações
+            </NavItem>
+            <NavItem to="/turmas" icon={<ClassroomGridIcon width={18} height={14} />}>
+              Turmas
+            </NavItem>
 
-        <SectionLabel>AVALIAÇÃO</SectionLabel>
-        <NavItem to="/correcao" icon={<CorrectionIcon size={16} />}>
-          Correção
-        </NavItem>
-        <NavItem to="/relatorios" icon={<ReportBarsIcon height={15} />}>
-          Relatórios
-        </NavItem>
-
-        <SectionLabel>SISTEMA</SectionLabel>
-        <NavItem to="/admin" icon={<AdminIcon size={16} />}>
-          Administração
-        </NavItem>
+            <SectionLabel>AVALIAÇÃO</SectionLabel>
+            <NavItem to="/correcao" icon={<CorrectionIcon size={16} />}>
+              Correção
+            </NavItem>
+            <NavItem to="/relatorios" icon={<ReportBarsIcon height={15} />}>
+              Relatórios
+            </NavItem>
+          </>
+        )}
+        {user?.role === 'ADMINISTRADOR' && (
+          <>
+            <SectionLabel>SISTEMA</SectionLabel>
+            <NavItem to="/admin" icon={<AdminIcon size={16} />}>
+              Administração
+            </NavItem>
+          </>
+        )}
 
         <div style={{ flex: 1 }} />
         <div
