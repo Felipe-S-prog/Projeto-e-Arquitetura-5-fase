@@ -51,7 +51,10 @@ function ShuffleToggle({ label, hint, checked, onClick, disabled }) {
 export default function PdfConfig() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getApplicationById, getExamById, updateApplication, classStudents, generateApplicationCopies } = useData();
+  const { getApplicationById, getExamById, updateApplication, classStudents, generateApplicationCopies, applicationsError } = useData();
+
+  // updateApplication já mostra o erro (applicationsError) e desfaz a mudança; aqui só evitamos erro solto.
+  const saveConfig = (patch) => updateApplication(Number(id), patch).catch(() => {});
 
   const app = getApplicationById(id);
   if (!app) return <div>Aplicação não encontrada.</div>;
@@ -61,9 +64,9 @@ export default function PdfConfig() {
 
   const toggleLinkToRoster = () => {
     const next = !app.linkToRoster;
-    updateApplication(app.id, {
+    saveConfig({
       linkToRoster: next,
-      quantity: next ? students.length : app.quantity,
+      quantity: next && students.length > 0 ? students.length : app.quantity,
     });
   };
 
@@ -95,13 +98,13 @@ export default function PdfConfig() {
             label="Embaralhar questões"
             hint="A ordem varia entre as provas geradas."
             checked={app.shuffleQuestions}
-            onClick={() => updateApplication(app.id, { shuffleQuestions: !app.shuffleQuestions })}
+            onClick={() => saveConfig({ shuffleQuestions: !app.shuffleQuestions })}
           />
           <ShuffleToggle
             label="Embaralhar alternativas"
             hint="Independente do embaralhamento de questões."
             checked={app.shuffleAlternatives}
-            onClick={() => updateApplication(app.id, { shuffleAlternatives: !app.shuffleAlternatives })}
+            onClick={() => saveConfig({ shuffleAlternatives: !app.shuffleAlternatives })}
           />
         </div>
 
@@ -137,6 +140,10 @@ export default function PdfConfig() {
             ? 'Como as provas estão vinculadas à turma, o código de cada uma já identifica a pessoa automaticamente.'
             : 'Um QR Code identifica a versão em cada folha; nome e matrícula são preenchidos manualmente pela pessoa.'}
         </div>
+
+        {applicationsError && (
+          <div style={{ marginTop: 16, fontSize: 13.5, color: 'var(--red-text, #b42318)' }}>{applicationsError}</div>
+        )}
 
         <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 22, borderTop: '1px solid var(--border-light)' }}>
           <SecondaryButton onClick={() => navigate(`/aplicacoes/${app.id}`)}>Voltar</SecondaryButton>

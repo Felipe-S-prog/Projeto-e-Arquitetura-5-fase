@@ -4,7 +4,7 @@ import { useData } from '../context/DataContext';
 import { Breadcrumb, FormField, Select, PrimaryButton, SecondaryButton } from '../components/ui';
 
 export default function ApplicationNew() {
-  const { selectableExams, selectableClasses, createApplication } = useData();
+  const { selectableExams, selectableClasses, examsLoading, classesLoading, createApplication } = useData();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const presetExamId = searchParams.get('examId');
@@ -12,11 +12,29 @@ export default function ApplicationNew() {
   const [examId, setExamId] = useState(presetExamId ? Number(presetExamId) : selectableExams[0]?.id ?? '');
   const [classId, setClassId] = useState(selectableClasses[0]?.id ?? '');
   const [quantity, setQuantity] = useState(30);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  // Se a tela abriu antes de provas/turmas carregarem, usa a primeira opção da lista.
+  const currentExamId = examId || selectableExams[0]?.id || '';
+  const currentClassId = classId || selectableClasses[0]?.id || '';
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const id = createApplication({ examId: Number(examId), classId: Number(classId), quantity: Math.max(1, quantity) });
-    navigate(`/aplicacoes/${id}`);
+    setSubmitting(true);
+    setError('');
+
+    try {
+      const id = await createApplication({
+        examId: Number(currentExamId),
+        classId: Number(currentClassId),
+        quantity: Math.max(1, quantity),
+      });
+      navigate(`/aplicacoes/${id}`);
+    } catch (err) {
+      setError(err.message || 'Não foi possível criar a aplicação.');
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -39,7 +57,7 @@ export default function ApplicationNew() {
           }}
         >
           <FormField label="Prova" hint="Provas arquivadas não aparecem nesta lista.">
-            <Select value={examId} onChange={(e) => setExamId(e.target.value)}>
+            <Select value={currentExamId} onChange={(e) => setExamId(e.target.value)}>
               {selectableExams.map((ex) => (
                 <option key={ex.id} value={ex.id}>
                   {ex.title}
@@ -48,7 +66,7 @@ export default function ApplicationNew() {
             </Select>
           </FormField>
           <FormField label="Turma">
-            <Select value={classId} onChange={(e) => setClassId(e.target.value)}>
+            <Select value={currentClassId} onChange={(e) => setClassId(e.target.value)}>
               {selectableClasses.map((cl) => (
                 <option key={cl.id} value={cl.id}>
                   {cl.name}
@@ -77,9 +95,13 @@ export default function ApplicationNew() {
               }}
             />
           </FormField>
+          {(examsLoading || classesLoading) && (
+            <div style={{ fontSize: 13, color: 'var(--muted-3)' }}>Carregando provas e turmas...</div>
+          )}
+          {error && <div style={{ fontSize: 13.5, color: 'var(--red-text, #b42318)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
-            <PrimaryButton type="submit" disabled={!examId || !classId}>
-              Criar aplicação
+            <PrimaryButton type="submit" disabled={!currentExamId || !currentClassId || submitting}>
+              {submitting ? 'Criando...' : 'Criar aplicação'}
             </PrimaryButton>
             <SecondaryButton type="button" onClick={() => navigate('/aplicacoes')}>
               Cancelar
