@@ -5,6 +5,8 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import { notFound } from './middlewares/notFound.js';
 import { requestLogger } from './middlewares/requestLogger.js';
 import { createRoutes } from './routes/index.js';
+import { createAuthRoutes } from './routes/auth.routes.js';
+import { createApiAuthMiddleware } from './middlewares/apiAuth.js';
 
 // Monta a aplicação Express. Recebe o pool pronto (em vez de criá-lo aqui)
 // para os testes poderem trocar o banco real por um falso.
@@ -17,6 +19,9 @@ export function createApp({ pool, config }) {
   app.use(express.json({ limit: '1mb' }));
   if (config.nodeEnv !== 'test') app.use(requestLogger);
 
+  // A autenticação fica antes das rotas de negócio; health e endpoints de entrada são públicos.
+  app.use('/api', createApiAuthMiddleware({ pool, config }));
+  app.use('/api/auth', createAuthRoutes({ pool, config }));
   app.use('/api', createRoutes({ pool }));
 
   app.use(notFound);

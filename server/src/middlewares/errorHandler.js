@@ -30,6 +30,15 @@ export function toHttpError(err) {
     return { status: 413, body: { error: { code: 'PAYLOAD_TOO_LARGE', message: 'O corpo da requisição é grande demais.' } } };
   }
 
+  // Algumas rotas antigas ainda lançam Error com statusCode em vez de AppError.
+  if ([400, 401, 403, 404, 409].includes(err?.statusCode)) {
+    const code = err.statusCode === 400 ? 'BAD_REQUEST'
+      : err.statusCode === 401 ? 'UNAUTHORIZED'
+        : err.statusCode === 403 ? 'FORBIDDEN'
+          : err.statusCode === 404 ? 'NOT_FOUND' : 'CONFLICT';
+    return { status: err.statusCode, body: { error: { code, message: err.message || 'A requisição não pôde ser concluída.' } } };
+  }
+
   // Erros do MySQL que acontecem em CRUD comum, para ninguém precisar tratar um por um
   switch (err?.code) {
     case 'ER_DUP_ENTRY': // valor repetido em coluna UNIQUE (ex.: e-mail já cadastrado)

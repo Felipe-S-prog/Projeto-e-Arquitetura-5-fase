@@ -34,8 +34,35 @@ export function loadConfig(env = process.env) {
     throw new Error('DB_NAME inválido: use apenas letras, números e "_" (máximo de 64 caracteres).');
   }
 
+  const nodeEnv = env.NODE_ENV || 'development';
+  const jwtSecret = env.JWT_ACCESS_SECRET || 'sgp-development-secret-change-before-deploy-2026';
+  if (nodeEnv === 'production' && (!env.JWT_ACCESS_SECRET || env.JWT_ACCESS_SECRET.startsWith('troque-por-'))) {
+    throw new Error('JWT_ACCESS_SECRET é obrigatória em produção.');
+  }
+  if (jwtSecret.length < 32) {
+    throw new Error('JWT_ACCESS_SECRET deve ter pelo menos 32 caracteres.');
+  }
+
+  const parseDomains = (value, fallback, name) => {
+    const domains = (value ?? fallback)
+      .split(',')
+      .map((domain) => domain.trim().toLowerCase().replace(/^@/, ''))
+      .filter(Boolean);
+    if (!domains.length || domains.some((domain) => !/^[a-z0-9.-]+$/.test(domain))) {
+      throw new Error(`${name} contém um domínio inválido.`);
+    }
+    return domains;
+  };
+  const parsePositiveInteger = (value, fallback, name, max) => {
+    const number = Number(value ?? fallback);
+    if (!Number.isInteger(number) || number < 1 || number > max) {
+      throw new Error(`${name} deve ser um inteiro entre 1 e ${max}.`);
+    }
+    return number;
+  };
+
   return {
-    nodeEnv: env.NODE_ENV || 'development',
+    nodeEnv,
     port: parsePort(env.PORT ?? '3333', 'PORT'),
     corsOrigins: (env.CLIENT_ORIGIN ?? 'http://localhost:5173')
       .split(',')
@@ -47,6 +74,14 @@ export function loadConfig(env = process.env) {
       user: env.DB_USER,
       password: env.DB_PASSWORD,
       database: env.DB_NAME,
+    },
+    auth: {
+      jwtSecret,
+      accessTokenTtlSeconds: parsePositiveInteger(env.JWT_ACCESS_TTL_SECONDS, '900', 'JWT_ACCESS_TTL_SECONDS', 86400),
+      refreshTokenTtlDays: parsePositiveInteger(env.REFRESH_TOKEN_TTL_DAYS, '30', 'REFRESH_TOKEN_TTL_DAYS', 365),
+      allowAdminBootstrap: nodeEnv === 'production' ? env.ALLOW_ADMIN_BOOTSTRAP === 'true' : env.ALLOW_ADMIN_BOOTSTRAP !== 'false',
+      adminEmailDomains: parseDomains(env.ADMIN_EMAIL_DOMAINS, 'catolicasc.org.br', 'ADMIN_EMAIL_DOMAINS'),
+      professorEmailDomains: parseDomains(env.PROFESSOR_EMAIL_DOMAINS, 'catolicasc.org.br,catolicasc.edu.br', 'PROFESSOR_EMAIL_DOMAINS'),
     },
   };
 }

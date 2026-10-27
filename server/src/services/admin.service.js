@@ -1,3 +1,5 @@
+import { emailAllowedForRole } from '../utils/emailDomain.js';
+
 
 export function createAdminService(repository) {
   function validateUser(data, { updating = false } = {}) {
@@ -20,6 +22,13 @@ export function createAdminService(repository) {
 
     if (!['Professor', 'Administrador'].includes(role)) {
       const error = new Error('Papel de usuário inválido.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const databaseRole = role === 'Administrador' ? 'ADMINISTRADOR' : 'PROFESSOR';
+    if (!emailAllowedForRole(email, databaseRole)) {
+      const error = new Error('O domínio do e-mail não é permitido para este papel.');
       error.statusCode = 400;
       throw error;
     }

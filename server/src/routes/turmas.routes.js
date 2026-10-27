@@ -1,9 +1,11 @@
 
 import { Router } from 'express';
 import { AppError } from '../errors/AppError.js';
+import { professorContext } from '../middlewares/professorContext.js';
 
 export function createTurmasRoutes({ pool }) {
   const router = Router();
+  router.use(professorContext);
 
   function mapTurma(row) {
     return {
@@ -39,18 +41,10 @@ export function createTurmasRoutes({ pool }) {
     }
   }
 
-  function validarProfessorId(value) {
-    const id = Number(value);
-    if (!Number.isInteger(id) || id <= 0) {
-      throw AppError.badRequest('Informe um professor_id válido.');
-    }
-    return id;
-  }
-
   // Listar turmas do professor.
   router.get('/', async (req, res, next) => {
     try {
-      const professorId = validarProfessorId(req.query.professor_id);
+      const professorId = req.professorId;
 
       const [rows] = await pool.execute(
         `SELECT id, nome, disciplina, periodo, status
@@ -69,7 +63,7 @@ export function createTurmasRoutes({ pool }) {
   // Criar turma.
   router.post('/', async (req, res, next) => {
     try {
-      const professorId = validarProfessorId(req.body.professor_id);
+      const professorId = req.professorId;
       const { nome, disciplina, periodo } = req.body;
       validarDados({ nome, disciplina, periodo });
 
@@ -95,7 +89,7 @@ export function createTurmasRoutes({ pool }) {
   router.put('/:id', async (req, res, next) => {
     try {
       const id = Number(req.params.id);
-      const professorId = validarProfessorId(req.body.professor_id);
+      const professorId = req.professorId;
       const { nome, disciplina, periodo } = req.body;
 
       if (!Number.isInteger(id) || id <= 0) {
@@ -136,7 +130,7 @@ export function createTurmasRoutes({ pool }) {
   router.patch('/:id/arquivar', async (req, res, next) => {
     try {
       const id = Number(req.params.id);
-      const professorId = validarProfessorId(req.body.professor_id);
+      const professorId = req.professorId;
 
       if (!Number.isInteger(id) || id <= 0) {
         throw AppError.badRequest('ID de turma inválido.');
