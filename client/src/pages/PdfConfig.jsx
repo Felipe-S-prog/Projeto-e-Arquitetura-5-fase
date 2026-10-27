@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { Breadcrumb, PrimaryButton, SecondaryButton } from '../components/ui';
@@ -52,6 +53,8 @@ export default function PdfConfig() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getApplicationById, getExamById, updateApplication, classStudents, generateApplicationCopies, applicationsError } = useData();
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState('');
 
   // updateApplication já mostra o erro (applicationsError) e desfaz a mudança; aqui só evitamos erro solto.
   const saveConfig = (patch) => updateApplication(Number(id), patch).catch(() => {});
@@ -61,6 +64,8 @@ export default function PdfConfig() {
   const exam = getExamById(app.examId);
   const students = classStudents(app.classId);
   const hasPublishedAnswerKey = (app.copies || []).some((c) => c.answerKeyPublished);
+  // Depois do download as cópias já foram impressas: o servidor não deixa gerar de novo (T23).
+  const locked = app.status !== 'Pendente';
 
   const toggleLinkToRoster = () => {
     const next = !app.linkToRoster;
@@ -70,15 +75,26 @@ export default function PdfConfig() {
     });
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    if (locked) {
+      navigate(`/aplicacoes/${app.id}/pdf/preview`);
+      return;
+    }
     if (hasPublishedAnswerKey) {
       const confirmed = window.confirm(
         'Já existem gabaritos publicados para esta aplicação. Gerar novamente cria novos códigos e invalida o que já foi publicado. Continuar?'
       );
       if (!confirmed) return;
     }
-    generateApplicationCopies(app.id);
-    navigate(`/aplicacoes/${app.id}/pdf/preview`);
+    setGenerating(true);
+    setGenerateError('');
+    try {
+      await generateApplicationCopies(app.id);
+      navigate(`/aplicacoes/${app.id}/pdf/preview`);
+    } catch (err) {
+      setGenerateError(err.message || 'Não foi possível gerar as provas.');
+      setGenerating(false);
+    }
   };
 
   return (
@@ -99,12 +115,14 @@ export default function PdfConfig() {
             hint="A ordem varia entre as provas geradas."
             checked={app.shuffleQuestions}
             onClick={() => saveConfig({ shuffleQuestions: !app.shuffleQuestions })}
+            disabled={locked}
           />
           <ShuffleToggle
             label="Embaralhar alternativas"
             hint="Independente do embaralhamento de questões."
             checked={app.shuffleAlternatives}
             onClick={() => saveConfig({ shuffleAlternatives: !app.shuffleAlternatives })}
+            disabled={locked}
           />
         </div>
 
@@ -123,7 +141,7 @@ export default function PdfConfig() {
           }
           checked={app.linkToRoster}
           onClick={toggleLinkToRoster}
-          disabled={students.length === 0}
+          disabled={students.length === 0 || locked}
         />
 
         <div
@@ -141,13 +159,21 @@ export default function PdfConfig() {
             : 'Um QR Code identifica a versão em cada folha; nome e matrícula são preenchidos manualmente pela pessoa.'}
         </div>
 
-        {applicationsError && (
-          <div style={{ marginTop: 16, fontSize: 13.5, color: 'var(--red-text, #b42318)' }}>{applicationsError}</div>
+        {locked && (
+          <div style={{ marginTop: 16, fontSize: 13.5, color: 'var(--muted)' }}>
+            Esta aplicação já foi baixada: as {app.copies?.length || app.quantity} provas impressas ficam com os mesmos códigos.
+          </div>
+        )}
+
+        {(generateError || applicationsError) && (
+          <div style={{ marginTop: 16, fontSize: 13.5, color: 'var(--red-text, #b42318)' }}>{generateError || applicationsError}</div>
         )}
 
         <div style={{ display: 'flex', gap: 10, marginTop: 28, paddingTop: 22, borderTop: '1px solid var(--border-light)' }}>
           <SecondaryButton onClick={() => navigate(`/aplicacoes/${app.id}`)}>Voltar</SecondaryButton>
-          <PrimaryButton onClick={handleGenerate}>Gerar pré-visualização</PrimaryButton>
+          <PrimaryButton onClick={handleGenerate} disabled={generating}>
+            {generating ? 'Gerando...' : locked ? 'Ver provas geradas' : 'Gerar pré-visualização'}
+          </PrimaryButton>
         </div>
       </div>
     </div>

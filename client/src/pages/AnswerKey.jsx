@@ -8,6 +8,21 @@ export default function AnswerKey() {
   const { id } = useParams();
   const { getApplicationById, getExamById, getClassById, publishAnswerKey } = useData();
   const [showExportModal, setShowExportModal] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [error, setError] = useState('');
+
+  // Publica no banco (T23); a consulta pública por código passa a enxergar o gabarito.
+  const publish = async (code) => {
+    setPublishing(true);
+    setError('');
+    try {
+      await publishAnswerKey(app.id, code);
+    } catch (err) {
+      setError(err.message || 'Não foi possível publicar o gabarito.');
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   const app = getApplicationById(id);
   if (!app) return <div>Aplicação não encontrada.</div>;
@@ -31,8 +46,11 @@ export default function AnswerKey() {
           <SecondaryButton onClick={() => setShowExportModal(true)} disabled={copies.length === 0}>
             Exportar gabarito em PDF
           </SecondaryButton>
-          <PrimaryButton onClick={() => publishAnswerKey(app.id, 'all')} disabled={copies.length === 0}>
-            Publicar todos
+          <PrimaryButton
+            onClick={() => publish('all')}
+            disabled={copies.length === 0 || publishing || publishedCount === copies.length}
+          >
+            {publishing ? 'Publicando...' : 'Publicar todos'}
           </PrimaryButton>
         </div>
       </div>
@@ -40,6 +58,7 @@ export default function AnswerKey() {
       <div style={{ fontSize: 13, color: 'var(--muted-2)', marginBottom: 16 }}>
         {publishedCount} de {copies.length} publicados
       </div>
+      {error && <div style={{ fontSize: 13.5, color: 'var(--red-text, #b42318)', marginBottom: 16 }}>{error}</div>}
 
       {copies.length === 0 ? (
         <EmptyState>Gere o PDF em "Pré-visualização e download" antes de publicar o gabarito.</EmptyState>
@@ -68,7 +87,7 @@ export default function AnswerKey() {
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    publishAnswerKey(app.id, copy.code);
+                    if (!publishing) publish(copy.code);
                   }}
                   style={{ fontSize: 13, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}
                 >

@@ -23,10 +23,13 @@ export default function PdfPreview() {
   const [confirmError, setConfirmError] = useState('');
 
   // Segurança para navegação direta (ex: voltar/avançar no navegador) sem
-  // ter passado pelo botão "Gerar pré-visualização" ainda.
+  // ter passado pelo botão "Gerar pré-visualização" ainda. Só gera enquanto a
+  // aplicação está Pendente: depois do download as cópias do banco ficam fixas.
   useEffect(() => {
-    if (app && (!app.copies || app.copies.length === 0)) {
-      generateApplicationCopies(app.id);
+    if (app && app.status === 'Pendente' && (!app.copies || app.copies.length === 0)) {
+      generateApplicationCopies(app.id).catch((err) =>
+        setConfirmError(err.message || 'Não foi possível gerar as provas.'),
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [app?.id]);
