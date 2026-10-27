@@ -9,42 +9,14 @@ import {
 } from 'react';
 
 import questionsSeed from '../data/questions.json';
-import examsSeed from '../data/exams.json';
-import applicationsSeed from '../data/applications.json';
-import { todayBR } from '../utils/status';
 import { buildApplicationCopies } from '../utils/answerKey';
+import { useAuth } from './AuthContext';
+import { apiRequest } from '../services/api';
 
 const DataContext = createContext(null);
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'http://localhost:3333/api';
-
-// ID temporário para desenvolvimento.
-// Corresponde ao professor de teste cadastrado no banco.
-const DEFAULT_PROFESSOR_ID = Number(import.meta.env.VITE_PROFESSOR_ID || 1);
-
 async function adminApiRequest(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-
-    throw new Error(
-      errorData.error?.message ||
-        errorData.message ||
-        `Erro na API (${response.status}).`,
-    );
-  }
-
-  if (response.status === 204) return null;
-
-  return response.json();
+  return apiRequest(path, options);
 }
 
 function normalizeClass(cls) {
@@ -64,7 +36,6 @@ function normalizeClass(cls) {
 // Monta o corpo enviado para a API de questões.
 function buildQuestionPayload(question) {
   return {
-    professor_id: DEFAULT_PROFESSOR_ID,
     tipo: 'OBJETIVA',
     enunciado: question.excerpt,
     imagem_url: question.imageUrl || null,
@@ -76,23 +47,62 @@ function buildQuestionPayload(question) {
   };
 }
 
+// Normaliza uma prova vinda da API: { id, title, description, status, questions: [{ questionId, score }] }.
+function normalizeExam(exam) {
+  return {
+    id: Number(exam.id),
+    title: exam.title,
+    description: exam.description ?? '',
+    status: exam.status,
+    questions: (exam.questions ?? []).map((item) => ({
+      questionId: Number(item.questionId),
+      score: Number(item.score),
+    })),
+  };
+}
+
+// A API devolve a data como AAAA-MM-DD; as telas usam DD/MM/AAAA.
+function formatApiDate(value) {
+  if (!value) return null;
+  const [year, month, day] = String(value).slice(0, 10).split('-');
+  return year && month && day ? `${day}/${month}/${year}` : null;
+}
+
+// Normaliza uma aplicação vinda da API. As cópias (copies) ainda ficam só na memória (T23).
+function normalizeApplication(application, copies = []) {
+  return {
+    id: Number(application.id),
+    examId: Number(application.examId),
+    classId: Number(application.classId),
+    status: application.status,
+    quantity: Number(application.quantity),
+    date: formatApiDate(application.date),
+    shuffleQuestions: Boolean(application.shuffleQuestions),
+    shuffleAlternatives: Boolean(application.shuffleAlternatives),
+    linkToRoster: Boolean(application.linkToRoster),
+    copies,
+  };
+}
+
 function unwrapQuestion(payload) {
   return payload?.question || payload?.data || payload;
 }
 
 const DataProvider = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
   const [questions, setQuestions] = useState(() =>
     questionsSeed.map((question) => ({ ...question })),
   );
 
   // Carrega as questões da API.
   useEffect(() => {
+    if (!isAuthenticated || user?.role !== 'PROFESSOR') return undefined;
     let cancelled = false;
 
     async function loadQuestions() {
       try {
         const payload = await adminApiRequest(
-          `/questoes?professor_id=${DEFAULT_PROFESSOR_ID}`,
+          '/questoes',
         );
 
         const apiQuestions = Array.isArray(payload)
@@ -122,23 +132,22 @@ const DataProvider = ({ children }) => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthenticated, user?.id, user?.role]);
 
   // Turmas passam a vir da API, não mais do classes.json.
   const [classes, setClasses] = useState([]);
   const [classesLoading, setClassesLoading] = useState(true);
   const [classesError, setClassesError] = useState('');
 
-  const [exams, setExams] = useState(() =>
-    examsSeed.map((exam) => ({ ...exam })),
-  );
+  // Provas passam a vir da API, não mais do exams.json.
+  const [exams, setExams] = useState([]);
+  const [examsLoading, setExamsLoading] = useState(true);
+  const [examsError, setExamsError] = useState('');
 
-  const [applications, setApplications] = useState(() =>
-    applicationsSeed.map((application) => ({
-      ...application,
-      copies: application.copies || [],
-    })),
-  );
+  // Aplicações passam a vir da API, não mais do applications.json.
+  const [applications, setApplications] = useState([]);
+  const [applicationsLoading, setApplicationsLoading] = useState(true);
+  const [applicationsError, setApplicationsError] = useState('');
 
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminUsersLoading, setAdminUsersLoading] = useState(true);
@@ -152,8 +161,30 @@ const DataProvider = ({ children }) => {
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [settingsError, setSettingsError] = useState('');
 
+  useEffect(() => {
+    setQuestions(questionsSeed.map((question) => ({ ...question })));
+    setClasses([]);
+    setExams([]);
+    setApplications([]);
+    setAdminUsers([]);
+    setSettings({ institutionName: '', defaultPeriod: '' });
+    setClassesError('');
+    setExamsError('');
+    setApplicationsError('');
+    setAdminUsersError('');
+    setSettingsError('');
+  }, [user?.id]);
+
   // Carrega turmas, usuários administrativos e configurações.
   useEffect(() => {
+    if (!isAuthenticated) {
+      setClassesLoading(false);
+      setExamsLoading(false);
+      setApplicationsLoading(false);
+      setAdminUsersLoading(false);
+      setSettingsLoading(false);
+      return undefined;
+    }
     let cancelled = false;
 
     async function loadClasses() {
@@ -162,7 +193,7 @@ const DataProvider = ({ children }) => {
 
       try {
         const result = await adminApiRequest(
-          `/turmas?professor_id=${DEFAULT_PROFESSOR_ID}`,
+          '/turmas',
         );
 
         if (!Array.isArray(result)) {
@@ -179,6 +210,39 @@ const DataProvider = ({ children }) => {
       } finally {
         if (!cancelled) {
           setClassesLoading(false);
+        }
+      }
+    }
+
+    async function loadApplications() {
+      setApplicationsLoading(true);
+      setApplicationsError('');
+
+      try {
+        const result = await adminApiRequest('/aplicacoes');
+
+        if (!Array.isArray(result)) {
+          throw new Error('A API retornou uma lista de aplicações inválida.');
+        }
+
+        if (!cancelled) {
+          // Mantém as cópias já geradas nesta sessão (ainda não vão ao banco).
+          setApplications((previous) =>
+            result.map((item) =>
+              normalizeApplication(
+                item,
+                previous.find((old) => old.id === Number(item.id))?.copies || [],
+              ),
+            ),
+          );
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setApplicationsError(error.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setApplicationsLoading(false);
         }
       }
     }
@@ -225,14 +289,50 @@ const DataProvider = ({ children }) => {
       }
     }
 
-    loadClasses();
-    loadAdminUsers();
-    loadSettings();
+    async function loadExams() {
+      setExamsLoading(true);
+      setExamsError('');
+
+      try {
+        const result = await adminApiRequest(
+          '/provas',
+        );
+
+        if (!Array.isArray(result)) {
+          throw new Error('A API retornou uma lista de provas inválida.');
+        }
+
+        if (!cancelled) {
+          setExams(result.map(normalizeExam));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setExamsError(error.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setExamsLoading(false);
+        }
+      }
+    }
+
+    if (user?.role === 'PROFESSOR') {
+      loadClasses();
+      loadExams();
+      loadApplications();
+    } else {
+      setExamsLoading(false);
+      setApplicationsLoading(false);
+    }
+    if (user?.role === 'ADMINISTRADOR') {
+      loadAdminUsers();
+      loadSettings();
+    }
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthenticated, user?.id, user?.role]);
 
   // Cria uma questão na API.
   const addQuestion = useCallback(async (question) => {
@@ -270,7 +370,7 @@ const DataProvider = ({ children }) => {
   // Exclui uma questão pela API.
   const deleteQuestion = useCallback(async (id) => {
     await adminApiRequest(
-      `/questoes/${id}?professor_id=${DEFAULT_PROFESSOR_ID}`,
+      `/questoes/${id}`,
       { method: 'DELETE' },
     );
 
@@ -308,7 +408,6 @@ const DataProvider = ({ children }) => {
       const createdClass = await adminApiRequest('/turmas', {
         method: 'POST',
         body: JSON.stringify({
-          professor_id: DEFAULT_PROFESSOR_ID,
           nome: name,
           disciplina: subject,
           periodo: period,
@@ -356,7 +455,6 @@ const DataProvider = ({ children }) => {
       const updatedClass = await adminApiRequest(`/turmas/${id}`, {
         method: 'PUT',
         body: JSON.stringify({
-          professor_id: DEFAULT_PROFESSOR_ID,
           nome: name,
           disciplina: subject,
           periodo: period,
@@ -383,15 +481,9 @@ const DataProvider = ({ children }) => {
     setClassesError('');
 
     try {
-      const archivedClass = await adminApiRequest(
-        `/turmas/${id}/arquivar`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({
-            professor_id: DEFAULT_PROFESSOR_ID,
-          }),
-        },
-      );
+      const archivedClass = await adminApiRequest(`/turmas/${id}/arquivar`, {
+        method: 'PATCH',
+      });
 
       const normalized = normalizeClass(archivedClass);
 
@@ -408,71 +500,105 @@ const DataProvider = ({ children }) => {
     }
   }, []);
 
-  const addExam = useCallback((exam) => {
-    setExams((previous) => {
-      const id =
-        previous.reduce(
-          (max, item) => Math.max(max, Number(item.id) || 0),
-          0,
-        ) + 1;
-
-      return [...previous, { id, status: 'Rascunho', ...exam }];
+  // Cria a prova na API (nasce em Rascunho) e devolve a prova salva.
+  const addExam = useCallback(async (exam) => {
+    const created = await adminApiRequest('/provas', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: exam.title,
+        description: exam.description,
+        questions: exam.questions,
+      }),
     });
+
+    const saved = normalizeExam(created);
+
+    setExams((previous) => [
+      ...previous.filter((item) => item.id !== saved.id),
+      saved,
+    ]);
+
+    return saved;
   }, []);
 
-  const createApplication = useCallback(
-    ({ examId, classId, quantity }) => {
-      let newId;
-
-      setApplications((previous) => {
-        newId =
-          previous.reduce(
-            (max, item) => Math.max(max, Number(item.id) || 0),
-            0,
-          ) + 1;
-
-        return [
-          ...previous,
-          {
-            id: newId,
-            examId,
-            classId,
-            status: 'Pendente',
-            quantity,
-            date: null,
-            shuffleQuestions: true,
-            shuffleAlternatives: true,
-            linkToRoster: false,
-            copies: [],
-          },
-        ];
-      });
-
-      return newId;
-    },
-    [],
-  );
-
-  const updateApplication = useCallback((id, patch) => {
-    setApplications((previous) =>
-      previous.map((application) =>
-        application.id === id
-          ? { ...application, ...patch }
-          : application,
+  // Atualiza o status da prova na lista (a API muda Rascunho -> Pronta na 1ª aplicação).
+  const syncExamStatus = useCallback((examId, status) => {
+    if (!status) return;
+    setExams((previous) =>
+      previous.map((exam) =>
+        exam.id === Number(examId) ? { ...exam, status } : exam,
       ),
     );
   }, []);
 
-  const confirmApplicationDownload = useCallback((id) => {
+  // Cria a aplicação na API (nasce Pendente) e devolve o id salvo.
+  const createApplication = useCallback(
+    async ({ examId, classId, quantity }) => {
+      const created = await adminApiRequest('/aplicacoes', {
+        method: 'POST',
+        body: JSON.stringify({ examId, classId, quantity }),
+      });
+
+      const saved = normalizeApplication(created);
+
+      setApplications((previous) => [
+        ...previous.filter((item) => item.id !== saved.id),
+        saved,
+      ]);
+      syncExamStatus(saved.examId, created.examStatus);
+
+      return saved.id;
+    },
+    [syncExamStatus],
+  );
+
+  // Atualiza a configuração na tela na hora e grava na API; se a API recusar, desfaz.
+  const updateApplication = useCallback(
+    async (id, patch) => {
+      const target = applications.find((item) => item.id === Number(id));
+
+      if (!target) return;
+
+      const previousValues = Object.fromEntries(
+        Object.keys(patch).map((key) => [key, target[key]]),
+      );
+
+      setApplicationsError('');
+      setApplications((previous) =>
+        previous.map((item) =>
+          item.id === target.id ? { ...item, ...patch } : item,
+        ),
+      );
+
+      try {
+        await adminApiRequest(`/aplicacoes/${target.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(patch),
+        });
+      } catch (error) {
+        setApplications((previous) =>
+          previous.map((item) =>
+            item.id === target.id ? { ...item, ...previousValues } : item,
+          ),
+        );
+        setApplicationsError(error.message);
+        throw error;
+      }
+    },
+    [applications],
+  );
+
+  // Marca a aplicação como Aplicada na API (PDF baixado) e usa a data que o servidor gravou.
+  const confirmApplicationDownload = useCallback(async (id) => {
+    const updated = await adminApiRequest(`/aplicacoes/${Number(id)}/aplicar`, {
+      method: 'POST',
+    });
+
     setApplications((previous) =>
-      previous.map((application) =>
-        application.id === id
-          ? {
-              ...application,
-              status: 'Aplicada',
-              date: application.date || todayBR(),
-            }
-          : application,
+      previous.map((item) =>
+        item.id === Number(id)
+          ? normalizeApplication(updated, item.copies || [])
+          : item,
       ),
     );
   }, []);
@@ -722,16 +848,6 @@ const DataProvider = ({ children }) => {
     [exams],
   );
 
-  // Mantém o comportamento existente das aplicações de exemplo.
-  useEffect(() => {
-    applicationsSeed.forEach((seed) => {
-      if (seed.status === 'Aplicada') {
-        generateApplicationCopies(seed.id);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const value = useMemo(
     () => ({
       questions,
@@ -739,7 +855,11 @@ const DataProvider = ({ children }) => {
       classesLoading,
       classesError,
       exams,
+      examsLoading,
+      examsError,
       applications,
+      applicationsLoading,
+      applicationsError,
       adminUsers,
       adminUsersLoading,
       adminUsersError,
@@ -779,7 +899,11 @@ const DataProvider = ({ children }) => {
       classesLoading,
       classesError,
       exams,
+      examsLoading,
+      examsError,
       applications,
+      applicationsLoading,
+      applicationsError,
       adminUsers,
       adminUsersLoading,
       adminUsersError,

@@ -44,6 +44,11 @@
 - [8. Stack Tecnológica](#8-stack-tecnológica)
 - [9. Estrutura de Pastas](#9-estrutura-de-pastas)
 - [10. Como Executar o Projeto](#10-como-executar-o-projeto)
+  - [10.1 Pré-requisitos](#101-pré-requisitos)
+  - [10.2 Configurar o back-end e o banco](#102-configurar-o-back-end-e-o-banco)
+  - [10.3 Criar o primeiro administrador](#103-criar-o-primeiro-administrador)
+  - [10.4 Iniciar o front-end](#104-iniciar-o-front-end)
+  - [10.5 Problemas comuns](#105-problemas-comuns)
 - [11. Especificação da API](#11-especificação-da-api)
 - [12. Testes e Validações](#12-testes-e-validações)
 - [13. Manual do Usuário](#13-manual-do-usuário)
@@ -440,47 +445,179 @@ Projeto-e-Arquitetura-5-fase/
 
 ## 10. Como Executar o Projeto
 
-📌 **N1**, revisado a cada entrega
+📌 **N1**, revisado a cada entrega.
 
+Estas instruções são para executar o projeto localmente no Windows, Linux ou macOS. Para desenvolvimento, mantenha o back-end e o front-end em terminais separados. O banco pode ser executado pelo Docker ou por uma instalação local do MySQL — escolha apenas uma das opções.
 
-Versões usadas: **Node.js 20.19 ou superior** (testado com Node 22; o deploy no Netlify usa Node 24) e **MySQL 8.0**.
+### 10.1 Pré-requisitos
 
-**Front-end (telas)**
+- **Git**, para clonar o repositório.
+- **Node.js 20.19 ou superior** e npm.
+- **MySQL 8.0**, instalado localmente, ou **Docker Desktop** em execução para usar o banco em contêiner.
 
-```
-1. git clone https://github.com/Felipe-S-prog/Projeto-e-Arquitetura-5-fase.git
-2. cd Projeto-e-Arquitetura-5-fase/client
-3. npm install
-4. npm run dev        # abre em http://localhost:5173
-```
+Confira as versões com `node -v` e `npm -v`. Se for usar Docker, confira também `docker --version` e `docker compose version`.
 
-**Back-end (API e banco de dados)**
+### 10.2 Configurar o back-end e o banco
 
-```
-1. cd server
-2. npm install
-3. copiar .env.example para .env e ajustar o acesso ao MySQL (DB_USER, DB_PASSWORD)
-4. subir o MySQL: o instalado na máquina, ou "docker compose up -d" na pasta server
-5. npm run db:migrate  # cria o banco e aplica as migrations
-6. npm run dev         # API em http://localhost:3333 (teste: /api/health e /api/health/db)
+Clone o projeto e instale as dependências do servidor:
+
+```bash
+git clone https://github.com/Felipe-S-prog/Projeto-e-Arquitetura-5-fase.git
+cd Projeto-e-Arquitetura-5-fase/server
+npm install
 ```
 
-Detalhes (variáveis, migrations, testes e como criar um recurso novo) em [`server/README.md`](server/README.md).
-Por enquanto o front-end ainda usa dados de exemplo (mock); a integração com a API é feita frente a frente ao longo da N2.
+Crie o arquivo local de configuração a partir do exemplo.
+
+**Windows PowerShell:**
+
+```powershell
+Copy-Item .env.example .env
+```
+
+**Linux/macOS (ou Git Bash):**
+
+```bash
+cp .env.example .env
+```
+
+O arquivo deve ficar em `server/.env`, não na raiz do repositório. Abra-o e confira as variáveis do banco e da autenticação. A configuração inicial do exemplo é:
+
+```env
+PORT=3333
+CLIENT_ORIGIN=http://localhost:5173
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=sgp
+DB_PASSWORD=sgp_dev
+DB_NAME=sgp
+ALLOW_ADMIN_BOOTSTRAP=true
+ADMIN_EMAIL_DOMAINS=catolicasc.org.br
+PROFESSOR_EMAIL_DOMAINS=catolicasc.org.br,catolicasc.edu.br
+```
+
+Os valores `sgp`/`sgp_dev` são destinados ao desenvolvimento com o Docker Compose do projeto. Se usar um MySQL já instalado na máquina, substitua `DB_USER` e `DB_PASSWORD` pelas credenciais desse servidor e mantenha `DB_PORT` igual à porta em que ele está escutando. Não é necessário criar as tabelas manualmente pelo MySQL Workbench: as migrations fazem isso.
+
+**Opção A — MySQL pelo Docker (recomendado para um ambiente novo)**
+
+Na pasta `server`, execute:
+
+```bash
+docker compose up -d
+```
+
+O Docker cria o contêiner `sgp-mysql` e, na primeira inicialização do volume, configura o banco e o usuário definidos no `.env`.
+
+Se o comando informar que a porta `3306` já está ocupada, há outro MySQL ou serviço usando essa porta. Para manter os dois serviços, mude `DB_PORT=3307` no `server/.env` e execute novamente `docker compose up -d`. A porta publicada no computador será `3307`, mas o MySQL dentro do contêiner continuará na `3306`. Como o servidor também lê `DB_PORT` do mesmo `.env`, a API se conectará pela porta correta.
+
+Se o contêiner já foi inicializado anteriormente, mudar `DB_USER` ou `DB_PASSWORD` no `.env` não altera automaticamente as credenciais gravadas no volume existente. Nesse caso, confira as credenciais do volume ou use um MySQL novo. **Não remova o volume com `docker compose down -v` sem ter certeza de que pode apagar os dados locais.**
+
+**Opção B — MySQL já instalado no computador**
+
+Não execute `docker compose up -d`. No `server/.env`, configure o usuário, a senha, a porta e o nome do banco de acordo com essa instalação. O usuário precisa ter permissão para criar o banco `sgp` e as tabelas. Se o servidor local usa a porta padrão, normalmente `DB_PORT=3306`.
+
+**Aplicar as migrations e iniciar a API**
+
+Ainda na pasta `server`, execute:
+
+```bash
+npm run db:migrate
+npm test
+npm run dev
+```
+
+`npm run db:migrate` cria o banco quando necessário e aplica as migrations pendentes. Não edite migrations que já foram aplicadas e não execute `npm run db:reset` sem entender que ele apaga e recria as estruturas e os dados locais.
+
+Para conferir a API e o banco, abra:
+
+- <http://localhost:3333/api/health> — deve retornar um JSON com `"status":"ok"`. Isso é esperado: este endereço é apenas a verificação da API, não a interface do sistema.
+- <http://localhost:3333/api/health/db> — verifica se o back-end consegue consultar o MySQL.
+
+Deixe o terminal da API aberto enquanto estiver usando o sistema.
+
+### 10.3 Criar o primeiro administrador
+
+Com o back-end e o banco funcionando, abra o front-end conforme a próxima seção. Na tela de login, selecione **Configurar o primeiro administrador** se ainda não houver administrador cadastrado. Informe nome, e-mail com um dos domínios permitidos para administradores e uma senha com pelo menos 8 caracteres.
+
+A configuração local usa `ALLOW_ADMIN_BOOTSTRAP=true`. Em desenvolvimento, o código também permite essa configuração por padrão quando a variável não é definida; mantê-la explícita no `.env` facilita o entendimento. Depois de criar o primeiro administrador, essa opção de inicialização não cria outras contas administrativas se já houver um administrador válido.
+
+O projeto verifica se o domínio do e-mail está na lista configurada em `ADMIN_EMAIL_DOMAINS` ou `PROFESSOR_EMAIL_DOMAINS`; nesta etapa, isso não equivale a uma confirmação de propriedade da caixa de e-mail. Ajuste os domínios conforme a orientação da equipe. Em produção, use um `JWT_ACCESS_SECRET` exclusivo e forte, habilite o bootstrap apenas durante a criação inicial e desabilite-o depois.
+
+Para testar o papel de professor, entre como administrador e crie um usuário com o papel **Professor** e status **Convidado**. Saia da conta administrativa e, na tela de login, use **Primeiro acesso? Ative seu convite** com o e-mail convidado para definir a senha. Depois, entre normalmente como professor.
+
+Opcionalmente, a equipe pode carregar dados de demonstração com `npm run db:seed` na pasta `server`, depois das migrations. O seed cria um convite `professor.demo@catolicasc.edu.br` e registros de exemplo para correção, notas e histórico. Para entrar com esse professor, ative o convite pelo fluxo de primeiro acesso. O seed não define uma senha padrão.
+
+### 10.4 Iniciar o front-end
+
+Abra **outro terminal** na raiz do repositório e entre na pasta `client`:
+
+```bash
+cd client
+npm install
+```
+
+Crie o arquivo de ambiente local:
+
+**Windows PowerShell:**
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+**Linux/macOS (ou Git Bash):**
+
+```bash
+cp .env.example .env.local
+```
+
+Para desenvolvimento local, o arquivo `client/.env.local` deve conter:
+
+```env
+VITE_API_URL=http://localhost:3333/api
+```
+
+Inicie o front-end:
+
+```bash
+npm run dev
+```
+
+Abra o endereço mostrado pelo Vite, normalmente <http://localhost:5173>. Não é necessário abrir `/api/health` para usar as telas; esse caminho serve somente para verificar a API. Se mudar `VITE_API_URL`, reinicie o Vite para carregar a nova configuração.
+
+### 10.5 Problemas comuns
+
+| Sintoma | O que conferir |
+|---|---|
+| `DB_USER`, `DB_PASSWORD` ou `DB_NAME` ausentes | Verifique se criou `server/.env` a partir de `.env.example` e preencheu as três variáveis. O arquivo não deve terminar acidentalmente em `.txt`. |
+| Docker informa que a porta `3306` está ocupada | Altere `DB_PORT=3307` no `server/.env` e rode `docker compose up -d` novamente, ou use a instalação local do MySQL em vez do Docker. |
+| `O MySQL recusou o usuário` | Confira se o banco escolhido está rodando e se host, porta, usuário e senha correspondem a ele. Lembre-se de que um volume Docker já inicializado mantém suas credenciais originais. |
+| `/api/health` mostra um JSON em uma tela simples | Está correto: esse endpoint verifica a API. A interface fica no endereço do Vite, normalmente `http://localhost:5173`. |
+| A opção de configurar o primeiro administrador não aparece | Verifique se já existe um administrador no banco e se `ALLOW_ADMIN_BOOTSTRAP=true` está configurado para o ambiente local. Reinicie a API após alterar o `.env`. |
+| O front-end não consegue chamar a API | Confira se a API está rodando, se `VITE_API_URL` aponta para `http://localhost:3333/api` e se `CLIENT_ORIGIN` inclui a origem usada pelo Vite. Reinicie ambos após alterar as variáveis. |
+
+O arquivo `server/.env` e o arquivo `client/.env.local` contêm configurações locais e **não devem ser enviados ao GitHub**. Versione apenas os arquivos `.env.example`, sem senhas reais ou tokens secretos.
+
+Consulte [`server/README.md`](server/README.md) para detalhes das variáveis de ambiente, camadas, migrations, autenticação e testes. A autenticação da T07 já utiliza cadastro por convite, senha, JWT e refresh token; as demais funcionalidades são integradas por frente, conforme a evolução das PRs.
 
 
 ## 11. Especificação da API
 
 📌 **N2**
 
-Tabela com os principais endpoints da API. Se a lista crescer muito, mova para um arquivo separado (ex.: `docs/api/especificacao.md`) ou uma coleção do Postman/Insomnia exportada em `docs/api/`, e deixe aqui só o link.
+A API utiliza o prefixo `/api`. Os principais endpoints de autenticação implementados na T07 são:
 
 | Método | Rota | Descrição |
 |---|---|---|
-| GET | /api/recurso | Lista os recursos |
-| POST | /api/recurso | Cria um novo recurso |
-| PUT | /api/recurso/:id | Atualiza um recurso existente |
-| DELETE | /api/recurso/:id | Remove um recurso |
+| GET | `/api/health` | Verifica se a API está no ar. |
+| GET | `/api/health/db` | Verifica a conexão com o MySQL. |
+| GET | `/api/auth/bootstrap-status` | Informa se ainda é necessário criar o primeiro administrador. |
+| POST | `/api/auth/bootstrap-admin` | Cria o primeiro administrador, quando o bootstrap está permitido. |
+| POST | `/api/auth/register` | Ativa um convite existente e define a senha inicial. |
+| POST | `/api/auth/login` | Autentica o usuário e retorna a sessão com JWT e refresh token. |
+| POST | `/api/auth/refresh` | Renova a sessão e revoga o refresh token anterior. |
+| POST | `/api/auth/logout` | Revoga o refresh token da sessão atual. |
+
+As rotas que exigem autenticação recebem o token de acesso no cabeçalho `Authorization: Bearer <accessToken>`. A lista de endpoints das demais frentes deve acompanhar a integração de cada PR; detalhes de camadas, autenticação e desenvolvimento estão em [`server/README.md`](server/README.md).
 
 Especificação detalhada por frente:
 
@@ -490,7 +627,7 @@ Especificação detalhada por frente:
 
 📌 **N3** (validações e tratamento de erros/casos de borda passam a ser cobrados nesta entrega)
 
-Como testar os endpoints principais: descreva o passo a passo ou aponte para a coleção do Postman/Insomnia salva em `docs/api/`. Descreva também as validações e o tratamento de erros e casos de borda implementados (ex.: campo obrigatório vazio, e-mail duplicado, item inexistente), e como o sistema responde em cada caso.
+Para validar localmente, execute `npm test` na pasta `server` e `npm run build` na pasta `client`. Os testes do back-end cobrem regras de negócio e utilitários; os testes que dependem de um banco devem ser executados com as migrations aplicadas quando indicado pelo próprio teste. Antes de abrir uma PR, confira também os fluxos alterados manualmente, incluindo campos obrigatórios, e-mail já cadastrado, usuário convidado sem senha e acesso a recursos de outro professor.
 
 ## 13. Manual do Usuário
 

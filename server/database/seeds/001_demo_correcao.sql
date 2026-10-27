@@ -4,17 +4,23 @@
 -- Enquanto a geração de cópias no banco (T23) não está pronta, este seed cria uma
 -- turma, uma prova e cópias já geradas para testar a correção, os relatórios e o
 -- histórico. Os ids começam em 9001 para não colidir com dados reais; o professor
--- é o id 1, o mesmo usado pelo front em desenvolvimento. Pode rodar várias vezes.
+-- é o id 1. O usuário fica Convidado para definir a senha no primeiro acesso. Pode rodar várias vezes.
 --
 -- Cópias para testar (digite o código na tela Correção):
 --   Aplicação 9001 (nominal):   DEMA22 Ana, DEMA33 Bruno, DEMA44 Carla, DEMA55 Diego
 --   Aplicação 9002 (anônima):   DEMB22, DEMB33  -> associe a um aluno na correção
 
-INSERT IGNORE INTO usuario (id, nome, email, papel, status) VALUES
-  (1, 'Professor Demonstração', 'professor.demo@catolicasc.edu.br', 'PROFESSOR', 'ATIVO');
+INSERT INTO usuario (nome, email, papel, status) VALUES
+  ('Professor Demonstração', 'professor.demo@catolicasc.edu.br', 'PROFESSOR', 'CONVIDADO')
+ON DUPLICATE KEY UPDATE
+  status = IF(senha_hash IS NULL, 'CONVIDADO', status);
+
+SET @professor_demo_id = (
+  SELECT id FROM usuario WHERE email = 'professor.demo@catolicasc.edu.br' LIMIT 1
+);
 
 INSERT IGNORE INTO turma (id, professor_id, nome, disciplina, periodo, status) VALUES
-  (9001, 1, 'Cálculo I - Turma Demo', 'Matemática', '2026/2', 'ATIVA');
+  (9001, @professor_demo_id, 'Cálculo I - Turma Demo', 'Matemática', '2026/2', 'ATIVA');
 
 INSERT IGNORE INTO aluno (id, nome, email, numero_matricula) VALUES
   (9001, 'Ana Beatriz Souza', 'ana.souza.demo@catolicasc.edu.br', '2026001'),
@@ -27,11 +33,11 @@ INSERT IGNORE INTO matricula (turma_id, aluno_id) VALUES
   (9001, 9001), (9001, 9002), (9001, 9003), (9001, 9004), (9001, 9005);
 
 INSERT IGNORE INTO questao (id, professor_id, tipo, enunciado) VALUES
-  (9001, 1, 'OBJETIVA', 'Qual é a derivada de f(x) = x²?'),
-  (9002, 1, 'OBJETIVA', 'Quanto vale o limite de (x² - 1)/(x - 1) quando x tende a 1?'),
-  (9003, 1, 'OBJETIVA', 'Qual é a integral indefinida de 2x?'),
-  (9004, 1, 'OBJETIVA', 'A derivada de uma função constante é:'),
-  (9005, 1, 'DISCURSIVA', 'Explique, com suas palavras, o significado geométrico da derivada.');
+  (9001, @professor_demo_id, 'OBJETIVA', 'Qual é a derivada de f(x) = x²?'),
+  (9002, @professor_demo_id, 'OBJETIVA', 'Quanto vale o limite de (x² - 1)/(x - 1) quando x tende a 1?'),
+  (9003, @professor_demo_id, 'OBJETIVA', 'Qual é a integral indefinida de 2x?'),
+  (9004, @professor_demo_id, 'OBJETIVA', 'A derivada de uma função constante é:'),
+  (9005, @professor_demo_id, 'DISCURSIVA', 'Explique, com suas palavras, o significado geométrico da derivada.');
 
 -- "ordem" é a posição original da alternativa (0 = primeira cadastrada).
 INSERT IGNORE INTO alternativa (questao_id, texto, correta, ordem) VALUES
@@ -41,7 +47,7 @@ INSERT IGNORE INTO alternativa (questao_id, texto, correta, ordem) VALUES
   (9004, 'Zero', 1, 0), (9004, 'Um', 0, 1), (9004, 'A própria constante', 0, 2), (9004, 'Não existe', 0, 3);
 
 INSERT IGNORE INTO prova (id, professor_id, titulo, descricao, status) VALUES
-  (9001, 1, 'Prova Demo - Derivadas e Integrais', 'Prova de demonstração da correção e notas.', 'PRONTA');
+  (9001, @professor_demo_id, 'Prova Demo - Derivadas e Integrais', 'Prova de demonstração da correção e notas.', 'PRONTA');
 
 -- Nota máxima: 2 + 2 + 2 + 2 + 2 = 10 pontos.
 INSERT IGNORE INTO prova_questao (prova_id, questao_id, posicao, pontuacao) VALUES

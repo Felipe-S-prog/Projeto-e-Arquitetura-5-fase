@@ -53,9 +53,10 @@ export function createAdminRepository(pool) {
 
       const [result] = await pool.execute(
         `UPDATE usuario
-         SET nome = ?, email = ?, papel = ?, status = ?
+         SET nome = ?, email = ?, papel = ?,
+             status = CASE WHEN ? = 'ATIVO' AND senha_hash IS NULL THEN 'CONVIDADO' ELSE ? END
          WHERE id = ? AND status <> 'ANONIMIZADO'`,
-        [name.trim(), email.trim().toLowerCase(), papel, situacao, id],
+        [name.trim(), email.trim().toLowerCase(), papel, situacao, situacao, id],
       );
 
       if (result.affectedRows === 0) return null;
