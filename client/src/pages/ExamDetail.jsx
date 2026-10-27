@@ -5,9 +5,10 @@ import { Breadcrumb, Badge, SecondaryButton, PrimaryButton } from '../components
 export default function ExamDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getExamById, examQuestionsDetailed } = useData();
+  const { getExamById, examQuestionsDetailed, examsLoading } = useData();
 
   const exam = getExamById(id);
+  if (examsLoading) return <div>Carregando prova...</div>;
   if (!exam) return <div>Prova não encontrada.</div>;
 
   const examQuestions = examQuestionsDetailed(exam.id);

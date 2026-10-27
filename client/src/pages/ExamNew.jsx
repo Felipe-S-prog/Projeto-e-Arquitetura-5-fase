@@ -10,6 +10,8 @@ export default function ExamNew() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selected, setSelected] = useState({});
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
    const toggle = (id) => { setSelected((prev) => { const cur = prev[id] || { checked: false, score: 5 }; const willCheck = !cur.checked; if (willCheck && selectedCount >= 20) { return prev; } return { ...prev, [id]: { ...cur, checked: willCheck } }; }); };
 
@@ -24,14 +26,23 @@ export default function ExamNew() {
   const selectedCount = selectedEntries.length;
   const totalScore = selectedEntries.reduce((sum, [, v]) => sum + (v.score || 0), 0);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    addExam({
-      title,
-      description,
-      questions: selectedEntries.map(([id, v]) => ({ questionId: Number(id), score: v.score || 0 })),
-    });
-    navigate('/provas');
+    setError('');
+    setSaving(true);
+
+    try {
+      await addExam({
+        title,
+        description,
+        questions: selectedEntries.map(([id, v]) => ({ questionId: Number(id), score: v.score || 0 })),
+      });
+      navigate('/provas');
+    } catch (err) {
+      setError(err.message || 'Não foi possível salvar a prova.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -131,10 +142,15 @@ export default function ExamNew() {
             <div style={{ fontSize: 11.5, color: 'var(--faint)', marginTop: 8 }}>
               Informativo — o sistema não exige soma total fixa.
             </div>
-            <PrimaryButton type="submit" style={{ width: '100%', marginTop: 20 }} disabled={selectedCount === 0}>
-              Salvar prova
+            {error && (
+              <div role="alert" style={{ color: '#b42318', fontSize: 13, marginTop: 14 }}>
+                {error}
+              </div>
+            )}
+            <PrimaryButton type="submit" style={{ width: '100%', marginTop: 20 }} disabled={selectedCount === 0 || saving}>
+              {saving ? 'Salvando...' : 'Salvar prova'}
             </PrimaryButton>
-            <SecondaryButton type="button" style={{ width: '100%', marginTop: 8 }} onClick={() => navigate('/provas')}>
+            <SecondaryButton type="button" style={{ width: '100%', marginTop: 8 }} disabled={saving} onClick={() => navigate('/provas')}>
               Cancelar
             </SecondaryButton>
           </div>
