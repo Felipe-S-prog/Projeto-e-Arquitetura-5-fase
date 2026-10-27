@@ -9,8 +9,6 @@ import {
 } from 'react';
 
 import questionsSeed from '../data/questions.json';
-import applicationsSeed from '../data/applications.json';
-import { todayBR } from '../utils/status';
 import { buildApplicationCopies } from '../utils/answerKey';
 import { useAuth } from './AuthContext';
 import { apiRequest } from '../services/api';
@@ -60,6 +58,29 @@ function normalizeExam(exam) {
       questionId: Number(item.questionId),
       score: Number(item.score),
     })),
+  };
+}
+
+// A API devolve a data como AAAA-MM-DD; as telas usam DD/MM/AAAA.
+function formatApiDate(value) {
+  if (!value) return null;
+  const [year, month, day] = String(value).slice(0, 10).split('-');
+  return year && month && day ? `${day}/${month}/${year}` : null;
+}
+
+// Normaliza uma aplicação vinda da API. As cópias (copies) ainda ficam só na memória (T23).
+function normalizeApplication(application, copies = []) {
+  return {
+    id: Number(application.id),
+    examId: Number(application.examId),
+    classId: Number(application.classId),
+    status: application.status,
+    quantity: Number(application.quantity),
+    date: formatApiDate(application.date),
+    shuffleQuestions: Boolean(application.shuffleQuestions),
+    shuffleAlternatives: Boolean(application.shuffleAlternatives),
+    linkToRoster: Boolean(application.linkToRoster),
+    copies,
   };
 }
 
@@ -123,12 +144,10 @@ const DataProvider = ({ children }) => {
   const [examsLoading, setExamsLoading] = useState(true);
   const [examsError, setExamsError] = useState('');
 
-  const [applications, setApplications] = useState(() =>
-    applicationsSeed.map((application) => ({
-      ...application,
-      copies: application.copies || [],
-    })),
-  );
+  // Aplicações passam a vir da API, não mais do applications.json.
+  const [applications, setApplications] = useState([]);
+  const [applicationsLoading, setApplicationsLoading] = useState(true);
+  const [applicationsError, setApplicationsError] = useState('');
 
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminUsersLoading, setAdminUsersLoading] = useState(true);
@@ -146,10 +165,12 @@ const DataProvider = ({ children }) => {
     setQuestions(questionsSeed.map((question) => ({ ...question })));
     setClasses([]);
     setExams([]);
+    setApplications([]);
     setAdminUsers([]);
     setSettings({ institutionName: '', defaultPeriod: '' });
     setClassesError('');
     setExamsError('');
+    setApplicationsError('');
     setAdminUsersError('');
     setSettingsError('');
   }, [user?.id]);
@@ -159,6 +180,7 @@ const DataProvider = ({ children }) => {
     if (!isAuthenticated) {
       setClassesLoading(false);
       setExamsLoading(false);
+      setApplicationsLoading(false);
       setAdminUsersLoading(false);
       setSettingsLoading(false);
       return undefined;
@@ -188,6 +210,39 @@ const DataProvider = ({ children }) => {
       } finally {
         if (!cancelled) {
           setClassesLoading(false);
+        }
+      }
+    }
+
+    async function loadApplications() {
+      setApplicationsLoading(true);
+      setApplicationsError('');
+
+      try {
+        const result = await adminApiRequest('/aplicacoes');
+
+        if (!Array.isArray(result)) {
+          throw new Error('A API retornou uma lista de aplicações inválida.');
+        }
+
+        if (!cancelled) {
+          // Mantém as cópias já geradas nesta sessão (ainda não vão ao banco).
+          setApplications((previous) =>
+            result.map((item) =>
+              normalizeApplication(
+                item,
+                previous.find((old) => old.id === Number(item.id))?.copies || [],
+              ),
+            ),
+          );
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setApplicationsError(error.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setApplicationsLoading(false);
         }
       }
     }
@@ -264,8 +319,10 @@ const DataProvider = ({ children }) => {
     if (user?.role === 'PROFESSOR') {
       loadClasses();
       loadExams();
+      loadApplications();
     } else {
       setExamsLoading(false);
+      setApplicationsLoading(false);
     }
     if (user?.role === 'ADMINISTRADOR') {
       loadAdminUsers();
@@ -464,59 +521,84 @@ const DataProvider = ({ children }) => {
     return saved;
   }, []);
 
-  const createApplication = useCallback(
-    ({ examId, classId, quantity }) => {
-      let newId;
-
-      setApplications((previous) => {
-        newId =
-          previous.reduce(
-            (max, item) => Math.max(max, Number(item.id) || 0),
-            0,
-          ) + 1;
-
-        return [
-          ...previous,
-          {
-            id: newId,
-            examId,
-            classId,
-            status: 'Pendente',
-            quantity,
-            date: null,
-            shuffleQuestions: true,
-            shuffleAlternatives: true,
-            linkToRoster: false,
-            copies: [],
-          },
-        ];
-      });
-
-      return newId;
-    },
-    [],
-  );
-
-  const updateApplication = useCallback((id, patch) => {
-    setApplications((previous) =>
-      previous.map((application) =>
-        application.id === id
-          ? { ...application, ...patch }
-          : application,
+  // Atualiza o status da prova na lista (a API muda Rascunho -> Pronta na 1ª aplicação).
+  const syncExamStatus = useCallback((examId, status) => {
+    if (!status) return;
+    setExams((previous) =>
+      previous.map((exam) =>
+        exam.id === Number(examId) ? { ...exam, status } : exam,
       ),
     );
   }, []);
 
-  const confirmApplicationDownload = useCallback((id) => {
+  // Cria a aplicação na API (nasce Pendente) e devolve o id salvo.
+  const createApplication = useCallback(
+    async ({ examId, classId, quantity }) => {
+      const created = await adminApiRequest('/aplicacoes', {
+        method: 'POST',
+        body: JSON.stringify({ examId, classId, quantity }),
+      });
+
+      const saved = normalizeApplication(created);
+
+      setApplications((previous) => [
+        ...previous.filter((item) => item.id !== saved.id),
+        saved,
+      ]);
+      syncExamStatus(saved.examId, created.examStatus);
+
+      return saved.id;
+    },
+    [syncExamStatus],
+  );
+
+  // Atualiza a configuração na tela na hora e grava na API; se a API recusar, desfaz.
+  const updateApplication = useCallback(
+    async (id, patch) => {
+      const target = applications.find((item) => item.id === Number(id));
+
+      if (!target) return;
+
+      const previousValues = Object.fromEntries(
+        Object.keys(patch).map((key) => [key, target[key]]),
+      );
+
+      setApplicationsError('');
+      setApplications((previous) =>
+        previous.map((item) =>
+          item.id === target.id ? { ...item, ...patch } : item,
+        ),
+      );
+
+      try {
+        await adminApiRequest(`/aplicacoes/${target.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(patch),
+        });
+      } catch (error) {
+        setApplications((previous) =>
+          previous.map((item) =>
+            item.id === target.id ? { ...item, ...previousValues } : item,
+          ),
+        );
+        setApplicationsError(error.message);
+        throw error;
+      }
+    },
+    [applications],
+  );
+
+  // Marca a aplicação como Aplicada na API (PDF baixado) e usa a data que o servidor gravou.
+  const confirmApplicationDownload = useCallback(async (id) => {
+    const updated = await adminApiRequest(`/aplicacoes/${Number(id)}/aplicar`, {
+      method: 'POST',
+    });
+
     setApplications((previous) =>
-      previous.map((application) =>
-        application.id === id
-          ? {
-              ...application,
-              status: 'Aplicada',
-              date: application.date || todayBR(),
-            }
-          : application,
+      previous.map((item) =>
+        item.id === Number(id)
+          ? normalizeApplication(updated, item.copies || [])
+          : item,
       ),
     );
   }, []);
@@ -766,16 +848,6 @@ const DataProvider = ({ children }) => {
     [exams],
   );
 
-  // Mantém o comportamento existente das aplicações de exemplo.
-  useEffect(() => {
-    applicationsSeed.forEach((seed) => {
-      if (seed.status === 'Aplicada') {
-        generateApplicationCopies(seed.id);
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const value = useMemo(
     () => ({
       questions,
@@ -786,6 +858,8 @@ const DataProvider = ({ children }) => {
       examsLoading,
       examsError,
       applications,
+      applicationsLoading,
+      applicationsError,
       adminUsers,
       adminUsersLoading,
       adminUsersError,
@@ -828,6 +902,8 @@ const DataProvider = ({ children }) => {
       examsLoading,
       examsError,
       applications,
+      applicationsLoading,
+      applicationsError,
       adminUsers,
       adminUsersLoading,
       adminUsersError,

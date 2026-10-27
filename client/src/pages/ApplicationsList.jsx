@@ -4,7 +4,7 @@ import { PageHeader, PrimaryButton, Badge } from '../components/ui';
 import { QrMarkerIcon } from '../components/icons';
 
 export default function ApplicationsList() {
-  const { applications, getExamById, getClassById } = useData();
+  const { applications, applicationsLoading, applicationsError, getExamById, getClassById } = useData();
   const navigate = useNavigate();
 
   return (
@@ -64,7 +64,17 @@ export default function ApplicationsList() {
             </div>
           );
         })}
-        {applications.length === 0 && (
+        {applicationsLoading && (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted-3)', fontSize: 13.5 }}>
+            Carregando aplicações...
+          </div>
+        )}
+        {applicationsError && !applicationsLoading && (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--red-text, #b42318)', fontSize: 13.5 }}>
+            Não foi possível carregar as aplicações: {applicationsError}
+          </div>
+        )}
+        {!applicationsLoading && !applicationsError && applications.length === 0 && (
           <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted-3)', fontSize: 13.5 }}>
             Nenhuma aplicação registrada ainda.
           </div>
