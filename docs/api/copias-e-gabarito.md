@@ -60,8 +60,31 @@ Cada cópia volta neste formato (o mesmo que as telas já usavam):
 }
 ```
 
+## PDF consolidado (T25)
+
+`GET /aplicacoes/:id/pdf` monta no servidor **um** PDF com todas as cópias gravadas da aplicação, em
+sequência (folha de resposta com QR Code e páginas de questões, cada cópia com a sua ordem), e devolve como
+download (`Content-Disposition: attachment; filename="provas-<prova>-<turma>.pdf"`).
+
+| Parâmetro (query) | Valores | Padrão |
+|---|---|---|
+| `modo` | `completo` (folha + questões) ou `folha-de-resposta` | `completo` |
+| `frenteVerso` | `true` para cada cópia terminar em página par | `false` |
+
+- Cabeçalhos extras: `X-Pdf-Paginas` (total de páginas) e `X-Pdf-Avisos` (lista em JSON, com
+  `encodeURIComponent`), por exemplo uma imagem de questão que não pôde ser incluída.
+- Sem cópias geradas: `409`. Dado que o PDF não consegue imprimir (ex.: questão sem alternativas): `409` com o motivo.
+- Baixar **não** muda o banco. A tela baixa o arquivo e só depois chama `POST /aplicacoes/:id/aplicar`; se o PDF
+  falhar, a aplicação continua Pendente.
+- Imagens das questões: o servidor baixa o `imagem_url` (só `http`/`https`, até 5 MB, 8 s) e aceita PNG ou JPG.
+
 ## Onde está o código
 
 `server/src/routes/copia.routes.js` → `controllers/copia.controller.js` → `services/copia.service.js`
 (regras) e `services/copia.geracao.js` (sorteio, sem banco) → `repositories/copia.repository.js` →
 `models/copia.model.js`. Testes em `server/test/copia.geracao.test.js` e `server/test/copia.service.test.js`.
+
+PDF (T25): `routes/pdf.routes.js` → `controllers/pdf.controller.js` → `services/pdf.service.js` →
+`repositories/pdf.repository.js`. O montador (T22) fica em `server/src/pdf/` (`buildConsolidatedPdf.js`,
+`sheetLayout.js`, `pdfText.js`, `qr.js` e `questionImages.js`). Testes em `server/test/pdf.service.test.js`
+e `server/test/questionImages.test.js`.
