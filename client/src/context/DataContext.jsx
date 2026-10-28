@@ -32,7 +32,13 @@ function normalizeClass(cls) {
       cls.status === 'ARQUIVADA' || cls.status === 'Arquivada'
         ? 'Arquivada'
         : 'Ativa',
-    students: cls.students ?? [],
+    students: (cls.students ?? []).map((student) => ({
+      id: Number(student.id),
+      name: student.name ?? student.nome,
+      email: student.email,
+      registration:
+        student.registration ?? student.numero_matricula ?? student.numeroMatricula ?? null,
+    })),
   };
 }
 
@@ -56,20 +62,22 @@ function unwrapQuestion(payload) {
 
 const DataProvider = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
+
   const [questions, setQuestions] = useState(() =>
     questionsSeed.map((question) => ({ ...question })),
   );
 
   // Carrega as questões da API.
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== 'PROFESSOR') return undefined;
+    if (!isAuthenticated || user?.role !== 'PROFESSOR') {
+      return undefined;
+    }
+
     let cancelled = false;
 
     async function loadQuestions() {
       try {
-        const payload = await adminApiRequest(
-          '/questoes',
-        );
+        const payload = await adminApiRequest('/questoes');
 
         const apiQuestions = Array.isArray(payload)
           ? payload
@@ -100,7 +108,7 @@ const DataProvider = ({ children }) => {
     };
   }, [isAuthenticated, user?.id, user?.role]);
 
-  // Turmas passam a vir da API, não mais do classes.json.
+  // Turmas carregadas da API.
   const [classes, setClasses] = useState([]);
   const [classesLoading, setClassesLoading] = useState(true);
   const [classesError, setClassesError] = useState('');
@@ -146,6 +154,7 @@ const DataProvider = ({ children }) => {
       setSettingsLoading(false);
       return undefined;
     }
+
     let cancelled = false;
 
     async function loadClasses() {
@@ -153,9 +162,7 @@ const DataProvider = ({ children }) => {
       setClassesError('');
 
       try {
-        const result = await adminApiRequest(
-          '/turmas',
-        );
+        const result = await adminApiRequest('/turmas');
 
         if (!Array.isArray(result)) {
           throw new Error('A API retornou uma lista de turmas inválida.');
@@ -217,7 +224,10 @@ const DataProvider = ({ children }) => {
       }
     }
 
-    if (user?.role === 'PROFESSOR') loadClasses();
+    if (user?.role === 'PROFESSOR') {
+      loadClasses();
+    }
+
     if (user?.role === 'ADMINISTRADOR') {
       loadAdminUsers();
       loadSettings();
@@ -255,7 +265,9 @@ const DataProvider = ({ children }) => {
     );
 
     setQuestions((previous) =>
-      previous.map((item) => (String(item.id) === String(id) ? saved : item)),
+      previous.map((item) =>
+        String(item.id) === String(id) ? saved : item,
+      ),
     );
 
     return saved;
@@ -263,10 +275,9 @@ const DataProvider = ({ children }) => {
 
   // Exclui uma questão pela API.
   const deleteQuestion = useCallback(async (id) => {
-    await adminApiRequest(
-      `/questoes/${id}`,
-      { method: 'DELETE' },
-    );
+    await adminApiRequest(`/questoes/${id}`, {
+      method: 'DELETE',
+    });
 
     setQuestions((previous) =>
       previous.filter((question) => String(question.id) !== String(id)),
@@ -359,7 +370,9 @@ const DataProvider = ({ children }) => {
 
       setClasses((previous) =>
         previous.map((item) =>
-          item.id === Number(id) ? normalized : item,
+          item.id === Number(id)
+            ? { ...normalized, students: item.students }
+            : item,
         ),
       );
 
@@ -383,7 +396,9 @@ const DataProvider = ({ children }) => {
 
       setClasses((previous) =>
         previous.map((item) =>
-          item.id === Number(id) ? normalized : item,
+          item.id === Number(id)
+            ? { ...normalized, students: item.students }
+            : item,
         ),
       );
 
@@ -393,6 +408,77 @@ const DataProvider = ({ children }) => {
       throw error;
     }
   }, []);
+
+  // Matricula um aluno na turma usando nome e e-mail.
+  const enrollStudent = useCallback(async (classId, student) => {
+    setClassesError('');
+
+    const name = student?.name?.trim();
+    const email = student?.email?.trim().toLowerCase();
+    const registration = student?.registration?.trim() || null;
+
+    if (!name) {
+      throw new Error('Informe o nome do aluno.');
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new Error('Informe um e-mail válido.');
+    }
+
+    const cls = classes.find((item) => item.id === Number(classId));
+
+    if (!cls) {
+      throw new Error('Turma não encontrada.');
+    }
+
+    if (cls.status === 'Arquivada') {
+      throw new Error('Não é possível matricular alunos em uma turma arquivada.');
+    }
+
+    try {
+      const createdStudent = await adminApiRequest(
+        `/turmas/${classId}/matriculas`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            nome: name,
+            email,
+            numero_matricula: registration,
+          }),
+        },
+      );
+
+      setClasses((previous) =>
+        previous.map((item) => {
+          if (item.id !== Number(classId)) return item;
+
+          const alreadyAdded = item.students.some(
+            (existing) => Number(existing.id) === Number(createdStudent.id),
+          );
+
+          if (alreadyAdded) return item;
+
+          return {
+            ...item,
+            students: [...item.students, {
+              id: Number(createdStudent.id),
+              name: createdStudent.name ?? createdStudent.nome,
+              email: createdStudent.email,
+              registration:
+                createdStudent.registration ??
+                createdStudent.numero_matricula ??
+                null,
+            }],
+          };
+        }),
+      );
+
+      return createdStudent;
+    } catch (error) {
+      setClassesError(error.message);
+      throw error;
+    }
+  }, [classes]);
 
   const addExam = useCallback((exam) => {
     setExams((previous) => {
@@ -661,8 +747,7 @@ const DataProvider = ({ children }) => {
   );
 
   const getApplicationById = useCallback(
-    (id) =>
-      applications.find((item) => item.id === Number(id)),
+    (id) => applications.find((item) => item.id === Number(id)),
     [applications],
   );
 
@@ -738,6 +823,7 @@ const DataProvider = ({ children }) => {
       addClass,
       updateClass,
       archiveClass,
+      enrollStudent,
       addExam,
       createApplication,
       updateApplication,
@@ -778,6 +864,7 @@ const DataProvider = ({ children }) => {
       addClass,
       updateClass,
       archiveClass,
+      enrollStudent,
       addExam,
       createApplication,
       updateApplication,
