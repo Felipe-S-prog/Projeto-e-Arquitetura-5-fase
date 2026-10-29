@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
@@ -9,8 +10,17 @@ import {
   PrimaryButton,
   SecondaryButton,
 } from '../components/ui';
+import { apiUpload, resolveAssetUrl } from '../services/api';
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E'];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+];
 
 export default function QuestionNew() {
   const { questions, addQuestion, updateQuestion } = useData();
@@ -20,21 +30,37 @@ export default function QuestionNew() {
   const editId = searchParams.get('editar');
 
   const editingQuestion = questions.find(
-    (q) => String(q.id) === String(editId)
+    (q) => String(q.id) === String(editId),
   );
 
   const [excerpt, setExcerpt] = useState('');
   const [tags, setTags] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
+  const [saving, setSaving] = useState(false);
   const [alternatives, setAlternatives] = useState(['', '', '', '']);
   const [correctAlt, setCorrectAlt] = useState(0);
 
-  // Preenche o formulário quando uma questão é selecionada para edição.
+  // Cria uma pré-visualização temporária do arquivo selecionado.
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreviewUrl('');
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(imageFile);
+    setImagePreviewUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [imageFile]);
+
+  // Preenche o formulário ao editar uma questão existente.
   useEffect(() => {
     if (!editId || !editingQuestion) return;
 
     setExcerpt(
-      editingQuestion.excerpt || editingQuestion.enunciado || ''
+      editingQuestion.excerpt || editingQuestion.enunciado || '',
     );
 
     const savedTags = editingQuestion.tags || [];
@@ -42,14 +68,16 @@ export default function QuestionNew() {
     setTags(
       Array.isArray(savedTags)
         ? savedTags.join(', ')
-        : String(savedTags)
+        : String(savedTags),
     );
 
     setImageUrl(
       editingQuestion.imageUrl ||
         editingQuestion.imagem_url ||
-        ''
+        '',
     );
+
+    setImageFile(null);
 
     const savedAlternatives =
       editingQuestion.alternatives ||
@@ -58,35 +86,36 @@ export default function QuestionNew() {
 
     if (savedAlternatives.length > 0) {
       setAlternatives(
-        savedAlternatives.map((alternative) =>
-          alternative.text ?? alternative.texto ?? ''
-        )
+        savedAlternatives.map(
+          (alternative) =>
+            alternative.text ?? alternative.texto ?? '',
+        ),
       );
 
       const correctIndex = savedAlternatives.findIndex(
         (alternative) =>
-          alternative.correct ?? alternative.correta
+          alternative.correct ?? alternative.correta,
       );
 
       setCorrectAlt(correctIndex >= 0 ? correctIndex : 0);
     }
   }, [editId, editingQuestion]);
 
-  const addAlternative = (e) => {
-    e.preventDefault();
+  const addAlternative = (event) => {
+    event.preventDefault();
 
-    setAlternatives((prev) =>
-      prev.length < 5 ? [...prev, ''] : prev
+    setAlternatives((previous) =>
+      previous.length < 5 ? [...previous, ''] : previous,
     );
   };
 
-  const removeAlternative = (e) => {
-    e.preventDefault();
+  const removeAlternative = (event) => {
+    event.preventDefault();
 
-    setAlternatives((prev) => {
-      if (prev.length <= 2) return prev;
+    setAlternatives((previous) => {
+      if (previous.length <= 2) return previous;
 
-      const next = prev.slice(0, -1);
+      const next = previous.slice(0, -1);
 
       if (correctAlt >= next.length) {
         setCorrectAlt(0);
@@ -97,35 +126,86 @@ export default function QuestionNew() {
   };
 
   const updateAlternative = (index, value) => {
-    setAlternatives((prev) =>
-      prev.map((alternative, i) =>
-        i === index ? value : alternative
-      )
+    setAlternatives((previous) =>
+      previous.map((alternative, i) =>
+        i === index ? value : alternative,
+      ),
     );
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0];
 
-    const question = {
-      excerpt: excerpt.trim(),
-      tags: tags
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-      imageUrl: imageUrl.trim() || undefined,
-      alternatives: alternatives.map((text, index) => ({
-        text: text.trim(),
-        correct: index === correctAlt,
-      })),
-    };
+    if (!file) return;
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      alert('Formato inválido. Escolha uma imagem JPG, PNG, WEBP ou GIF.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      alert('A imagem deve ter no máximo 5 MB.');
+      event.target.value = '';
+      return;
+    }
+
+    setImageFile(file);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (saving) return;
+
+    if (alternatives.length < 2 || alternatives.length > 5) {
+      alert('A questão deve ter entre 2 e 5 alternativas.');
+      return;
+    }
+
+    if (alternatives.some((alternative) => !alternative.trim())) {
+      alert('Preencha todas as alternativas.');
+      return;
+    }
+
+    setSaving(true);
 
     try {
+      let finalImageUrl = imageUrl.trim() || undefined;
+
+      // Envia o arquivo antes de salvar a questão.
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append('imagem', imageFile);
+
+        const uploaded = await apiUpload(
+          '/questoes/upload-imagem',
+          formData,
+        );
+
+        if (!uploaded?.imageUrl) {
+          throw new Error('A API não retornou o endereço da imagem.');
+        }
+
+        finalImageUrl = uploaded.imageUrl;
+      }
+
+      const question = {
+        excerpt: excerpt.trim(),
+        tags: tags
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+        imageUrl: finalImageUrl,
+        alternatives: alternatives.map((text, index) => ({
+          text: text.trim(),
+          correct: index === correctAlt,
+        })),
+      };
+
       if (editId) {
         if (!editingQuestion) {
-          throw new Error(
-            'Questão não encontrada para edição.'
-          );
+          throw new Error('Questão não encontrada para edição.');
         }
 
         await updateQuestion(editId, question);
@@ -136,11 +216,14 @@ export default function QuestionNew() {
       navigate('/questoes');
     } catch (error) {
       alert(
-        error.message ||
-          'Não foi possível salvar a questão.'
+        error.message || 'Não foi possível salvar a questão.',
       );
+    } finally {
+      setSaving(false);
     }
   };
+
+  const displayedImage = imagePreviewUrl || imageUrl;
 
   return (
     <div>
@@ -148,9 +231,7 @@ export default function QuestionNew() {
         items={[
           { label: 'Questões', to: '/questoes' },
           {
-            label: editId
-              ? 'Editar questão'
-              : 'Criar questão',
+            label: editId ? 'Editar questão' : 'Criar questão',
           },
         ]}
       />
@@ -187,44 +268,126 @@ export default function QuestionNew() {
             <FormField label="Enunciado">
               <TextArea
                 rows={3}
-                placeholder="Digite o enunciado (suporta Markdown básico)"
+                placeholder="Digite o enunciado da questão"
                 value={excerpt}
-                onChange={(e) => setExcerpt(e.target.value)}
+                onChange={(event) => setExcerpt(event.target.value)}
                 required
               />
             </FormField>
 
             <FormField label="Tags">
               <TextInput
-                placeholder="ex: Matemática, Álgebra"
+                placeholder="Ex.: Matemática, Álgebra"
                 value={tags}
-                onChange={(e) => setTags(e.target.value)}
+                onChange={(event) => setTags(event.target.value)}
               />
             </FormField>
 
             <FormField
               label="Imagem (opcional)"
-              hint="Cole o link de uma imagem para ilustrar a questão (ex: um gráfico ou diagrama)."
+              hint="Escolha uma imagem do computador ou informe uma URL. Formatos aceitos: JPG, PNG, WEBP e GIF; limite de 5 MB."
             >
-              <TextInput
-                placeholder="https://..."
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-              />
-
-              {imageUrl && (
-                <img
-                  src={imageUrl}
-                  alt="Pré-visualização"
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                }}
+              >
+                <label
                   style={{
-                    marginTop: 10,
-                    maxWidth: 220,
-                    borderRadius: 8,
-                    border: '1px solid var(--border-light)',
                     display: 'block',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'var(--ink)',
                   }}
+                >
+                  Selecionar arquivo
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleImageChange}
+                    style={{
+                      display: 'block',
+                      marginTop: 8,
+                      width: '100%',
+                      fontSize: 13,
+                    }}
+                  />
+                </label>
+
+                {imageFile && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 10,
+                      fontSize: 12,
+                      color: 'var(--muted)',
+                    }}
+                  >
+                    <span>
+                      {imageFile.name} (
+                      {(imageFile.size / 1024).toFixed(0)} KB)
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => setImageFile(null)}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--muted)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Remover arquivo
+                    </button>
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    textAlign: 'center',
+                    fontSize: 12,
+                    color: 'var(--muted)',
+                  }}
+                >
+                  — ou informe uma URL —
+                </div>
+
+                <TextInput
+                  placeholder="https://exemplo.com/imagem.png"
+                  value={imageUrl}
+                  onChange={(event) => setImageUrl(event.target.value)}
                 />
-              )}
+
+                {displayedImage && (
+                  <img
+                    src={
+                      imagePreviewUrl ||
+                      resolveAssetUrl(displayedImage)
+                    }
+                    alt="Pré-visualização da imagem da questão"
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none';
+                    }}
+                    onLoad={(event) => {
+                      event.currentTarget.style.display = 'block';
+                    }}
+                    style={{
+                      marginTop: 4,
+                      maxWidth: '100%',
+                      maxHeight: 260,
+                      objectFit: 'contain',
+                      borderRadius: 8,
+                      border: '1px solid var(--border-light)',
+                      display: 'block',
+                    }}
+                  />
+                )}
+              </div>
             </FormField>
 
             <div>
@@ -286,14 +449,14 @@ export default function QuestionNew() {
                           width: 14,
                         }}
                       >
-                        {LETTERS[index]}
+                        {['A', 'B', 'C', 'D', 'E'][index]}
                       </div>
 
                       <input
                         placeholder="Texto da alternativa"
                         value={text}
-                        onChange={(e) =>
-                          updateAlternative(index, e.target.value)
+                        onChange={(event) =>
+                          updateAlternative(index, event.target.value)
                         }
                         required
                         style={{
@@ -340,7 +503,7 @@ export default function QuestionNew() {
                     color: 'var(--muted)',
                   }}
                 >
-                  Remover última
+                eta  Remover última
                 </a>
               </div>
 
@@ -365,10 +528,12 @@ export default function QuestionNew() {
               borderTop: '1px solid var(--border-light)',
             }}
           >
-            <PrimaryButton type="submit">
-              {editId
-                ? 'Salvar alterações'
-                : 'Salvar questão'}
+            <PrimaryButton type="submit" disabled={saving}>
+              {saving
+                ? 'Salvando...'
+                : editId
+                  ? 'Salvar alterações'
+                  : 'Salvar questão'}
             </PrimaryButton>
 
             <SecondaryButton
