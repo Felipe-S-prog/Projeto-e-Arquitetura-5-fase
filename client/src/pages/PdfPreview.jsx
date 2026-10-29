@@ -20,6 +20,7 @@ export default function PdfPreview() {
   const app = getApplicationById(id);
   const [expanded, setExpanded] = useState({});
   const [showModal, setShowModal] = useState(false);
+  const [confirmError, setConfirmError] = useState('');
 
   // Segurança para navegação direta (ex: voltar/avançar no navegador) sem
   // ter passado pelo botão "Gerar pré-visualização" ainda.
@@ -38,10 +39,17 @@ export default function PdfPreview() {
   const copies = app.copies || [];
   const shuffleSummary = `Questões: ${app.shuffleQuestions ? 'sim' : 'não'} · Alternativas: ${app.shuffleAlternatives ? 'sim' : 'não'}`;
 
-  const confirmDownload = () => {
-    confirmApplicationDownload(app.id);
-    setShowModal(false);
-    navigate('/aplicacoes');
+  const confirmDownload = async () => {
+    setConfirmError('');
+
+    try {
+      await confirmApplicationDownload(app.id);
+      setShowModal(false);
+      navigate('/aplicacoes');
+    } catch (err) {
+      setShowModal(false);
+      setConfirmError(err.message || 'Não foi possível registrar o download.');
+    }
   };
 
   return (
@@ -55,6 +63,9 @@ export default function PdfPreview() {
           <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 5 }}>
             {copies.length} provas geradas, cada uma com questões e alternativas em ordem diferente.
           </div>
+          {confirmError && (
+            <div style={{ marginTop: 8, fontSize: 13.5, color: 'var(--red-text, #b42318)' }}>{confirmError}</div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
           <SecondaryButton onClick={() => navigate(`/aplicacoes/${app.id}/pdf/teste`)}>Testar PDF real</SecondaryButton>
