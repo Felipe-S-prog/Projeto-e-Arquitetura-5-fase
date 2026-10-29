@@ -6,6 +6,7 @@ import { Breadcrumb, PrimaryButton, SecondaryButton } from '../components/ui';
 import { ExamSheetIcon } from '../components/icons';
 import QrCode from '../components/QrCode';
 import DownloadModal from '../components/DownloadModal';
+import { resolveAssetUrl } from '../services/api';
 
 const LINE_WIDTHS = [
   ['92%', '60%'],
@@ -163,7 +164,7 @@ export default function PdfPreview() {
                     {questionWithImage && (
                       <div style={{ marginTop: 6, marginBottom: 9 }}>
                         <img
-                          src={questionWithImage.imageUrl}
+                          src={resolveAssetUrl(questionWithImage.imageUrl)}
                           alt="Figura da questão"
                           style={{ width: '100%', borderRadius: 3, border: '1px solid var(--border-light)', display: 'block' }}
                         />
