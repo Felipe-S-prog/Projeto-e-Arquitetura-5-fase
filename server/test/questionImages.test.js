@@ -49,3 +49,38 @@ test('carrega PNG e JPG; outro formato, erro HTTP, endereço fora do ar ou não 
   assert.equal(images[2].type, 'jpg');
   assert.deepEqual(failed.sort(), [3, 4, 5, 6]);
 });
+
+test('imagens do upload (T12): lidas da pasta de uploads; fora dela, inexistentes ou WEBP viram "failed"', async () => {
+  const { mkdtemp, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const path = await import('node:path');
+  const base = await mkdtemp(path.join(tmpdir(), 'sgp-uploads-'));
+  const uploadsDir = path.join(base, 'questoes');
+  await (await import('node:fs/promises')).mkdir(uploadsDir);
+  await writeFile(path.join(uploadsDir, 'a.png'), PNG);
+  await writeFile(path.join(uploadsDir, 'b.jpg'), JPG);
+  await writeFile(path.join(uploadsDir, 'c.webp'), new TextEncoder().encode('RIFF....WEBPVP8 '));
+  await writeFile(path.join(base, 'segredo.png'), PNG); // fora da pasta de uploads
+
+  try {
+    const questoes = [
+      { id: 1, imageUrl: '/uploads/questoes/a.png' },
+      { id: 2, imageUrl: '/uploads/questoes/b.jpg?v=2' },
+      { id: 3, imageUrl: '/uploads/questoes/c.webp' },
+      { id: 4, imageUrl: '/uploads/questoes/nao-existe.png' },
+      { id: 5, imageUrl: '/uploads/questoes/../segredo.png' },
+      { id: 6, imageUrl: '/uploads/questoes/..%2Fsegredo.png' },
+      { id: 7, imageUrl: '/uploads/questoes/' },
+    ];
+    const fetchImpl = () => {
+      throw new Error('imagem do upload não deveria ir para a rede');
+    };
+    const { images, failed } = await loadQuestionImages(questoes, { uploadsDir, fetchImpl });
+    assert.deepEqual(Object.keys(images).sort(), ['1', '2']);
+    assert.equal(images[1].type, 'png');
+    assert.equal(images[2].type, 'jpg');
+    assert.deepEqual(failed.sort(), [3, 4, 5, 6, 7]);
+  } finally {
+    await rm(base, { recursive: true, force: true });
+  }
+});

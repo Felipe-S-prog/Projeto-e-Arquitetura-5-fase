@@ -96,7 +96,9 @@ download (`Content-Disposition: attachment; filename="provas-<prova>-<turma>.pdf
 - Sem cópias geradas: `409`. Dado que o PDF não consegue imprimir (ex.: questão sem alternativas): `409` com o motivo.
 - Baixar **não** muda o banco. A tela baixa o arquivo e só depois chama `POST /aplicacoes/:id/aplicar`; se o PDF
   falhar, a aplicação continua Pendente.
-- Imagens das questões: o servidor baixa o `imagem_url` (só `http`/`https`, até 5 MB, 8 s) e aceita PNG ou JPG.
+- Imagens das questões: as enviadas pelo upload (T12, `/uploads/questoes/<arquivo>`) são lidas direto da
+  pasta do servidor, só de dentro dela; endereços de fora são baixados (só `http`/`https`, 8 s). Até 5 MB, e só
+  PNG ou JPG entram no PDF: WEBP e GIF saem com aviso.
 
 ## Gabarito em PDF (T27)
 
