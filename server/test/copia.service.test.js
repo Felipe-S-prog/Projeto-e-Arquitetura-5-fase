@@ -4,22 +4,32 @@ import { AppError } from '../src/errors/AppError.js';
 import { createCopiaService } from '../src/services/copia.service.js';
 
 // Repository falso, em memória. Professor 1: aplicação 1 (Pendente, prova 1 com 2 questões),
-// aplicação 2 (Aplicada), aplicação 3 (Pendente, vinculada aos alunos) e aplicação 4 (Pendente,
-// prova sem questões). O professor 2 tem a aplicação 9.
+// aplicação 2 (Aplicada), aplicação 3 (Pendente, vinculada à turma 1, com 2 alunos), aplicação 4 (Pendente,
+// prova sem questões) e aplicação 5 (vinculada à turma 2, sem alunos). O professor 2 tem a aplicação 9.
 function fakeRepository() {
   const aplicacoes = {
     1: { id: 1, professorId: 1, provaId: 1, status: 'PENDENTE', quantidade: 3, embaralharQuestoes: true, embaralharAlternativas: true, vincularAlunos: false },
     2: { id: 2, professorId: 1, provaId: 1, status: 'APLICADA', quantidade: 2, embaralharQuestoes: true, embaralharAlternativas: true, vincularAlunos: false },
-    3: { id: 3, professorId: 1, provaId: 1, status: 'PENDENTE', quantidade: 5, embaralharQuestoes: true, embaralharAlternativas: true, vincularAlunos: true },
+    3: { id: 3, professorId: 1, provaId: 1, turmaId: 1, status: 'PENDENTE', quantidade: 5, embaralharQuestoes: true, embaralharAlternativas: true, vincularAlunos: true },
+    5: { id: 5, professorId: 1, provaId: 1, turmaId: 2, status: 'PENDENTE', quantidade: 5, embaralharQuestoes: true, embaralharAlternativas: true, vincularAlunos: true },
     4: { id: 4, professorId: 1, provaId: 2, status: 'PENDENTE', quantidade: 5, embaralharQuestoes: true, embaralharAlternativas: true, vincularAlunos: false },
     9: { id: 9, professorId: 2, provaId: 1, status: 'PENDENTE', quantidade: 1, embaralharQuestoes: true, embaralharAlternativas: true, vincularAlunos: false },
   };
   const questoesDaProva = { 1: [{ id: 10, totalAlternativas: 4 }, { id: 20, totalAlternativas: 2 }], 2: [] };
+  // Alunos matriculados por turma, já em ordem alfabética (como o repository devolve).
+  const alunosDaTurma = { 1: [{ id: 71, nome: 'Ana Souza' }, { id: 72, nome: 'Bruno Lima' }], 2: [] };
   const copias = [{ aplicacaoId: 2, codigo: 'ANTIGA', rotulo: 'Prova #01', ordem: {}, publicado: false }];
   const correcoes = new Set();
   let proximoId = 1;
 
-  const toApi = (c) => ({ id: c.id, applicationId: c.aplicacaoId, code: c.codigo, label: c.rotulo, answerKeyPublished: c.publicado });
+  const toApi = (c) => ({
+    id: c.id,
+    applicationId: c.aplicacaoId,
+    code: c.codigo,
+    label: c.rotulo,
+    studentId: c.alunoId ?? null,
+    answerKeyPublished: c.publicado,
+  });
   const dono = (aplicacaoId) => aplicacoes[aplicacaoId]?.professorId;
 
   return {
@@ -37,6 +47,9 @@ function fakeRepository() {
     },
     async listQuestoesDaProva(provaId) {
       return questoesDaProva[provaId] ?? [];
+    },
+    async listAlunosDaTurma(turmaId) {
+      return alunosDaTurma[turmaId] ?? [];
     },
     async listCodigos() {
       return copias.map((c) => c.codigo);
@@ -107,10 +120,20 @@ test('gerar: aplicação com correção lançada não pode ser regerada (409)', 
   await rejeita(createCopiaService(repo).gerar(1, 1), 409);
 });
 
-test('gerar: vincular aos alunos fica para a T24 e prova sem questões é recusada (409)', async () => {
-  const service = createCopiaService(fakeRepository());
-  await rejeita(service.gerar(3, 1), 409);
-  await rejeita(service.gerar(4, 1), 409);
+test('gerar: prova sem questões é recusada (409)', async () => {
+  await rejeita(createCopiaService(fakeRepository()).gerar(4, 1), 409);
+});
+
+test('gerar vinculada à turma (T24): uma cópia nominal por aluno matriculado, em ordem alfabética', async () => {
+  const repo = fakeRepository();
+  const copias = await createCopiaService(repo).gerar(3, 1);
+  assert.equal(copias.length, 2); // a quantidade da aplicação (5) não vale quando é vinculada
+  assert.deepEqual(copias.map((c) => [c.label, c.studentId]), [['Ana Souza', 71], ['Bruno Lima', 72]]);
+  assert.equal(new Set(copias.map((c) => c.code)).size, 2);
+});
+
+test('gerar vinculada à turma sem alunos matriculados é recusada (409)', async () => {
+  await rejeita(createCopiaService(fakeRepository()).gerar(5, 1), 409);
 });
 
 test('isolamento entre professores e id inválido', async () => {

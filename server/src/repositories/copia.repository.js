@@ -43,7 +43,7 @@ export function createCopiaRepository(pool) {
 
     async findAplicacao(aplicacaoId, professorId) {
       const [rows] = await pool.query(
-        `SELECT a.id, a.prova_id, a.status, a.quantidade, a.embaralhar_questoes, a.embaralhar_alternativas, a.vincular_alunos
+        `SELECT a.id, a.prova_id, a.turma_id, a.status, a.quantidade, a.embaralhar_questoes, a.embaralhar_alternativas, a.vincular_alunos
            FROM aplicacao a
            JOIN prova p ON p.id = a.prova_id
           WHERE a.id = ? AND p.professor_id = ?`,
@@ -54,6 +54,7 @@ export function createCopiaRepository(pool) {
       return {
         id: row.id,
         provaId: row.prova_id,
+        turmaId: row.turma_id,
         status: row.status,
         quantidade: row.quantidade,
         embaralharQuestoes: Boolean(row.embaralhar_questoes),
@@ -74,6 +75,19 @@ export function createCopiaRepository(pool) {
         [provaId]
       );
       return rows.map((r) => ({ id: r.id, totalAlternativas: Number(r.total_alternativas) }));
+    },
+
+    // Alunos matriculados na turma (T15), em ordem alfabética: uma cópia nominal para cada (T24).
+    async listAlunosDaTurma(turmaId) {
+      const [rows] = await pool.query(
+        `SELECT al.id, al.nome
+           FROM matricula m
+           JOIN aluno al ON al.id = m.aluno_id
+          WHERE m.turma_id = ?
+          ORDER BY al.nome, al.id`,
+        [turmaId]
+      );
+      return rows.map((r) => ({ id: r.id, nome: r.nome }));
     },
 
     // Todos os códigos já usados no banco: os de cópias antigas também, para um código impresso

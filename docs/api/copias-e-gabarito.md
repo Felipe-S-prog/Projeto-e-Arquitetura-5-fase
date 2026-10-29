@@ -31,7 +31,9 @@ Regras:
 - Só gera enquanto a aplicação está **Pendente** (`409` depois de Aplicada).
 - Não regera uma aplicação que já tem correção lançada (`409`), para não apagar notas.
 - A prova precisa ter ao menos uma questão (`409`).
-- Gerar uma cópia por aluno matriculado ("vincular à turma") fica para a T24 (`409` por enquanto).
+- **Vinculada à turma** (`linkToRoster`, T24): sai uma cópia **nominal** por aluno matriculado na turma (T15), em
+  ordem alfabética, com o nome no rótulo e o aluno gravado em `copia_prova.aluno_id`. A quantidade da aplicação não
+  vale nesse caso. Turma sem alunos matriculados: `409`. A correção (T30) já sabe de quem é a nota de cada cópia.
 - Publicar o gabarito não tem volta e nunca revela nota; quem já estava publicado mantém a data.
 
 ## Endpoints

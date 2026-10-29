@@ -14,7 +14,8 @@ function parseId(valor, mensagem) {
 // - as cópias só são geradas (ou regeradas) enquanto a aplicação está Pendente: depois do download
 //   do PDF elas ficam fixas, porque os códigos já foram impressos;
 // - gerar de novo troca todas as cópias, e nunca se a aplicação já tem correção lançada;
-// - vincular aos alunos matriculados fica para a T24;
+// - vinculada à turma (T24): uma cópia nominal por aluno matriculado, em ordem alfabética,
+//   com o nome no rótulo e o aluno gravado na cópia (a correção já sabe de quem é a nota);
 // - publicar o gabarito libera a consulta pública de uma cópia ou de todas, e não tem volta.
 export function createCopiaService(repository, { gerar = gerarCopias } = {}) {
   async function buscarAplicacao(idBruto, professorId) {
@@ -39,9 +40,6 @@ export function createCopiaService(repository, { gerar = gerarCopias } = {}) {
       if (aplicacao.status !== 'PENDENTE') {
         throw AppError.conflict('As cópias desta aplicação já foram impressas e não podem ser geradas de novo.');
       }
-      if (aplicacao.vincularAlunos) {
-        throw AppError.conflict('Gerar uma cópia por aluno matriculado ainda não está disponível (T24).');
-      }
       if ((await repository.countCorrecoes(aplicacao.id)) > 0) {
         throw AppError.conflict('Esta aplicação já tem correções lançadas; gerar de novo apagaria as notas.');
       }
@@ -49,12 +47,21 @@ export function createCopiaService(repository, { gerar = gerarCopias } = {}) {
       const questoes = await repository.listQuestoesDaProva(aplicacao.provaId);
       if (questoes.length === 0) throw AppError.conflict('A prova desta aplicação não tem questões.');
 
+      let alunos = null;
+      if (aplicacao.vincularAlunos) {
+        alunos = await repository.listAlunosDaTurma(aplicacao.turmaId);
+        if (alunos.length === 0) {
+          throw AppError.conflict('A turma não tem alunos matriculados. Matricule os alunos ou gere provas anônimas.');
+        }
+      }
+
       const copias = gerar({
         questoes,
         quantidade: aplicacao.quantidade,
         embaralharQuestoes: aplicacao.embaralharQuestoes,
         embaralharAlternativas: aplicacao.embaralharAlternativas,
         codigosEmUso: await repository.listCodigos(),
+        alunos,
       });
 
       await repository.substituirCopias(aplicacao.id, copias);

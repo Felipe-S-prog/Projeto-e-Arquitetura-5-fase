@@ -24,11 +24,22 @@ function randomCode(random) {
 
 // questoes: [{ id, totalAlternativas }] na ordem da prova (discursiva tem 0 alternativas).
 // codigosEmUso: códigos que já existem no banco; nenhum é repetido, nem entre as cópias novas.
-// Devolve uma cópia por pessoa: { codigo, rotulo, ordem: { questionIds, alternativesOrder } }.
-export function gerarCopias({ questoes, quantidade, embaralharQuestoes, embaralharAlternativas, codigosEmUso = [], random = Math.random }) {
+// alunos (T24): [{ id, nome }] quando a aplicação é vinculada à turma; aí sai uma cópia por aluno,
+// na ordem da lista, com o nome no rótulo. Sem alunos, saem "quantidade" cópias anônimas.
+// Devolve uma cópia por pessoa: { codigo, rotulo, alunoId, ordem: { questionIds, alternativesOrder } }.
+export function gerarCopias({
+  questoes,
+  quantidade,
+  embaralharQuestoes,
+  embaralharAlternativas,
+  codigosEmUso = [],
+  alunos = null,
+  random = Math.random,
+}) {
   const usados = new Set(codigosEmUso);
+  const total = alunos ? alunos.length : quantidade;
 
-  return Array.from({ length: quantidade }, (_, i) => {
+  return Array.from({ length: total }, (_, i) => {
     const ordemQuestoes = embaralharQuestoes ? shuffle(questoes, random) : questoes;
     const alternativesOrder = {};
     for (const questao of ordemQuestoes) {
@@ -42,9 +53,11 @@ export function gerarCopias({ questoes, quantidade, embaralharQuestoes, embaralh
     } while (usados.has(codigo));
     usados.add(codigo);
 
+    const aluno = alunos?.[i] ?? null;
     return {
       codigo,
-      rotulo: `Prova #${String(i + 1).padStart(2, '0')}`,
+      rotulo: aluno ? aluno.nome : `Prova #${String(i + 1).padStart(2, '0')}`,
+      alunoId: aluno ? aluno.id : null,
       ordem: { questionIds: ordemQuestoes.map((q) => q.id), alternativesOrder },
     };
   });
