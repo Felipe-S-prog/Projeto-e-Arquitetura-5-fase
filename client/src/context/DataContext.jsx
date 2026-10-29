@@ -28,7 +28,13 @@ function normalizeClass(cls) {
       cls.status === 'ARQUIVADA' || cls.status === 'Arquivada'
         ? 'Arquivada'
         : 'Ativa',
-    students: cls.students ?? [],
+    students: (cls.students ?? []).map((student) => ({
+      id: Number(student.id),
+      name: student.name ?? student.nome,
+      email: student.email,
+      registration:
+        student.registration ?? student.numero_matricula ?? student.numeroMatricula ?? null,
+    })),
   };
 }
 
@@ -464,9 +470,12 @@ const DataProvider = ({ children }) => {
 
       const normalized = normalizeClass(updatedClass);
 
+      // A API devolve a turma sem os alunos: mantém a lista que já estava na tela.
       setClasses((previous) =>
         previous.map((item) =>
-          item.id === Number(id) ? normalized : item,
+          item.id === Number(id)
+            ? { ...normalized, students: item.students }
+            : item,
         ),
       );
 
@@ -488,9 +497,12 @@ const DataProvider = ({ children }) => {
 
       const normalized = normalizeClass(archivedClass);
 
+      // A API devolve a turma sem os alunos: mantém a lista que já estava na tela.
       setClasses((previous) =>
         previous.map((item) =>
-          item.id === Number(id) ? normalized : item,
+          item.id === Number(id)
+            ? { ...normalized, students: item.students }
+            : item,
         ),
       );
 
