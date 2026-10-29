@@ -98,6 +98,19 @@ download (`Content-Disposition: attachment; filename="provas-<prova>-<turma>.pdf
   falhar, a aplicação continua Pendente.
 - Imagens das questões: o servidor baixa o `imagem_url` (só `http`/`https`, até 5 MB, 8 s) e aceita PNG ou JPG.
 
+## Gabarito em PDF (T27)
+
+`GET /aplicacoes/:id/pdf/gabarito` monta **um** PDF com o gabarito de todas as cópias da aplicação, para o
+professor enviar às pessoas (ex.: pelo Teams), e devolve como download
+(`filename="gabarito-<prova>-<turma>.pdf"`; páginas em `X-Pdf-Paginas`).
+
+- Para cada cópia, um quadro com o rótulo (nome do aluno ou "Prova #NN"), o código impresso e a letra certa de
+  cada questão na ordem **impressa** daquela cópia. Discursiva aparece como "disc.". Nunca traz nota ou pontuação.
+- As letras saem do mesmo cálculo da consulta pública (`resolverGabarito`, T26): o PDF e a página `/gabarito`
+  sempre batem.
+- Não exige que o gabarito esteja publicado: o arquivo é do professor, que decide quando enviar.
+- Sem cópias geradas: `409`. Aplicação de outro professor: `404`.
+
 ## Onde está o código
 
 `server/src/routes/copia.routes.js` → `controllers/copia.controller.js` → `services/copia.service.js`
@@ -112,3 +125,7 @@ PDF (T25): `routes/pdf.routes.js` → `controllers/pdf.controller.js` → `servi
 `repositories/pdf.repository.js`. O montador (T22) fica em `server/src/pdf/` (`buildConsolidatedPdf.js`,
 `sheetLayout.js`, `pdfText.js`, `qr.js` e `questionImages.js`). Testes em `server/test/pdf.service.test.js`
 e `server/test/questionImages.test.js`.
+
+Gabarito em PDF (T27): mesma rota, controller, service (`gerarGabarito`) e repository do PDF; o montador é
+`server/src/pdf/buildAnswerKeyPdf.js`. Testes em `server/test/buildAnswerKeyPdf.test.js` e no
+`server/test/pdf.service.test.js`.

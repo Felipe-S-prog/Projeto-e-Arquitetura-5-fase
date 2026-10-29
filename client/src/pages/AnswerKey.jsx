@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { apiDownload } from '../services/api';
 import { Breadcrumb, PrimaryButton, SecondaryButton, Badge, EmptyState } from '../components/ui';
 import AnswerKeyExportModal from '../components/AnswerKeyExportModal';
 
@@ -10,6 +11,22 @@ export default function AnswerKey() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
+
+  // Baixa o PDF do gabarito de todas as cópias, gerado pelo servidor (T27).
+  const exportPdf = async () => {
+    setExporting(true);
+    setExportError('');
+    try {
+      await apiDownload(`/aplicacoes/${app.id}/pdf/gabarito`, 'gabarito.pdf');
+      setShowExportModal(false);
+    } catch (err) {
+      setExportError(err.message || 'Não foi possível gerar o PDF do gabarito.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Publica no banco (T23); a consulta pública por código passa a enxergar o gabarito.
   const publish = async (code) => {
@@ -43,7 +60,13 @@ export default function AnswerKey() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
-          <SecondaryButton onClick={() => setShowExportModal(true)} disabled={copies.length === 0}>
+          <SecondaryButton
+            onClick={() => {
+              setExportError('');
+              setShowExportModal(true);
+            }}
+            disabled={copies.length === 0}
+          >
             Exportar gabarito em PDF
           </SecondaryButton>
           <PrimaryButton
@@ -104,8 +127,10 @@ export default function AnswerKey() {
           examTitle={exam?.title}
           className={cls?.name}
           quantity={copies.length}
-          onConfirm={() => setShowExportModal(false)}
+          onConfirm={exportPdf}
           onCancel={() => setShowExportModal(false)}
+          busy={exporting}
+          error={exportError}
         />
       )}
     </div>

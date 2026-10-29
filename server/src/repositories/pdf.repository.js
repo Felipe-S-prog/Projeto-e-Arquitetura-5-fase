@@ -26,8 +26,9 @@ export function createPdfRepository(pool) {
       };
     },
 
-    // Questões na ordem da prova, no formato que o montador do PDF recebe:
-    // { id, excerpt, imageUrl, score, alternatives: [{ text }] } (alternativas pela ordem original).
+    // Questões na ordem da prova, no formato que os montadores do PDF recebem:
+    // { id, excerpt, imageUrl, score, alternatives: [{ text, correct }] } (alternativas pela ordem original).
+    // "correct" só é usado pelo PDF do gabarito (T27); a prova impressa ignora o campo.
     async listQuestoesDaProva(provaId) {
       const [questoes] = await pool.query(
         `SELECT q.id, q.enunciado, q.imagem_url, pq.pontuacao
@@ -40,7 +41,7 @@ export function createPdfRepository(pool) {
       if (questoes.length === 0) return [];
 
       const [alternativas] = await pool.query(
-        'SELECT questao_id, texto FROM alternativa WHERE questao_id IN (?) ORDER BY questao_id, ordem',
+        'SELECT questao_id, texto, correta FROM alternativa WHERE questao_id IN (?) ORDER BY questao_id, ordem',
         [questoes.map((q) => q.id)]
       );
 
@@ -49,7 +50,9 @@ export function createPdfRepository(pool) {
         excerpt: q.enunciado,
         imageUrl: q.imagem_url ?? null,
         score: Number(q.pontuacao),
-        alternatives: alternativas.filter((a) => a.questao_id === q.id).map((a) => ({ text: a.texto })),
+        alternatives: alternativas
+          .filter((a) => a.questao_id === q.id)
+          .map((a) => ({ text: a.texto, correct: Boolean(a.correta) })),
       }));
     },
 

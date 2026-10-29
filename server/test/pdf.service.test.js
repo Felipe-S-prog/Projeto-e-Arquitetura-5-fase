@@ -14,8 +14,20 @@ function fakeRepositories() {
     3: { id: 3, status: 'PENDENTE', dataAplicacao: null, prova: { id: 2, titulo: 'Discursiva' }, turma: { nome: 'Turma A' } },
   };
   const objetivas = [
-    { id: 10, excerpt: 'Quanto é 2 + 2?', imageUrl: null, score: 5, alternatives: [{ text: '3' }, { text: '4' }, { text: '5' }] },
-    { id: 20, excerpt: 'A derivada de x² é:', imageUrl: 'https://exemplo.test/grafico.png', score: 5, alternatives: [{ text: '2x' }, { text: 'x' }] },
+    {
+      id: 10,
+      excerpt: 'Quanto é 2 + 2?',
+      imageUrl: null,
+      score: 5,
+      alternatives: [{ text: '3', correct: false }, { text: '4', correct: true }, { text: '5', correct: false }],
+    },
+    {
+      id: 20,
+      excerpt: 'A derivada de x² é:',
+      imageUrl: 'https://exemplo.test/grafico.png',
+      score: 5,
+      alternatives: [{ text: '2x', correct: true }, { text: 'x', correct: false }],
+    },
   ];
   const questoes = { 1: objetivas, 2: [{ id: 30, excerpt: 'Explique.', imageUrl: null, score: 10, alternatives: [] }] };
   const copia = (code, questionIds, alternativesOrder) => ({ code, label: code, studentName: null, questionIds, alternativesOrder });
@@ -111,4 +123,43 @@ test('dado que o PDF não consegue imprimir volta 409 com o motivo do montador',
     assert.match(err.message, /Não foi possível montar o PDF/);
     return true;
   });
+});
+
+// ---------------------------------------------------------------------------
+// Gabarito em PDF (T27)
+// ---------------------------------------------------------------------------
+
+test('gabarito: PDF de verdade com as letras certas de cada cópia, na ordem impressa', async () => {
+  let recebido;
+  const service = createPdfService(fakeRepositories(), {
+    montarGabarito: async (dados) => {
+      recebido = dados;
+      return { bytes: new Uint8Array([1]), pageCount: 1 };
+    },
+  });
+  const pdf = await service.gerarGabarito(1, 1);
+  assert.equal(pdf.nomeArquivo, 'gabarito-calculo-i-p1-turma-a.pdf');
+  assert.equal(recebido.className, 'Turma A');
+  assert.equal(recebido.date, '27/10/2026');
+  // ABC234 imprime a questão 20 e depois a 10; XYZ789 imprime a 10 e depois a 20.
+  assert.deepEqual(recebido.copies, [
+    { code: 'ABC234', label: 'ABC234', answers: [{ number: 1, correctLetter: 'B' }, { number: 2, correctLetter: 'C' }] },
+    { code: 'XYZ789', label: 'XYZ789', answers: [{ number: 1, correctLetter: 'B' }, { number: 2, correctLetter: 'A' }] },
+  ]);
+});
+
+test('gabarito: o montador real gera um PDF válido; discursiva sai sem letra e não derruba', async () => {
+  const service = createPdfService(fakeRepositories());
+  const doc = await PDFDocument.load((await service.gerarGabarito(1, 1)).bytes);
+  assert.equal(doc.getPageCount(), 1);
+  assert.equal(doc.getTitle(), 'Gabarito: Cálculo I — P1');
+  const discursiva = await service.gerarGabarito(3, 1); // a prova impressa recusa; o gabarito não
+  assert.equal(discursiva.paginas, 1);
+});
+
+test('gabarito: sem cópias (409) e aplicação de outro professor (404)', async () => {
+  const service = createPdfService(fakeRepositories());
+  await rejeita(service.gerarGabarito(2, 1), 409);
+  await rejeita(service.gerarGabarito(1, 2), 404);
+  await rejeita(service.gerarGabarito('x', 1), 400);
 });
