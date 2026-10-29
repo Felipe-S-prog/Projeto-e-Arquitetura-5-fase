@@ -1,4 +1,4 @@
-﻿import cors from 'cors';
+import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import { fileURLToPath } from 'node:url';
@@ -9,7 +9,7 @@ import { createRoutes } from './routes/index.js';
 import { createAuthRoutes } from './routes/auth.routes.js';
 import { createApiAuthMiddleware } from './middlewares/apiAuth.js';
 
-// Monta a aplica├º├úo Express. Recebe o pool pronto (em vez de cri├í-lo aqui)
+// Monta a aplicação Express. Recebe o pool pronto (em vez de criá-lo aqui)
 // para os testes poderem trocar o banco real por um falso.
 export function createApp({ pool, config }) {
   const app = express();
@@ -39,13 +39,13 @@ export function createApp({ pool, config }) {
   );
   if (config.nodeEnv !== 'test') app.use(requestLogger);
 
-  // A autentica├º├úo fica antes das rotas de neg├│cio; health e endpoints de entrada s├úo p├║blicos.
+  // A autenticação fica antes das rotas de negócio; health e endpoints de entrada são públicos.
   app.use('/api', createApiAuthMiddleware({ pool, config }));
   app.use('/api/auth', createAuthRoutes({ pool, config }));
   app.use('/api', createRoutes({ pool }));
 
   app.use(notFound);
-  app.use(errorHandler); // sempre por ├║ltimo
+  app.use(errorHandler); // sempre por último
 
   return app;
 }

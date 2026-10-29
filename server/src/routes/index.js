@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { createCorrecaoRoutes } from './correcao.routes.js';
 import { createHealthRoutes } from './health.routes.js';
 import { createAplicacaoRoutes } from './aplicacao.routes.js';

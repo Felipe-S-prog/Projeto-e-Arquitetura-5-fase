@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { AppError } from '../errors/AppError.js';
 
 export function createQuestoesRoutes({ pool }) {
