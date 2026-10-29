@@ -1,4 +1,4 @@
-
+﻿
 import {
   createContext,
   useCallback,
@@ -19,6 +19,7 @@ async function adminApiRequest(path, options = {}) {
   return apiRequest(path, options);
 }
 
+
 function normalizeClass(cls) {
   return {
     id: Number(cls.id),
@@ -30,8 +31,10 @@ function normalizeClass(cls) {
         ? 'Arquivada'
         : 'Ativa',
     students: cls.students ?? [],
+    codigoConvite: cls.codigoConvite ?? cls.codigo_convite ?? null,
   };
 }
+
 
 // Monta o corpo enviado para a API de questões.
 function buildQuestionPayload(question) {
@@ -426,9 +429,12 @@ const DataProvider = ({ children }) => {
   }, [classes]);
 
   // Atualiza uma turma existente no MySQL.
+
+  // Atualiza uma turma existente no MySQL e sincroniza a lista imediatamente.
   const updateClass = useCallback(async (id, changes) => {
     setClassesError('');
 
+    const classId = Number(id);
     const name = changes.name?.trim();
     const subject = changes.subject?.trim();
     const period = changes.period?.trim();
@@ -439,7 +445,7 @@ const DataProvider = ({ children }) => {
 
     const duplicate = classes.some(
       (item) =>
-        item.id !== Number(id) &&
+        item.id !== classId &&
         item.name.trim().toLowerCase() === name.toLowerCase() &&
         item.subject.trim().toLowerCase() === subject.toLowerCase() &&
         item.period.trim().toLowerCase() === period.toLowerCase(),
@@ -452,7 +458,8 @@ const DataProvider = ({ children }) => {
     }
 
     try {
-      const updatedClass = await adminApiRequest(`/turmas/${id}`, {
+      // Envia os campos no formato JSON esperado pela API.
+      const response = await adminApiRequest(`/turmas/${classId}`, {
         method: 'PUT',
         body: JSON.stringify({
           nome: name,
@@ -460,6 +467,57 @@ const DataProvider = ({ children }) => {
           periodo: period,
         }),
       });
+
+      // Usa os valores digitados, preservando alunos e código de convite.
+      const returnedClass = response?.data ?? response ?? {};
+
+      setClasses((current) =>
+        current.map((item) =>
+          item.id === classId
+            ? {
+                ...item,
+                id: classId,
+                name,
+                subject,
+                period,
+                status: returnedClass.status
+                  ? normalizeClass({
+                      ...item,
+                      ...returnedClass,
+                    }).status
+                  : item.status,
+                students: item.students ?? [],
+                codigoConvite:
+                  returnedClass.codigoConvite ??
+                  returnedClass.codigo_convite ??
+                  item.codigoConvite ??
+                  null,
+              }
+            : item,
+        ),
+      );
+
+      return {
+        ...classes.find((item) => item.id === classId),
+        id: classId,
+        name,
+        subject,
+        period,
+      };
+    } catch (error) {
+      setClassesError(error.message);
+      throw error;
+    }
+  }, [classes]);
+
+   const regenerateInviteCode = useCallback(async (id) => {
+    setClassesError('');
+
+    try {
+      const updatedClass = await adminApiRequest(
+        `/turmas/${id}/codigo-convite/regenerar`,
+        { method: 'POST' },
+      );
 
       const normalized = normalizeClass(updatedClass);
 
@@ -474,7 +532,7 @@ const DataProvider = ({ children }) => {
       setClassesError(error.message);
       throw error;
     }
-  }, [classes]);
+  }, []);
 
   // Arquiva a turma no MySQL.
   const archiveClass = useCallback(async (id) => {
@@ -872,6 +930,7 @@ const DataProvider = ({ children }) => {
       addClass,
       updateClass,
       archiveClass,
+      regenerateInviteCode,
       addExam,
       createApplication,
       updateApplication,

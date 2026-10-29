@@ -38,20 +38,16 @@ export default function ClassEdit() {
   }, [cls?.id, cls?.name, cls?.subject, cls?.period]);
 
   if (classesLoading && !cls) {
-    return <p>Carregando turma...</p>;
-  }
+  return <p>Carregando turma...</p>;
+}
 
-  if (classesError && !cls) {
-    return (
-      <div role="alert">
-        Não foi possível carregar a turma: {classesError}
-      </div>
-    );
-  }
+if (classesError && !cls) {
+  return <p>{classesError}</p>;
+}
 
-  if (!cls) {
-    return <div>Turma não encontrada.</div>;
-  }
+if (!cls) {
+  return <p>Turma não encontrada.</p>;
+}
 
   if (cls.status === 'Arquivada') {
     return (
@@ -71,7 +67,7 @@ export default function ClassEdit() {
     try {
       setSaving(true);
       await updateClass(cls.id, { name, subject, period });
-      navigate(`/turmas/${cls.id}`);
+      navigate('/turmas', { replace: true });
     } catch (err) {
       setError(err.message || 'Não foi possível atualizar a turma.');
     } finally {
