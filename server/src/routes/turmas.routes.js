@@ -20,7 +20,7 @@ export function createTurmasRoutes({ pool }) {
     }
 
     throw AppError.conflict(
-      'NÃ£o foi possÃ­vel gerar um cÃ³digo de convite. Tente novamente.',
+      'Não foi possível gerar um código de convite. Tente novamente.',
     );
   }
 
@@ -66,7 +66,7 @@ export function createTurmasRoutes({ pool }) {
       !periodo.trim()
     ) {
       throw AppError.badRequest(
-        'Informe o nome, a disciplina e o perÃ­odo da turma.',
+        'Informe o nome, a disciplina e o período da turma.',
       );
     }
 
@@ -76,13 +76,13 @@ export function createTurmasRoutes({ pool }) {
       periodo.trim().length > 10
     ) {
       throw AppError.badRequest(
-        'O nome aceita atÃ© 100 caracteres, a disciplina 80 e o perÃ­odo 10.',
+        'O nome aceita até 100 caracteres, a disciplina 80 e o período 10.',
       );
     }
   }
 
   // Listar turmas do professor e gerar convite para turmas antigas
-  // que ainda nÃ£o possuem cÃ³digo.
+  // que ainda não possuem código.
   router.get('/', async (req, res, next) => {
     try {
       const [rows] = await pool.execute(
@@ -119,7 +119,7 @@ export function createTurmasRoutes({ pool }) {
     }
   });
 
-  // Criar turma jÃ¡ com cÃ³digo de convite.
+  // Criar turma já com código de convite.
   router.post('/', async (req, res, next) => {
     try {
       const { nome, disciplina, periodo } = req.body;
@@ -153,13 +153,13 @@ export function createTurmasRoutes({ pool }) {
     }
   });
 
-  // Regenerar o convite: o cÃ³digo anterior deixa de funcionar.
+  // Regenerar o convite: o código anterior deixa de funcionar.
   router.post('/:id/codigo-convite/regenerar', async (req, res, next) => {
     try {
       const id = Number(req.params.id);
 
       if (!Number.isInteger(id) || id <= 0) {
-        throw AppError.badRequest('ID de turma invÃ¡lido.');
+        throw AppError.badRequest('ID de turma inválido.');
       }
 
       const [existing] = await pool.execute(
@@ -170,12 +170,12 @@ export function createTurmasRoutes({ pool }) {
       );
 
       if (!existing.length) {
-        throw AppError.notFound('Turma nÃ£o encontrada.');
+        throw AppError.notFound('Turma não encontrada.');
       }
 
       if (existing[0].status !== 'ATIVA') {
         throw AppError.badRequest(
-          'NÃ£o Ã© possÃ­vel regenerar o convite de uma turma arquivada.',
+          'Não é possível regenerar o convite de uma turma arquivada.',
         );
       }
 
@@ -208,7 +208,7 @@ export function createTurmasRoutes({ pool }) {
       const { nome, disciplina, periodo } = req.body;
 
       if (!Number.isInteger(id) || id <= 0) {
-        throw AppError.badRequest('ID de turma invÃ¡lido.');
+        throw AppError.badRequest('ID de turma inválido.');
       }
 
       validarDados({ nome, disciplina, periodo });
@@ -226,8 +226,8 @@ export function createTurmasRoutes({ pool }) {
           [id, req.professorId],
         );
 
-        if (!rows.length) throw AppError.notFound('Turma nÃ£o encontrada.');
-        throw AppError.badRequest('Turmas arquivadas nÃ£o podem ser editadas.');
+        if (!rows.length) throw AppError.notFound('Turma não encontrada.');
+        throw AppError.badRequest('Turmas arquivadas não podem ser editadas.');
       }
 
       const [rows] = await pool.execute(
@@ -237,19 +237,19 @@ export function createTurmasRoutes({ pool }) {
         [id, req.professorId],
       );
 
-      res.json(mapTurma(rows[0]));
+      res.json(await mapTurma(rows[0]));
     } catch (error) {
       next(error);
     }
   });
 
-  // Arquivar turma sem apagar seu histÃ³rico.
+  // Arquivar turma sem apagar seu histórico.
   router.patch('/:id/arquivar', async (req, res, next) => {
     try {
       const id = Number(req.params.id);
 
       if (!Number.isInteger(id) || id <= 0) {
-        throw AppError.badRequest('ID de turma invÃ¡lido.');
+        throw AppError.badRequest('ID de turma inválido.');
       }
 
       const [result] = await pool.execute(
@@ -265,7 +265,7 @@ export function createTurmasRoutes({ pool }) {
         );
 
         if (!existing.length) {
-          throw AppError.notFound('Turma nÃ£o encontrada.');
+          throw AppError.notFound('Turma não encontrada.');
         }
       }
 
@@ -276,7 +276,7 @@ export function createTurmasRoutes({ pool }) {
         [id, req.professorId],
       );
 
-      res.json(mapTurma(rows[0]));
+      res.json(await mapTurma(rows[0]));
     } catch (error) {
       next(error);
     }
