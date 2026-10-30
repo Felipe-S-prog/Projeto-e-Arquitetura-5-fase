@@ -60,6 +60,26 @@ Cada cópia volta neste formato (o mesmo que as telas já usavam):
 }
 ```
 
+## Consulta pública do gabarito (T26)
+
+`GET /gabarito/:codigo` é **pública** (sem `Authorization`): é a consulta que o aluno faz na página
+`/gabarito` digitando o código impresso na prova. O aluno não tem conta no sistema (RF03).
+
+- Só responde depois que o professor publicou o gabarito daquela cópia (`POST /aplicacoes/:id/copias/gabarito`).
+- Devolve só o título da prova e a letra certa de cada questão, na ordem **impressa** daquela cópia. Nunca
+  devolve nota, pontuação, nome do aluno ou dados do professor. Questão discursiva vem com `correctLetter: null`.
+- `Cache-Control: no-store`, para a publicação aparecer na hora.
+- Código inexistente: `404`. Gabarito ainda não publicado: `403`. Código em formato inválido: `400`.
+
+```json
+{
+  "code": "DEMA33",
+  "examTitle": "Prova Demo - Derivadas e Integrais",
+  "publishedAt": "2026-10-28T12:00:00.000Z",
+  "answers": [{ "number": 1, "correctLetter": "C" }, { "number": 2, "correctLetter": "B" }, { "number": 3, "correctLetter": null }]
+}
+```
+
 ## PDF consolidado (T25)
 
 `GET /aplicacoes/:id/pdf` monta no servidor **um** PDF com todas as cópias gravadas da aplicação, em
@@ -83,6 +103,10 @@ download (`Content-Disposition: attachment; filename="provas-<prova>-<turma>.pdf
 `server/src/routes/copia.routes.js` → `controllers/copia.controller.js` → `services/copia.service.js`
 (regras) e `services/copia.geracao.js` (sorteio, sem banco) → `repositories/copia.repository.js` →
 `models/copia.model.js`. Testes em `server/test/copia.geracao.test.js` e `server/test/copia.service.test.js`.
+
+Gabarito público (T26): `routes/gabarito.routes.js` → `controllers/gabarito.controller.js` →
+`services/gabarito.service.js` (inclui `resolverGabarito`) → `repositories/gabarito.repository.js`. Testes em
+`server/test/gabarito.service.test.js` e `server/test/gabarito.routes.test.js`.
 
 PDF (T25): `routes/pdf.routes.js` → `controllers/pdf.controller.js` → `services/pdf.service.js` →
 `repositories/pdf.repository.js`. O montador (T22) fica em `server/src/pdf/` (`buildConsolidatedPdf.js`,
