@@ -347,8 +347,11 @@ O que essa escolha facilita, o que ela custa ou limita.
 
 Aqui no README, liste os ADRs (Registros de Decisão Arquitetural) criados (se necessário e houver), com link para cada arquivo:
 
-- [ADR-001: Título da decisão](docs/adr/ADR-001-titulo-da-decisao.md)
-- [ADR-002: Título da decisão](docs/adr/ADR-002-titulo-da-decisao.md)
+- [ADR-001: Escopo reduzido em relação à especificação de referência do cliente](docs/adr/ADR-001-escopo-reduzido-sem-app-mobile-e-microsservicos.md)
+- [ADR-002: API em camadas (rota → controller → service → repository → model)](docs/adr/ADR-002-arquitetura-em-camadas.md)
+- [ADR-003: MySQL como banco e estrutura criada por migrations versionadas](docs/adr/ADR-003-mysql-com-migrations-versionadas.md)
+- [ADR-004: Autenticação com JWT, refresh token rotativo e cadastro por convite](docs/adr/ADR-004-autenticacao-jwt-com-refresh-token-e-cadastro-por-convite.md)
+- [ADR-005: Ciclo de status da prova (Rascunho → Pronta → Arquivada)](docs/adr/ADR-005-ciclo-de-status-da-prova.md)
 
 > Já há pelo menos uma decisão relevante a registrar aqui: **escopo reduzido em relação à especificação de referência do cliente** (sem app mobile nativo e sem microsserviços, por exigência da stack da disciplina — ver seção 1).
 

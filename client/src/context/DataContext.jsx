@@ -1,4 +1,4 @@
-﻿
+
 import {
   createContext,
   useCallback,
@@ -9,7 +9,6 @@ import {
 } from 'react';
 
 import questionsSeed from '../data/questions.json';
-import { buildApplicationCopies } from '../utils/answerKey';
 import { useAuth } from './AuthContext';
 import { apiRequest } from '../services/api';
 
@@ -30,7 +29,13 @@ function normalizeClass(cls) {
       cls.status === 'ARQUIVADA' || cls.status === 'Arquivada'
         ? 'Arquivada'
         : 'Ativa',
-    students: cls.students ?? [],
+    students: (cls.students ?? []).map((student) => ({
+      id: Number(student.id),
+      name: student.name ?? student.nome,
+      email: student.email,
+      registration:
+        student.registration ?? student.numero_matricula ?? student.numeroMatricula ?? null,
+    })),
     codigoConvite: cls.codigoConvite ?? cls.codigo_convite ?? null,
   };
 }
@@ -222,19 +227,21 @@ const DataProvider = ({ children }) => {
       setApplicationsError('');
 
       try {
-        const result = await adminApiRequest('/aplicacoes');
+        const [result, copies] = await Promise.all([
+          adminApiRequest('/aplicacoes'),
+          adminApiRequest('/copias'),
+        ]);
 
-        if (!Array.isArray(result)) {
-          throw new Error('A API retornou uma lista de aplicações inválida.');
+        if (!Array.isArray(result) || !Array.isArray(copies)) {
+          throw new Error('A API retornou uma lista de aplicações ou cópias inválida.');
         }
 
         if (!cancelled) {
-          // Mantém as cópias já geradas nesta sessão (ainda não vão ao banco).
-          setApplications((previous) =>
+          setApplications(
             result.map((item) =>
               normalizeApplication(
                 item,
-                previous.find((old) => old.id === Number(item.id))?.copies || [],
+                copies.filter((copy) => copy.applicationId === Number(item.id)),
               ),
             ),
           );
@@ -249,7 +256,6 @@ const DataProvider = ({ children }) => {
         }
       }
     }
-
     async function loadAdminUsers() {
       setAdminUsersLoading(true);
       setAdminUsersError('');
@@ -558,6 +564,77 @@ const DataProvider = ({ children }) => {
     }
   }, []);
 
+  // Matricula um aluno na turma usando nome e e-mail.
+  const enrollStudent = useCallback(async (classId, student) => {
+    setClassesError('');
+
+    const name = student?.name?.trim();
+    const email = student?.email?.trim().toLowerCase();
+    const registration = student?.registration?.trim() || null;
+
+    if (!name) {
+      throw new Error('Informe o nome do aluno.');
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new Error('Informe um e-mail válido.');
+    }
+
+    const cls = classes.find((item) => item.id === Number(classId));
+
+    if (!cls) {
+      throw new Error('Turma não encontrada.');
+    }
+
+    if (cls.status === 'Arquivada') {
+      throw new Error('Não é possível matricular alunos em uma turma arquivada.');
+    }
+
+    try {
+      const createdStudent = await adminApiRequest(
+        `/turmas/${classId}/matriculas`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            nome: name,
+            email,
+            numero_matricula: registration,
+          }),
+        },
+      );
+
+      setClasses((previous) =>
+        previous.map((item) => {
+          if (item.id !== Number(classId)) return item;
+
+          const alreadyAdded = item.students.some(
+            (existing) => Number(existing.id) === Number(createdStudent.id),
+          );
+
+          if (alreadyAdded) return item;
+
+          return {
+            ...item,
+            students: [...item.students, {
+              id: Number(createdStudent.id),
+              name: createdStudent.name ?? createdStudent.nome,
+              email: createdStudent.email,
+              registration:
+                createdStudent.registration ??
+                createdStudent.numero_matricula ??
+                null,
+            }],
+          };
+        }),
+      );
+
+      return createdStudent;
+    } catch (error) {
+      setClassesError(error.message);
+      throw error;
+    }
+  }, [classes]);
+
   // Cria a prova na API (nasce em Rascunho) e devolve a prova salva.
   const addExam = useCallback(async (exam) => {
     const created = await adminApiRequest('/provas', {
@@ -661,86 +738,55 @@ const DataProvider = ({ children }) => {
     );
   }, []);
 
-  // Gera cópias da prova para uma aplicação.
-  const generateApplicationCopies = useCallback(
-    (applicationId) => {
-      setApplications((previous) => {
-        const application = previous.find(
-          (item) => item.id === Number(applicationId),
-        );
-
-        if (!application) return previous;
-
-        const exam = exams.find(
-          (item) => item.id === application.examId,
-        );
-
-        if (!exam) return previous;
-
-        const examQuestions = exam.questions
-          .map(({ questionId }) =>
-            questions.find((question) => question.id === questionId),
-          )
-          .filter(Boolean);
-
-        const cls = classes.find(
-          (item) => item.id === application.classId,
-        );
-
-        const studentNames = application.linkToRoster
-          ? (cls?.students || []).map((student) => student.name)
-          : null;
-
-        const otherCodes = previous.flatMap((item) =>
-          item.id === application.id
-            ? []
-            : (item.copies || []).map((copy) => copy.code),
-        );
-
-        const copies = buildApplicationCopies({
-          examQuestions,
-          quantity: application.quantity,
-          shuffleQuestions: application.shuffleQuestions,
-          shuffleAlternatives: application.shuffleAlternatives,
-          studentNames,
-          existingCodes: otherCodes,
-        });
-
-        return previous.map((item) =>
-          item.id === application.id
-            ? { ...item, copies, quantity: copies.length }
-            : item,
-        );
-      });
-    },
-    [exams, questions, classes],
-  );
-
-  // Publica o gabarito de uma cópia ou de todas.
-  const publishAnswerKey = useCallback((applicationId, code) => {
-    const now = new Date().toISOString();
-
+  // Atualiza as cópias de uma aplicação com os dados da API.
+  const replaceApplicationCopies = useCallback((applicationId, copies) => {
     setApplications((previous) =>
-      previous.map((application) => {
-        if (application.id !== Number(applicationId)) {
-          return application;
-        }
-
-        const copies = (application.copies || []).map((copy) =>
-          code === 'all' || copy.code === code
-            ? {
-                ...copy,
-                answerKeyPublished: true,
-                answerKeyPublishedAt: now,
-              }
-            : copy,
-        );
-
-        return { ...application, copies };
-      }),
+      previous.map((item) =>
+        item.id === Number(applicationId)
+          ? { ...item, copies, quantity: copies.length || item.quantity }
+          : item,
+      ),
     );
   }, []);
 
+  // Gera as cópias no servidor.
+  const generateApplicationCopies = useCallback(
+    async (applicationId) => {
+      const copies = await adminApiRequest(
+        `/aplicacoes/${Number(applicationId)}/copias`,
+        { method: 'POST' },
+      );
+
+      if (!Array.isArray(copies)) {
+        throw new Error('A API retornou uma lista de cópias inválida.');
+      }
+
+      replaceApplicationCopies(applicationId, copies);
+      return copies;
+    },
+    [replaceApplicationCopies],
+  );
+
+  // Publica o gabarito no servidor.
+  const publishAnswerKey = useCallback(
+    async (applicationId, code) => {
+      const copies = await adminApiRequest(
+        `/aplicacoes/${Number(applicationId)}/copias/gabarito`,
+        {
+          method: 'POST',
+          body: JSON.stringify(code === 'all' ? {} : { code }),
+        },
+      );
+
+      if (!Array.isArray(copies)) {
+        throw new Error('A API retornou uma lista de cópias inválida.');
+      }
+
+      replaceApplicationCopies(applicationId, copies);
+      return copies;
+    },
+    [replaceApplicationCopies],
+  );
   const findCopyByCode = useCallback(
     (code) => {
       const normalized = (code || '').trim().toUpperCase();
@@ -931,6 +977,7 @@ const DataProvider = ({ children }) => {
       updateClass,
       archiveClass,
       regenerateInviteCode,
+      enrollStudent,
       addExam,
       createApplication,
       updateApplication,
@@ -975,6 +1022,8 @@ const DataProvider = ({ children }) => {
       addClass,
       updateClass,
       archiveClass,
+      regenerateInviteCode,
+      enrollStudent,
       addExam,
       createApplication,
       updateApplication,

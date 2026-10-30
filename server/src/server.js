@@ -25,8 +25,8 @@ pool
     console.warn('  A API continua no ar; as rotas que usam o banco vão responder 503 até ele voltar.');
   });
 
-const server = app.listen(config.port, () => {
-  console.log(`✔ API do SGP no ar: http://localhost:${config.port}/api/health`);
+const server = app.listen(config.port, '0.0.0.0', () => {
+  console.log(`✔ API do SGP no ar na porta ${config.port}`);
 });
 
 server.on('error', (err) => {

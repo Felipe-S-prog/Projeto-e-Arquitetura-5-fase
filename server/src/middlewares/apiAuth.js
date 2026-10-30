@@ -14,7 +14,7 @@ const PUBLIC_PATHS = new Set([
 
 const PROTECTED_PREFIXES = [
   '/admin', '/settings', '/turmas', '/questoes', '/provas',
-  '/aplicacoes', '/correcoes', '/relatorios', '/alunos',
+  '/aplicacoes', '/copias', '/correcoes', '/relatorios', '/alunos',
 ];
 
 export function createApiAuthMiddleware({ pool, config }) {

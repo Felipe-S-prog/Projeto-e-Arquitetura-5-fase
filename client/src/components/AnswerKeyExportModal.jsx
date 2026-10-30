@@ -1,6 +1,6 @@
 import { PrimaryButton, SecondaryButton } from './ui';
 
-export default function AnswerKeyExportModal({ examTitle, className, quantity, onConfirm, onCancel }) {
+export default function AnswerKeyExportModal({ examTitle, className, quantity, onConfirm, onCancel, busy = false, error = '' }) {
   return (
     <div
       style={{
@@ -23,11 +23,12 @@ export default function AnswerKeyExportModal({ examTitle, className, quantity, o
           <Row label="Turma" value={className} />
           <Row label="Gabaritos incluídos" value={quantity} last />
         </div>
+        {error && <div style={{ fontSize: 13.5, color: 'var(--red-text, #b42318)', marginBottom: 14 }}>{error}</div>}
         <div style={{ display: 'flex', gap: 10 }}>
-          <PrimaryButton onClick={onConfirm} style={{ flex: 1 }}>
-            Confirmar e baixar
+          <PrimaryButton onClick={onConfirm} style={{ flex: 1 }} disabled={busy}>
+            {busy ? 'Baixando...' : 'Confirmar e baixar'}
           </PrimaryButton>
-          <SecondaryButton onClick={onCancel} style={{ flex: 1 }}>
+          <SecondaryButton onClick={onCancel} style={{ flex: 1 }} disabled={busy}>
             Cancelar
           </SecondaryButton>
         </div>

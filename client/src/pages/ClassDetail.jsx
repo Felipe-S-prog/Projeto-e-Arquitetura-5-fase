@@ -20,6 +20,7 @@ export default function ClassDetail() {
     getExamById,
     archiveClass,
     regenerateInviteCode,
+    enrollStudent,
     classesLoading,
     classesError,
   } = useData();
@@ -27,6 +28,10 @@ export default function ClassDetail() {
   const [error, setError] = useState('');
   const [archiving, setArchiving] = useState(false);
   const [regeneratingCode, setRegeneratingCode] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [enrolling, setEnrolling] = useState(false);
+  const [studentName, setStudentName] = useState('');
+  const [studentEmail, setStudentEmail] = useState('');
 
   const cls = getClassById(id);
 
@@ -39,11 +44,12 @@ export default function ClassDetail() {
   }
 
   if (!cls) {
-    return <div>Turma não encontrada.</div>;
+    return <div>Turma n├úo encontrada.</div>;
   }
 
   const apps = classApplications(cls.id);
   const students = cls.students ?? [];
+  const isArchived = cls.status === 'Arquivada';
 
   const handleArchive = async () => {
     if (
@@ -59,16 +65,50 @@ export default function ClassDetail() {
       setArchiving(true);
       await archiveClass(cls.id);
     } catch (err) {
-      setError(err.message || 'Não foi possível arquivar a turma.');
+      setError(err.message || 'N├úo foi poss├¡vel arquivar a turma.');
     } finally {
       setArchiving(false);
+    }
+  };
+
+  const handleEnrollStudent = async (event) => {
+    event.preventDefault();
+
+    setError('');
+    setSuccess('');
+
+    if (!studentName.trim()) {
+      setError('Informe o nome do aluno.');
+      return;
+    }
+
+    if (!studentEmail.trim()) {
+      setError('Informe o e-mail do aluno.');
+      return;
+    }
+
+    try {
+      setEnrolling(true);
+
+      await enrollStudent(cls.id, {
+        name: studentName,
+        email: studentEmail,
+      });
+
+      setStudentName('');
+      setStudentEmail('');
+      setSuccess('Aluno matriculado com sucesso!');
+    } catch (err) {
+      setError(err.message || 'N├úo foi poss├¡vel matricular o aluno.');
+    } finally {
+      setEnrolling(false);
     }
   };
 
   const handleRegenerateCode = async () => {
     if (
       !window.confirm(
-        'Regenerar o código? O código anterior deixará de funcionar.',
+        'Regenerar o c├│digo? O c├│digo anterior deixar├í de funcionar.',
       )
     ) {
       return;
@@ -81,7 +121,7 @@ export default function ClassDetail() {
       await regenerateInviteCode(cls.id);
     } catch (err) {
       setError(
-        err.message || 'Não foi possível regenerar o código de convite.',
+        err.message || 'N├úo foi poss├¡vel regenerar o c├│digo de convite.',
       );
     } finally {
       setRegeneratingCode(false);
@@ -97,7 +137,7 @@ export default function ClassDetail() {
       window.alert('Link de ingresso copiado!');
     } catch {
       setError(
-        'Não foi possível copiar automaticamente. Copie o link exibido manualmente.',
+        'N├úo foi poss├¡vel copiar automaticamente. Copie o link exibido manualmente.',
       );
     }
   };
@@ -144,7 +184,7 @@ export default function ClassDetail() {
               flexWrap: 'wrap',
             }}
           >
-            {cls.subject} · {cls.period}
+            {cls.subject} ┬À {cls.period}
             <Badge status={cls.status} />
           </div>
         </div>
@@ -179,6 +219,12 @@ export default function ClassDetail() {
         </div>
       )}
 
+      {success && (
+        <div role="status" style={{ color: '#067647', marginBottom: 16, fontSize: 14 }}>
+          {success}
+        </div>
+      )}
+
       <section
         aria-labelledby="invite-title"
         style={{
@@ -198,7 +244,7 @@ export default function ClassDetail() {
             marginBottom: 12,
           }}
         >
-          Código de convite
+          C├│digo de convite
         </h2>
 
         <div
@@ -217,7 +263,7 @@ export default function ClassDetail() {
               color: 'var(--ink)',
             }}
           >
-            {cls.codigoConvite || 'Não disponível'}
+            {cls.codigoConvite || 'N├úo dispon├¡vel'}
           </code>
 
           <SecondaryButton
@@ -228,7 +274,7 @@ export default function ClassDetail() {
             }
             onClick={handleRegenerateCode}
           >
-            {regeneratingCode ? 'Regenerando...' : 'Regenerar código'}
+            {regeneratingCode ? 'Regenerando...' : 'Regenerar c├│digo'}
           </SecondaryButton>
         </div>
 
@@ -239,7 +285,7 @@ export default function ClassDetail() {
             lineHeight: 1.5,
           }}
         >
-          Compartilhe o código com os alunos. Ao regenerá-lo, o código
+          Compartilhe o c├│digo com os alunos. Ao regener├í-lo, o c├│digo
           anterior deixa de funcionar.
         </p>
 
@@ -308,6 +354,119 @@ export default function ClassDetail() {
           Alunos matriculados ({students.length})
         </h2>
 
+        <p
+          style={{
+            fontSize: 14,
+            color: 'var(--muted)',
+            margin: '0 0 20px',
+          }}
+        >
+          Matricule um aluno informando seu nome e e-mail.
+        </p>
+
+        {isArchived ? (
+          <p style={{ fontSize: 14, color: 'var(--muted)' }}>
+            Esta turma est├í arquivada e n├úo aceita novas matr├¡culas.
+          </p>
+        ) : (
+          <form
+            onSubmit={handleEnrollStudent}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 14,
+              maxWidth: 480,
+              marginBottom: 24,
+            }}
+          >
+            <div>
+              <label
+                htmlFor="student-name"
+                style={{
+                  display: 'block',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  marginBottom: 6,
+                }}
+              >
+                Nome do aluno
+              </label>
+
+              <input
+                id="student-name"
+                type="text"
+                value={studentName}
+                onChange={(event) => setStudentName(event.target.value)}
+                maxLength={120}
+                placeholder="Digite o nome completo"
+                required
+                disabled={enrolling}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '11px 12px',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  fontSize: 14,
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="student-email"
+                style={{
+                  display: 'block',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  marginBottom: 6,
+                }}
+              >
+                E-mail do aluno
+              </label>
+
+              <input
+                id="student-email"
+                type="email"
+                value={studentEmail}
+                onChange={(event) => setStudentEmail(event.target.value)}
+                maxLength={160}
+                placeholder="aluno@exemplo.com"
+                required
+                disabled={enrolling}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '11px 12px',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  fontSize: 14,
+                }}
+              />
+            </div>
+
+            <div>
+              <button
+                type="submit"
+                disabled={enrolling}
+                style={{
+                  padding: '11px 16px',
+                  border: 'none',
+                  borderRadius: 8,
+                  background: 'var(--primary, #344054)',
+                  color: 'white',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: enrolling ? 'wait' : 'pointer',
+                  opacity: enrolling ? 0.7 : 1,
+                }}
+              >
+                {enrolling ? 'Matriculando...' : 'Matricular aluno'}
+              </button>
+            </div>
+          </form>
+        )}
+
         {students.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {students.map((student) => (
@@ -341,7 +500,7 @@ export default function ClassDetail() {
                       color: 'var(--muted)',
                     }}
                   >
-                    Matrícula: {student.numeroMatricula}
+                    Matr├¡cula: {student.numeroMatricula}
                   </div>
                 )}
               </div>
@@ -363,7 +522,7 @@ export default function ClassDetail() {
           marginBottom: 14,
         }}
       >
-        HISTÓRICO DE APLICAÇÕES NESTA TURMA
+        HIST├ôRICO DE APLICA├ç├òES NESTA TURMA
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -401,7 +560,7 @@ export default function ClassDetail() {
                     color: 'var(--text-strong)',
                   }}
                 >
-                  {exam?.title || 'Prova não encontrada'}
+                  {exam?.title || 'Prova n├úo encontrada'}
                 </div>
 
                 <div
@@ -411,7 +570,7 @@ export default function ClassDetail() {
                     marginTop: 3,
                   }}
                 >
-                  {application.date || '—'} · {application.quantity} provas
+                  {application.date || 'ÔÇö'} ┬À {application.quantity} provas
                   {' '}geradas
                 </div>
               </div>
@@ -425,7 +584,7 @@ export default function ClassDetail() {
                   flexShrink: 0,
                 }}
               >
-                Abrir →
+                Abrir ÔåÆ
               </span>
             </div>
           );

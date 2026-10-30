@@ -1,14 +1,13 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import { getQrMatrix } from '../utils/qrCode';
-import { buildQrPath } from '../utils/qrPath';
-import { sanitizeText, wrapText } from './pdfText';
-import { PAGE, MARGIN, getSheetGeometry } from './sheetLayout';
+import { buildQrPath, getQrMatrix } from './qr.js';
+import { sanitizeText, wrapText } from './pdfText.js';
+import { PAGE, MARGIN, getSheetGeometry } from './sheetLayout.js';
 
 // Módulo de montagem do PDF consolidado (T22).
 // Recebe a prova, as cópias já geradas (com a ordem embaralhada de cada uma) e devolve
 // UM PDF com todas as cópias em sequência. Não depende do banco de dados nem de tela:
-// quem chama passa os dados e recebe os bytes do arquivo (a ligação com o botão
-// "Baixar todas em PDF" é a T25).
+// quem chama passa os dados e recebe os bytes do arquivo. Desde a T25 roda no servidor,
+// chamado por services/pdf.service.js com as cópias gravadas em copia_prova.
 //
 // Cada cópia tem: página 1 (cabeçalho, orientações e quadro de resposta com QR Code)
 // seguida das páginas de questões, na ordem e com as alternativas da própria cópia.
@@ -465,8 +464,8 @@ function renderCopy(ctx, prepared, mode, duplex) {
 //   exam:         { title }
 //   className, date, institution: texto do cabeçalho (opcionais)
 //   questions:    questões da prova: { id, excerpt (ou statement), alternatives: [{ text }], score, imageUrl }
-//   copies:       cópias geradas (utils/answerKey.js): { code, label, studentName, questionIds, alternativesOrder }
-//   images:       { [idDaQuestão]: { bytes: Uint8Array, type: 'png' | 'jpg' } } (ver loadQuestionImages.js)
+//   copies:       cópias gravadas (T23, models/copia.model.js): { code, label, studentName, questionIds, alternativesOrder }
+//   images:       { [idDaQuestão]: { bytes: Uint8Array, type: 'png' | 'jpg' } } (ver questionImages.js)
 //   mode:         'completo' (folha + questões) ou 'folha-de-resposta' (só a folha de cada cópia)
 //   duplex:       true para cada cópia terminar em página par (impressão frente e verso)
 //   instructions: lista de orientações impressas na primeira página
