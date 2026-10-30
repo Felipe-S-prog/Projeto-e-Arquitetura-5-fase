@@ -43,10 +43,10 @@ export default function PdfTest() {
   const [result, setResult] = useState(null);
   const urlRef = useRef(null);
 
-  // Garante que a aplicação tenha cópias, como na pré-visualização.
+  // Garante que a aplicação tenha cópias, como na pré-visualização (só enquanto Pendente).
   useEffect(() => {
-    if (app && (!app.copies || app.copies.length === 0)) {
-      generateApplicationCopies(app.id);
+    if (app && app.status === 'Pendente' && (!app.copies || app.copies.length === 0)) {
+      generateApplicationCopies(app.id).catch((err) => setError(err.message || 'Não foi possível gerar as provas.'));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [app?.id]);

@@ -9,7 +9,6 @@ import {
 } from 'react';
 
 import questionsSeed from '../data/questions.json';
-import { buildApplicationCopies } from '../utils/answerKey';
 import { useAuth } from './AuthContext';
 import { apiRequest } from '../services/api';
 
@@ -68,7 +67,7 @@ function formatApiDate(value) {
   return year && month && day ? `${day}/${month}/${year}` : null;
 }
 
-// Normaliza uma aplicação vinda da API. As cópias (copies) ainda ficam só na memória (T23).
+// Normaliza uma aplicação vinda da API. As cópias (copies) vêm de /copias (T23).
 function normalizeApplication(application, copies = []) {
   return {
     id: Number(application.id),
@@ -219,19 +218,21 @@ const DataProvider = ({ children }) => {
       setApplicationsError('');
 
       try {
-        const result = await adminApiRequest('/aplicacoes');
+        const [result, copies] = await Promise.all([
+          adminApiRequest('/aplicacoes'),
+          adminApiRequest('/copias'),
+        ]);
 
-        if (!Array.isArray(result)) {
+        if (!Array.isArray(result) || !Array.isArray(copies)) {
           throw new Error('A API retornou uma lista de aplicações inválida.');
         }
 
         if (!cancelled) {
-          // Mantém as cópias já geradas nesta sessão (ainda não vão ao banco).
-          setApplications((previous) =>
+          setApplications(
             result.map((item) =>
               normalizeApplication(
                 item,
-                previous.find((old) => old.id === Number(item.id))?.copies || [],
+                copies.filter((copy) => copy.applicationId === Number(item.id)),
               ),
             ),
           );
@@ -603,85 +604,50 @@ const DataProvider = ({ children }) => {
     );
   }, []);
 
-  // Gera cópias da prova para uma aplicação.
-  const generateApplicationCopies = useCallback(
-    (applicationId) => {
-      setApplications((previous) => {
-        const application = previous.find(
-          (item) => item.id === Number(applicationId),
-        );
-
-        if (!application) return previous;
-
-        const exam = exams.find(
-          (item) => item.id === application.examId,
-        );
-
-        if (!exam) return previous;
-
-        const examQuestions = exam.questions
-          .map(({ questionId }) =>
-            questions.find((question) => question.id === questionId),
-          )
-          .filter(Boolean);
-
-        const cls = classes.find(
-          (item) => item.id === application.classId,
-        );
-
-        const studentNames = application.linkToRoster
-          ? (cls?.students || []).map((student) => student.name)
-          : null;
-
-        const otherCodes = previous.flatMap((item) =>
-          item.id === application.id
-            ? []
-            : (item.copies || []).map((copy) => copy.code),
-        );
-
-        const copies = buildApplicationCopies({
-          examQuestions,
-          quantity: application.quantity,
-          shuffleQuestions: application.shuffleQuestions,
-          shuffleAlternatives: application.shuffleAlternatives,
-          studentNames,
-          existingCodes: otherCodes,
-        });
-
-        return previous.map((item) =>
-          item.id === application.id
-            ? { ...item, copies, quantity: copies.length }
-            : item,
-        );
-      });
-    },
-    [exams, questions, classes],
-  );
-
-  // Publica o gabarito de uma cópia ou de todas.
-  const publishAnswerKey = useCallback((applicationId, code) => {
-    const now = new Date().toISOString();
-
+  // Troca as cópias de uma aplicação na lista pelas que a API devolveu.
+  const replaceApplicationCopies = useCallback((applicationId, copies) => {
     setApplications((previous) =>
-      previous.map((application) => {
-        if (application.id !== Number(applicationId)) {
-          return application;
-        }
-
-        const copies = (application.copies || []).map((copy) =>
-          code === 'all' || copy.code === code
-            ? {
-                ...copy,
-                answerKeyPublished: true,
-                answerKeyPublishedAt: now,
-              }
-            : copy,
-        );
-
-        return { ...application, copies };
-      }),
+      previous.map((item) =>
+        item.id === Number(applicationId)
+          ? { ...item, copies, quantity: copies.length || item.quantity }
+          : item,
+      ),
     );
   }, []);
+
+  // Gera (ou regera) as cópias da prova no servidor, que grava em copia_prova (T23).
+  // Só funciona com a aplicação Pendente; depois do download as cópias ficam fixas.
+  const generateApplicationCopies = useCallback(
+    async (applicationId) => {
+      const copies = await adminApiRequest(
+        `/aplicacoes/${Number(applicationId)}/copias`,
+        { method: 'POST' },
+      );
+
+      replaceApplicationCopies(applicationId, copies);
+
+      return copies;
+    },
+    [replaceApplicationCopies],
+  );
+
+  // Publica o gabarito de uma cópia (pelo código) ou de todas ('all').
+  const publishAnswerKey = useCallback(
+    async (applicationId, code) => {
+      const copies = await adminApiRequest(
+        `/aplicacoes/${Number(applicationId)}/copias/gabarito`,
+        {
+          method: 'POST',
+          body: JSON.stringify(code === 'all' ? {} : { code }),
+        },
+      );
+
+      replaceApplicationCopies(applicationId, copies);
+
+      return copies;
+    },
+    [replaceApplicationCopies],
+  );
 
   const findCopyByCode = useCallback(
     (code) => {
