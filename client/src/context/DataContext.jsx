@@ -18,6 +18,7 @@ async function adminApiRequest(path, options = {}) {
   return apiRequest(path, options);
 }
 
+
 function normalizeClass(cls) {
   return {
     id: Number(cls.id),
@@ -35,8 +36,10 @@ function normalizeClass(cls) {
       registration:
         student.registration ?? student.numero_matricula ?? student.numeroMatricula ?? null,
     })),
+    codigoConvite: cls.codigoConvite ?? cls.codigo_convite ?? null,
   };
 }
+
 
 // Monta o corpo enviado para a API de questões.
 function buildQuestionPayload(question) {
@@ -73,7 +76,7 @@ function formatApiDate(value) {
   return year && month && day ? `${day}/${month}/${year}` : null;
 }
 
-// Normaliza uma aplicação vinda da API. As cópias (copies) vêm de /copias (T23).
+// Normaliza uma aplicação vinda da API. As cópias (copies) ainda ficam só na memória (T23).
 function normalizeApplication(application, copies = []) {
   return {
     id: Number(application.id),
@@ -230,7 +233,7 @@ const DataProvider = ({ children }) => {
         ]);
 
         if (!Array.isArray(result) || !Array.isArray(copies)) {
-          throw new Error('A API retornou uma lista de aplicações inválida.');
+          throw new Error('A API retornou uma lista de aplicações ou cópias inválida.');
         }
 
         if (!cancelled) {
@@ -253,7 +256,6 @@ const DataProvider = ({ children }) => {
         }
       }
     }
-
     async function loadAdminUsers() {
       setAdminUsersLoading(true);
       setAdminUsersError('');
@@ -433,9 +435,12 @@ const DataProvider = ({ children }) => {
   }, [classes]);
 
   // Atualiza uma turma existente no MySQL.
+
+  // Atualiza uma turma existente no MySQL e sincroniza a lista imediatamente.
   const updateClass = useCallback(async (id, changes) => {
     setClassesError('');
 
+    const classId = Number(id);
     const name = changes.name?.trim();
     const subject = changes.subject?.trim();
     const period = changes.period?.trim();
@@ -446,7 +451,7 @@ const DataProvider = ({ children }) => {
 
     const duplicate = classes.some(
       (item) =>
-        item.id !== Number(id) &&
+        item.id !== classId &&
         item.name.trim().toLowerCase() === name.toLowerCase() &&
         item.subject.trim().toLowerCase() === subject.toLowerCase() &&
         item.period.trim().toLowerCase() === period.toLowerCase(),
@@ -459,7 +464,8 @@ const DataProvider = ({ children }) => {
     }
 
     try {
-      const updatedClass = await adminApiRequest(`/turmas/${id}`, {
+      // Envia os campos no formato JSON esperado pela API.
+      const response = await adminApiRequest(`/turmas/${classId}`, {
         method: 'PUT',
         body: JSON.stringify({
           nome: name,
@@ -468,14 +474,62 @@ const DataProvider = ({ children }) => {
         }),
       });
 
+      // Usa os valores digitados, preservando alunos e código de convite.
+      const returnedClass = response?.data ?? response ?? {};
+
+      setClasses((current) =>
+        current.map((item) =>
+          item.id === classId
+            ? {
+                ...item,
+                id: classId,
+                name,
+                subject,
+                period,
+                status: returnedClass.status
+                  ? normalizeClass({
+                      ...item,
+                      ...returnedClass,
+                    }).status
+                  : item.status,
+                students: item.students ?? [],
+                codigoConvite:
+                  returnedClass.codigoConvite ??
+                  returnedClass.codigo_convite ??
+                  item.codigoConvite ??
+                  null,
+              }
+            : item,
+        ),
+      );
+
+      return {
+        ...classes.find((item) => item.id === classId),
+        id: classId,
+        name,
+        subject,
+        period,
+      };
+    } catch (error) {
+      setClassesError(error.message);
+      throw error;
+    }
+  }, [classes]);
+
+   const regenerateInviteCode = useCallback(async (id) => {
+    setClassesError('');
+
+    try {
+      const updatedClass = await adminApiRequest(
+        `/turmas/${id}/codigo-convite/regenerar`,
+        { method: 'POST' },
+      );
+
       const normalized = normalizeClass(updatedClass);
 
-      // A API devolve a turma sem os alunos: mantém a lista que já estava na tela.
       setClasses((previous) =>
         previous.map((item) =>
-          item.id === Number(id)
-            ? { ...normalized, students: item.students }
-            : item,
+          item.id === Number(id) ? normalized : item,
         ),
       );
 
@@ -484,7 +538,7 @@ const DataProvider = ({ children }) => {
       setClassesError(error.message);
       throw error;
     }
-  }, [classes]);
+  }, []);
 
   // Arquiva a turma no MySQL.
   const archiveClass = useCallback(async (id) => {
@@ -497,12 +551,9 @@ const DataProvider = ({ children }) => {
 
       const normalized = normalizeClass(archivedClass);
 
-      // A API devolve a turma sem os alunos: mantém a lista que já estava na tela.
       setClasses((previous) =>
         previous.map((item) =>
-          item.id === Number(id)
-            ? { ...normalized, students: item.students }
-            : item,
+          item.id === Number(id) ? normalized : item,
         ),
       );
 
@@ -687,7 +738,7 @@ const DataProvider = ({ children }) => {
     );
   }, []);
 
-  // Troca as cópias de uma aplicação na lista pelas que a API devolveu.
+  // Atualiza as cópias de uma aplicação com os dados da API.
   const replaceApplicationCopies = useCallback((applicationId, copies) => {
     setApplications((previous) =>
       previous.map((item) =>
@@ -698,8 +749,7 @@ const DataProvider = ({ children }) => {
     );
   }, []);
 
-  // Gera (ou regera) as cópias da prova no servidor, que grava em copia_prova (T23).
-  // Só funciona com a aplicação Pendente; depois do download as cópias ficam fixas.
+  // Gera as cópias no servidor.
   const generateApplicationCopies = useCallback(
     async (applicationId) => {
       const copies = await adminApiRequest(
@@ -707,14 +757,17 @@ const DataProvider = ({ children }) => {
         { method: 'POST' },
       );
 
-      replaceApplicationCopies(applicationId, copies);
+      if (!Array.isArray(copies)) {
+        throw new Error('A API retornou uma lista de cópias inválida.');
+      }
 
+      replaceApplicationCopies(applicationId, copies);
       return copies;
     },
     [replaceApplicationCopies],
   );
 
-  // Publica o gabarito de uma cópia (pelo código) ou de todas ('all').
+  // Publica o gabarito no servidor.
   const publishAnswerKey = useCallback(
     async (applicationId, code) => {
       const copies = await adminApiRequest(
@@ -725,13 +778,15 @@ const DataProvider = ({ children }) => {
         },
       );
 
-      replaceApplicationCopies(applicationId, copies);
+      if (!Array.isArray(copies)) {
+        throw new Error('A API retornou uma lista de cópias inválida.');
+      }
 
+      replaceApplicationCopies(applicationId, copies);
       return copies;
     },
     [replaceApplicationCopies],
   );
-
   const findCopyByCode = useCallback(
     (code) => {
       const normalized = (code || '').trim().toUpperCase();
@@ -921,6 +976,7 @@ const DataProvider = ({ children }) => {
       addClass,
       updateClass,
       archiveClass,
+      regenerateInviteCode,
       enrollStudent,
       addExam,
       createApplication,
@@ -966,6 +1022,7 @@ const DataProvider = ({ children }) => {
       addClass,
       updateClass,
       archiveClass,
+      regenerateInviteCode,
       enrollStudent,
       addExam,
       createApplication,

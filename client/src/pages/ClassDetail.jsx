@@ -19,14 +19,16 @@ export default function ClassDetail() {
     classApplications,
     getExamById,
     archiveClass,
+    regenerateInviteCode,
     enrollStudent,
     classesLoading,
     classesError,
   } = useData();
 
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [archiving, setArchiving] = useState(false);
+  const [regeneratingCode, setRegeneratingCode] = useState(false);
+  const [success, setSuccess] = useState('');
   const [enrolling, setEnrolling] = useState(false);
   const [studentName, setStudentName] = useState('');
   const [studentEmail, setStudentEmail] = useState('');
@@ -42,29 +44,28 @@ export default function ClassDetail() {
   }
 
   if (!cls) {
-    return <div>Turma não encontrada.</div>;
+    return <div>Turma n├úo encontrada.</div>;
   }
 
   const apps = classApplications(cls.id);
-  const students = cls.students || [];
+  const students = cls.students ?? [];
   const isArchived = cls.status === 'Arquivada';
 
   const handleArchive = async () => {
     if (
-      isArchived ||
+      cls.status === 'Arquivada' ||
       !window.confirm('Arquivar esta turma?')
     ) {
       return;
     }
 
     setError('');
-    setSuccess('');
 
     try {
       setArchiving(true);
       await archiveClass(cls.id);
     } catch (err) {
-      setError(err.message || 'Não foi possível arquivar a turma.');
+      setError(err.message || 'N├úo foi poss├¡vel arquivar a turma.');
     } finally {
       setArchiving(false);
     }
@@ -98,9 +99,46 @@ export default function ClassDetail() {
       setStudentEmail('');
       setSuccess('Aluno matriculado com sucesso!');
     } catch (err) {
-      setError(err.message || 'Não foi possível matricular o aluno.');
+      setError(err.message || 'N├úo foi poss├¡vel matricular o aluno.');
     } finally {
       setEnrolling(false);
+    }
+  };
+
+  const handleRegenerateCode = async () => {
+    if (
+      !window.confirm(
+        'Regenerar o c├│digo? O c├│digo anterior deixar├í de funcionar.',
+      )
+    ) {
+      return;
+    }
+
+    setError('');
+
+    try {
+      setRegeneratingCode(true);
+      await regenerateInviteCode(cls.id);
+    } catch (err) {
+      setError(
+        err.message || 'N├úo foi poss├¡vel regenerar o c├│digo de convite.',
+      );
+    } finally {
+      setRegeneratingCode(false);
+    }
+  };
+
+  const joinUrl = `${window.location.origin}/turmas/ingresso`;
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(joinUrl);
+      setError('');
+      window.alert('Link de ingresso copiado!');
+    } catch {
+      setError(
+        'N├úo foi poss├¡vel copiar automaticamente. Copie o link exibido manualmente.',
+      );
     }
   };
 
@@ -146,21 +184,21 @@ export default function ClassDetail() {
               flexWrap: 'wrap',
             }}
           >
-            {cls.subject} · {cls.period}
+            {cls.subject} ┬À {cls.period}
             <Badge status={cls.status} />
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <SecondaryButton
-            disabled={isArchived}
+            disabled={cls.status === 'Arquivada'}
             onClick={() => navigate(`/turmas/${cls.id}/editar`)}
           >
             Editar turma
           </SecondaryButton>
 
           <DangerButton
-            disabled={isArchived || archiving}
+            disabled={cls.status === 'Arquivada' || archiving}
             onClick={handleArchive}
           >
             {archiving ? 'Arquivando...' : 'Arquivar'}
@@ -182,38 +220,138 @@ export default function ClassDetail() {
       )}
 
       {success && (
-        <div
-          role="status"
-          style={{
-            color: '#067647',
-            marginBottom: 16,
-            fontSize: 14,
-          }}
-        >
+        <div role="status" style={{ color: '#067647', marginBottom: 16, fontSize: 14 }}>
           {success}
         </div>
       )}
 
       <section
-        aria-labelledby="students-heading"
+        aria-labelledby="invite-title"
         style={{
           padding: 20,
+          marginBottom: 28,
           background: 'white',
           border: '1px solid var(--border)',
           borderRadius: 14,
-          marginBottom: 28,
         }}
       >
         <h2
-          id="students-heading"
+          id="invite-title"
           style={{
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: 800,
-            color: 'var(--ink)',
-            margin: '0 0 8px',
+            marginTop: 0,
+            marginBottom: 12,
           }}
         >
-          Alunos da turma
+          C├│digo de convite
+        </h2>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
+          <code
+            style={{
+              fontSize: 24,
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+              color: 'var(--ink)',
+            }}
+          >
+            {cls.codigoConvite || 'N├úo dispon├¡vel'}
+          </code>
+
+          <SecondaryButton
+            disabled={
+              cls.status === 'Arquivada' ||
+              regeneratingCode ||
+              !regenerateInviteCode
+            }
+            onClick={handleRegenerateCode}
+          >
+            {regeneratingCode ? 'Regenerando...' : 'Regenerar c├│digo'}
+          </SecondaryButton>
+        </div>
+
+        <p
+          style={{
+            fontSize: 13,
+            color: 'var(--muted)',
+            lineHeight: 1.5,
+          }}
+        >
+          Compartilhe o c├│digo com os alunos. Ao regener├í-lo, o c├│digo
+          anterior deixa de funcionar.
+        </p>
+
+        <div style={{ marginTop: 18 }}>
+          <label
+            htmlFor="invite-link"
+            style={{
+              display: 'block',
+              fontSize: 13,
+              fontWeight: 700,
+              marginBottom: 8,
+            }}
+          >
+            Link para o aluno entrar na turma
+          </label>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: 10,
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
+            <input
+              id="invite-link"
+              readOnly
+              value={joinUrl}
+              onFocus={(event) => event.target.select()}
+              style={{
+                flex: '1 1 260px',
+                minWidth: 0,
+                padding: 10,
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                font: 'inherit',
+              }}
+            />
+
+            <SecondaryButton onClick={handleCopyLink}>
+              Copiar link
+            </SecondaryButton>
+          </div>
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="students-title"
+        style={{
+          padding: 20,
+          marginBottom: 28,
+          background: 'white',
+          border: '1px solid var(--border)',
+          borderRadius: 14,
+        }}
+      >
+        <h2
+          id="students-title"
+          style={{
+            fontSize: 17,
+            fontWeight: 800,
+            marginTop: 0,
+            marginBottom: 16,
+          }}
+        >
+          Alunos matriculados ({students.length})
         </h2>
 
         <p
@@ -228,7 +366,7 @@ export default function ClassDetail() {
 
         {isArchived ? (
           <p style={{ fontSize: 14, color: 'var(--muted)' }}>
-            Esta turma está arquivada e não aceita novas matrículas.
+            Esta turma est├í arquivada e n├úo aceita novas matr├¡culas.
           </p>
         ) : (
           <form
@@ -329,62 +467,49 @@ export default function ClassDetail() {
           </form>
         )}
 
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            color: 'var(--faint)',
-            marginBottom: 12,
-          }}
-        >
-          ALUNOS MATRICULADOS ({students.length})
-        </div>
-
         {students.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {students.map((student) => (
               <div
                 key={student.id}
                 style={{
-                  padding: '14px 16px',
+                  padding: 14,
                   border: '1px solid var(--border)',
                   borderRadius: 10,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 12,
-                  flexWrap: 'wrap',
                 }}
               >
-                <div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: 'var(--text-strong)',
-                    }}
-                  >
-                    {student.name || 'Nome não informado'}
-                  </div>
+                <div style={{ fontWeight: 700, color: 'var(--ink)' }}>
+                  {student.name}
+                </div>
 
+                <div
+                  style={{
+                    marginTop: 4,
+                    fontSize: 13,
+                    color: 'var(--muted)',
+                  }}
+                >
+                  {student.email}
+                </div>
+
+                {student.numeroMatricula && (
                   <div
                     style={{
+                      marginTop: 4,
                       fontSize: 13,
                       color: 'var(--muted)',
-                      marginTop: 4,
                     }}
                   >
-                    {student.email}
+                    Matr├¡cula: {student.numeroMatricula}
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>
         ) : (
-          <EmptyState>
+          <p style={{ color: 'var(--muted)', fontSize: 14 }}>
             Nenhum aluno matriculado nesta turma ainda.
-          </EmptyState>
+          </p>
         )}
       </section>
 
@@ -397,7 +522,7 @@ export default function ClassDetail() {
           marginBottom: 14,
         }}
       >
-        HISTÓRICO DE APLICAÇÕES NESTA TURMA
+        HIST├ôRICO DE APLICA├ç├òES NESTA TURMA
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -407,7 +532,15 @@ export default function ClassDetail() {
           return (
             <div
               key={application.id}
+              role="button"
+              tabIndex={0}
               onClick={() => navigate(`/aplicacoes/${application.id}`)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  navigate(`/aplicacoes/${application.id}`);
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -427,7 +560,7 @@ export default function ClassDetail() {
                     color: 'var(--text-strong)',
                   }}
                 >
-                  {exam?.title || 'Prova não encontrada'}
+                  {exam?.title || 'Prova n├úo encontrada'}
                 </div>
 
                 <div
@@ -437,15 +570,21 @@ export default function ClassDetail() {
                     marginTop: 3,
                   }}
                 >
-                  {application.date || '—'} · {application.quantity} provas
-                  geradas
+                  {application.date || 'ÔÇö'} ┬À {application.quantity} provas
+                  {' '}geradas
                 </div>
               </div>
 
               <Badge status={application.status} />
 
-              <span style={{ fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
-                Abrir →
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                Abrir ÔåÆ
               </span>
             </div>
           );
