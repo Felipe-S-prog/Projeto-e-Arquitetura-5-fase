@@ -31,7 +31,9 @@ Regras:
 - Só gera enquanto a aplicação está **Pendente** (`409` depois de Aplicada).
 - Não regera uma aplicação que já tem correção lançada (`409`), para não apagar notas.
 - A prova precisa ter ao menos uma questão (`409`).
-- Gerar uma cópia por aluno matriculado ("vincular à turma") fica para a T24 (`409` por enquanto).
+- **Vinculada à turma** (`linkToRoster`, T24): sai uma cópia **nominal** por aluno matriculado na turma (T15), em
+  ordem alfabética, com o nome no rótulo e o aluno gravado em `copia_prova.aluno_id`. A quantidade da aplicação não
+  vale nesse caso. Turma sem alunos matriculados: `409`. A correção (T30) já sabe de quem é a nota de cada cópia.
 - Publicar o gabarito não tem volta e nunca revela nota; quem já estava publicado mantém a data.
 
 ## Endpoints
@@ -96,7 +98,9 @@ download (`Content-Disposition: attachment; filename="provas-<prova>-<turma>.pdf
 - Sem cópias geradas: `409`. Dado que o PDF não consegue imprimir (ex.: questão sem alternativas): `409` com o motivo.
 - Baixar **não** muda o banco. A tela baixa o arquivo e só depois chama `POST /aplicacoes/:id/aplicar`; se o PDF
   falhar, a aplicação continua Pendente.
-- Imagens das questões: o servidor baixa o `imagem_url` (só `http`/`https`, até 5 MB, 8 s) e aceita PNG ou JPG.
+- Imagens das questões: as enviadas pelo upload (T12, `/uploads/questoes/<arquivo>`) são lidas direto da
+  pasta do servidor, só de dentro dela; endereços de fora são baixados (só `http`/`https`, 8 s). Até 5 MB, e só
+  PNG ou JPG entram no PDF: WEBP e GIF saem com aviso.
 
 ## Gabarito em PDF (T27)
 

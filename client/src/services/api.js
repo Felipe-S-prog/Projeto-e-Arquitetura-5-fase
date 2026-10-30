@@ -185,6 +185,7 @@ export async function apiBlob(path, fallbackName) {
 
   return { blob: await response.blob(), name, headers: response.headers };
 }
+
 export async function apiDownload(path, fallbackName) {
   const { blob, name } = await apiBlob(path, fallbackName);
 

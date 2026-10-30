@@ -9,14 +9,16 @@ import { createRoutes } from './routes/index.js';
 import { createAuthRoutes } from './routes/auth.routes.js';
 import { createApiAuthMiddleware } from './middlewares/apiAuth.js';
 
-// Monta a aplica├º├úo Express. Recebe o pool pronto (em vez de cri├í-lo aqui)
+// Monta a aplicação Express. Recebe o pool pronto (em vez de criá-lo aqui)
 // para os testes poderem trocar o banco real por um falso.
 export function createApp({ pool, config }) {
   const app = express();
 
-  app.use(helmet());
-  // Content-Disposition e X-Pdf-* são usados pelo frontend nos downloads e PDFs.
-  app.use(cors({ origin: config.corsOrigins, exposedHeaders: ['Content-Disposition', 'X-Pdf-Paginas', 'X-Pdf-Avisos'] }));  app.use(express.json({ limit: '1mb' }));
+  app.use(helmet()); // cabeçalhos de segurança
+  // só o front autorizado pode chamar a API; Content-Disposition liberado para o front ler o nome dos arquivos baixados
+  // e X-Pdf-* para mostrar as páginas e os avisos do PDF consolidado (T25)
+  app.use(cors({ origin: config.corsOrigins, exposedHeaders: ['Content-Disposition', 'X-Pdf-Paginas', 'X-Pdf-Avisos'] }));
+  app.use(express.json({ limit: '1mb' }));
     // Disponibiliza as imagens das questões para o frontend.
   app.use(
     '/uploads/questoes',
@@ -37,13 +39,13 @@ export function createApp({ pool, config }) {
   );
   if (config.nodeEnv !== 'test') app.use(requestLogger);
 
-  // A autentica├º├úo fica antes das rotas de neg├│cio; health e endpoints de entrada s├úo p├║blicos.
+  // A autenticação fica antes das rotas de negócio; health e endpoints de entrada são públicos.
   app.use('/api', createApiAuthMiddleware({ pool, config }));
   app.use('/api/auth', createAuthRoutes({ pool, config }));
   app.use('/api', createRoutes({ pool }));
 
   app.use(notFound);
-  app.use(errorHandler); // sempre por ├║ltimo
+  app.use(errorHandler); // sempre por último
 
   return app;
 }

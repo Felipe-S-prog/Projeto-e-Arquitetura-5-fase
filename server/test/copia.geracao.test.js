@@ -59,3 +59,10 @@ test('não repete código já usado no banco nem entre as cópias novas', () => 
   assert.notEqual(copias[1].codigo, 'BBBBBB');
   assert.notEqual(copias[1].codigo, 'AAAAAA');
 });
+
+test('com alunos (T24): uma cópia por aluno, com o nome no rótulo e o aluno gravado; quantidade é ignorada', () => {
+  const alunos = [{ id: 7, nome: 'Ana Souza' }, { id: 9, nome: 'Bruno Lima' }];
+  const copias = gerarCopias({ ...base, quantidade: 30, alunos });
+  assert.deepEqual(copias.map((c) => [c.rotulo, c.alunoId]), [['Ana Souza', 7], ['Bruno Lima', 9]]);
+  assert.ok(gerarCopias(base).every((c) => c.alunoId === null)); // sem alunos: anônimas
+});

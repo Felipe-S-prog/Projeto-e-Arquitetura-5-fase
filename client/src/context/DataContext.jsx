@@ -28,11 +28,17 @@ function normalizeClass(cls) {
       cls.status === 'ARQUIVADA' || cls.status === 'Arquivada'
         ? 'Arquivada'
         : 'Ativa',
-    students: cls.students ?? [],
+    students: (cls.students ?? []).map((student) => ({
+      id: Number(student.id),
+      name: student.name ?? student.nome,
+      email: student.email,
+      registration:
+        student.registration ?? student.numero_matricula ?? student.numeroMatricula ?? null,
+    })),
   };
 }
 
-// Monta o corpo enviado para a API de quest├Áes.
+// Monta o corpo enviado para a API de questões.
 function buildQuestionPayload(question) {
   return {
     tipo: 'OBJETIVA',
@@ -67,7 +73,7 @@ function formatApiDate(value) {
   return year && month && day ? `${day}/${month}/${year}` : null;
 }
 
-// Normaliza uma aplica├º├úo vinda da API. As c├│pias (copies) v├¬m de /copias (T23).
+// Normaliza uma aplicação vinda da API. As cópias (copies) vêm de /copias (T23).
 function normalizeApplication(application, copies = []) {
   return {
     id: Number(application.id),
@@ -93,7 +99,7 @@ const DataProvider = ({ children }) => {
     questionsSeed.map((question) => ({ ...question })),
   );
 
-  // Carrega as quest├Áes da API.
+  // Carrega as questões da API.
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'PROFESSOR') return undefined;
     let cancelled = false;
@@ -122,7 +128,7 @@ const DataProvider = ({ children }) => {
           return [...apiQuestions, ...localQuestions];
         });
       } catch (error) {
-        console.error('Erro ao carregar quest├Áes:', error);
+        console.error('Erro ao carregar questões:', error);
       }
     }
 
@@ -133,17 +139,17 @@ const DataProvider = ({ children }) => {
     };
   }, [isAuthenticated, user?.id, user?.role]);
 
-  // Turmas passam a vir da API, n├úo mais do classes.json.
+  // Turmas passam a vir da API, não mais do classes.json.
   const [classes, setClasses] = useState([]);
   const [classesLoading, setClassesLoading] = useState(true);
   const [classesError, setClassesError] = useState('');
 
-  // Provas passam a vir da API, n├úo mais do exams.json.
+  // Provas passam a vir da API, não mais do exams.json.
   const [exams, setExams] = useState([]);
   const [examsLoading, setExamsLoading] = useState(true);
   const [examsError, setExamsError] = useState('');
 
-  // Aplica├º├Áes passam a vir da API, n├úo mais do applications.json.
+  // Aplicações passam a vir da API, não mais do applications.json.
   const [applications, setApplications] = useState([]);
   const [applicationsLoading, setApplicationsLoading] = useState(true);
   const [applicationsError, setApplicationsError] = useState('');
@@ -174,7 +180,7 @@ const DataProvider = ({ children }) => {
     setSettingsError('');
   }, [user?.id]);
 
-  // Carrega turmas, usu├írios administrativos e configura├º├Áes.
+  // Carrega turmas, usuários administrativos e configurações.
   useEffect(() => {
     if (!isAuthenticated) {
       setClassesLoading(false);
@@ -196,7 +202,7 @@ const DataProvider = ({ children }) => {
         );
 
         if (!Array.isArray(result)) {
-          throw new Error('A API retornou uma lista de turmas inv├ílida.');
+          throw new Error('A API retornou uma lista de turmas inválida.');
         }
 
         if (!cancelled) {
@@ -224,7 +230,7 @@ const DataProvider = ({ children }) => {
         ]);
 
         if (!Array.isArray(result) || !Array.isArray(copies)) {
-          throw new Error('A API retornou uma lista de aplica├º├Áes inv├ílida.');
+          throw new Error('A API retornou uma lista de aplicações inválida.');
         }
 
         if (!cancelled) {
@@ -300,7 +306,7 @@ const DataProvider = ({ children }) => {
         );
 
         if (!Array.isArray(result)) {
-          throw new Error('A API retornou uma lista de provas inv├ílida.');
+          throw new Error('A API retornou uma lista de provas inválida.');
         }
 
         if (!cancelled) {
@@ -335,7 +341,7 @@ const DataProvider = ({ children }) => {
     };
   }, [isAuthenticated, user?.id, user?.role]);
 
-  // Cria uma quest├úo na API.
+  // Cria uma questão na API.
   const addQuestion = useCallback(async (question) => {
     const saved = unwrapQuestion(
       await adminApiRequest('/questoes', {
@@ -352,7 +358,7 @@ const DataProvider = ({ children }) => {
     return saved;
   }, []);
 
-  // Atualiza uma quest├úo existente na API.
+  // Atualiza uma questão existente na API.
   const updateQuestion = useCallback(async (id, question) => {
     const saved = unwrapQuestion(
       await adminApiRequest(`/questoes/${id}`, {
@@ -368,7 +374,7 @@ const DataProvider = ({ children }) => {
     return saved;
   }, []);
 
-  // Exclui uma quest├úo pela API.
+  // Exclui uma questão pela API.
   const deleteQuestion = useCallback(async (id) => {
     await adminApiRequest(
       `/questoes/${id}`,
@@ -389,7 +395,7 @@ const DataProvider = ({ children }) => {
     const period = cls.period?.trim();
 
     if (!name || !subject || !period) {
-      throw new Error('Preencha o nome, a disciplina e o per├¡odo.');
+      throw new Error('Preencha o nome, a disciplina e o período.');
     }
 
     const duplicate = classes.some(
@@ -401,7 +407,7 @@ const DataProvider = ({ children }) => {
 
     if (duplicate) {
       throw new Error(
-        'J├í existe uma turma com esse nome, disciplina e per├¡odo.',
+        'Já existe uma turma com esse nome, disciplina e período.',
       );
     }
 
@@ -435,7 +441,7 @@ const DataProvider = ({ children }) => {
     const period = changes.period?.trim();
 
     if (!name || !subject || !period) {
-      throw new Error('Preencha o nome, a disciplina e o per├¡odo.');
+      throw new Error('Preencha o nome, a disciplina e o período.');
     }
 
     const duplicate = classes.some(
@@ -448,7 +454,7 @@ const DataProvider = ({ children }) => {
 
     if (duplicate) {
       throw new Error(
-        'J├í existe outra turma com esse nome, disciplina e per├¡odo.',
+        'Já existe outra turma com esse nome, disciplina e período.',
       );
     }
 
@@ -464,9 +470,12 @@ const DataProvider = ({ children }) => {
 
       const normalized = normalizeClass(updatedClass);
 
+      // A API devolve a turma sem os alunos: mantém a lista que já estava na tela.
       setClasses((previous) =>
         previous.map((item) =>
-          item.id === Number(id) ? normalized : item,
+          item.id === Number(id)
+            ? { ...normalized, students: item.students }
+            : item,
         ),
       );
 
@@ -488,9 +497,12 @@ const DataProvider = ({ children }) => {
 
       const normalized = normalizeClass(archivedClass);
 
+      // A API devolve a turma sem os alunos: mantém a lista que já estava na tela.
       setClasses((previous) =>
         previous.map((item) =>
-          item.id === Number(id) ? normalized : item,
+          item.id === Number(id)
+            ? { ...normalized, students: item.students }
+            : item,
         ),
       );
 
@@ -501,7 +513,7 @@ const DataProvider = ({ children }) => {
     }
   }, []);
 
-  // Cria a prova na API (nasce em Rascunho) e devolve a prova salva.
+  // Matricula um aluno na turma usando nome e e-mail.
   const enrollStudent = useCallback(async (classId, student) => {
     setClassesError('');
 
@@ -514,17 +526,17 @@ const DataProvider = ({ children }) => {
     }
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new Error('Informe um e-mail vÃ¡lido.');
+      throw new Error('Informe um e-mail válido.');
     }
 
     const cls = classes.find((item) => item.id === Number(classId));
 
     if (!cls) {
-      throw new Error('Turma nÃ£o encontrada.');
+      throw new Error('Turma não encontrada.');
     }
 
     if (cls.status === 'Arquivada') {
-      throw new Error('NÃ£o Ã© possÃ­vel matricular alunos em uma turma arquivada.');
+      throw new Error('Não é possível matricular alunos em uma turma arquivada.');
     }
 
     try {
@@ -573,7 +585,6 @@ const DataProvider = ({ children }) => {
   }, [classes]);
 
   // Cria a prova na API (nasce em Rascunho) e devolve a prova salva.
-
   const addExam = useCallback(async (exam) => {
     const created = await adminApiRequest('/provas', {
       method: 'POST',
@@ -594,7 +605,7 @@ const DataProvider = ({ children }) => {
     return saved;
   }, []);
 
-  // Atualiza o status da prova na lista (a API muda Rascunho -> Pronta na 1┬¬ aplica├º├úo).
+  // Atualiza o status da prova na lista (a API muda Rascunho -> Pronta na 1ª aplicação).
   const syncExamStatus = useCallback((examId, status) => {
     if (!status) return;
     setExams((previous) =>
@@ -604,7 +615,7 @@ const DataProvider = ({ children }) => {
     );
   }, []);
 
-  // Cria a aplica├º├úo na API (nasce Pendente) e devolve o id salvo.
+  // Cria a aplicação na API (nasce Pendente) e devolve o id salvo.
   const createApplication = useCallback(
     async ({ examId, classId, quantity }) => {
       const created = await adminApiRequest('/aplicacoes', {
@@ -625,7 +636,7 @@ const DataProvider = ({ children }) => {
     [syncExamStatus],
   );
 
-  // Atualiza a configura├º├úo na tela na hora e grava na API; se a API recusar, desfaz.
+  // Atualiza a configuração na tela na hora e grava na API; se a API recusar, desfaz.
   const updateApplication = useCallback(
     async (id, patch) => {
       const target = applications.find((item) => item.id === Number(id));
@@ -661,7 +672,7 @@ const DataProvider = ({ children }) => {
     [applications],
   );
 
-  // Marca a aplica├º├úo como Aplicada na API (PDF baixado) e usa a data que o servidor gravou.
+  // Marca a aplicação como Aplicada na API (PDF baixado) e usa a data que o servidor gravou.
   const confirmApplicationDownload = useCallback(async (id) => {
     const updated = await adminApiRequest(`/aplicacoes/${Number(id)}/aplicar`, {
       method: 'POST',
@@ -676,7 +687,7 @@ const DataProvider = ({ children }) => {
     );
   }, []);
 
-  // Troca as c├│pias de uma aplica├º├úo na lista pelas que a API devolveu.
+  // Troca as cópias de uma aplicação na lista pelas que a API devolveu.
   const replaceApplicationCopies = useCallback((applicationId, copies) => {
     setApplications((previous) =>
       previous.map((item) =>
@@ -687,8 +698,8 @@ const DataProvider = ({ children }) => {
     );
   }, []);
 
-  // Gera (ou regera) as c├│pias da prova no servidor, que grava em copia_prova (T23).
-  // S├│ funciona com a aplica├º├úo Pendente; depois do download as c├│pias ficam fixas.
+  // Gera (ou regera) as cópias da prova no servidor, que grava em copia_prova (T23).
+  // Só funciona com a aplicação Pendente; depois do download as cópias ficam fixas.
   const generateApplicationCopies = useCallback(
     async (applicationId) => {
       const copies = await adminApiRequest(
@@ -703,7 +714,7 @@ const DataProvider = ({ children }) => {
     [replaceApplicationCopies],
   );
 
-  // Publica o gabarito de uma c├│pia (pelo c├│digo) ou de todas ('all').
+  // Publica o gabarito de uma cópia (pelo código) ou de todas ('all').
   const publishAnswerKey = useCallback(
     async (applicationId, code) => {
       const copies = await adminApiRequest(
@@ -806,7 +817,7 @@ const DataProvider = ({ children }) => {
     }
   }, []);
 
-  // Atualiza as configura├º├Áes pela API.
+  // Atualiza as configurações pela API.
   const updateSettings = useCallback(async (patch) => {
     setSettingsError('');
 
