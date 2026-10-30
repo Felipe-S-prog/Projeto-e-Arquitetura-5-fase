@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { PageHeader, PrimaryButton, TextInput, Select } from '../components/ui';
 import { BubbleIcon } from '../components/icons';
+import { resolveAssetUrl } from '../services/api';
 
 export default function QuestionsList() {
   const { questions, deleteQuestion } = useData();
@@ -65,7 +66,7 @@ export default function QuestionsList() {
           >
             {q.imageUrl ? (
               <img
-                src={q.imageUrl}
+                src={resolveAssetUrl(q.imageUrl)}
                 alt=""
                 style={{ width: 34, height: 34, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-light)' }}
               />

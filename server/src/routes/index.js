@@ -11,6 +11,7 @@ import { createSettingsRoutes } from './settings.routes.js';
 import { createProvaRoutes } from './prova.routes.js';
 import { createTurmasRoutes } from './turmas.routes.js';
 import { createQuestoesRoutes } from './questoes.routes.js';
+import { createUploadImagemRoutes } from './upload-imagem.routes.js';
 
 export function createRoutes({ pool }) {
   const router = Router();
@@ -27,8 +28,10 @@ export function createRoutes({ pool }) {
   router.use('/admin', createAdminRoutes({ pool }));
   router.use('/settings', createSettingsRoutes({ pool }));
   router.use('/turmas', createTurmasRoutes({ pool }));
+  router.use('/questoes', createUploadImagemRoutes());
   router.use('/questoes', createQuestoesRoutes({ pool }));
   router.use('/provas', createProvaRoutes({ pool }));
 
   return router;
 }
+
