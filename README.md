@@ -15,7 +15,7 @@
 ![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)
 
 ![Status](https://img.shields.io/badge/status-em%20desenvolvimento-F5A623?style=flat-square)
-![Entrega](https://img.shields.io/badge/entrega%20atual-N1-3D348B?style=flat-square)
+![Entrega](https://img.shields.io/badge/entrega%20atual-N2-3D348B?style=flat-square)
 ![Licença](https://img.shields.io/badge/licença-uso%20acadêmico-7B4FA6?style=flat-square)
 
 </div>
@@ -41,6 +41,7 @@
 - [5. Arquitetura de Software](#5-arquitetura-de-software)
 - [6. Decisões Arquiteturais (ADRs)](#6-decisões-arquiteturais-adrs)
 - [7. Modelo de Dados](#7-modelo-de-dados)
+  - [7.1 Estado da integração com o banco](#71-estado-da-integração-com-o-banco)
 - [8. Stack Tecnológica](#8-stack-tecnológica)
 - [9. Estrutura de Pastas](#9-estrutura-de-pastas)
 - [10. Como Executar o Projeto](#10-como-executar-o-projeto)
@@ -128,7 +129,7 @@ Fora do escopo do semestre (ponto em aberto, a validar com o cliente e com a pro
 
 📌 **N2**
 
-Diagrama de casos de uso, diagrama de classes e diagrama de atividades do sistema (e demais diagramas que forem necessários). Exporte cada diagrama como imagem (PNG ou SVG) e salve em `docs/uml/`, depois insira aqui:
+Diagramas do sistema: casos de uso, classes, atividades e sequência. Os arquivos ficam em `docs/uml/`, e as classes de domínio estão documentadas em [`docs/uml/README.md`](docs/uml/README.md).
 
 ## Diagrama de Casos de Uso
 
@@ -146,7 +147,7 @@ O diagrama acima representa a parte de Provas e Aplicações do SGP (RF04 e RF05
 
 Escolha do fluxo
 
-O caso de uso do grupo (`caso-de-uso.png`) tem várias ações do Professor: *Criar Aplicação*, *Gerar Provas em PDF* e *Publicar Gabarito*. Elas formam **um único fluxo de ponta a ponta**, e é o único em que o processo passa por mais de um participante (Professor, Sistema e, no final, o Aluno). Por isso foi o escolhido, e por isso o diagrama usa **raias**.
+O caso de uso do grupo (`casos-de-uso.png`) tem várias ações do Professor: *Criar Aplicação*, *Gerar Provas em PDF* e *Publicar Gabarito*. Elas formam **um único fluxo de ponta a ponta**, e é o único em que o processo passa por mais de um participante (Professor, Sistema e, no final, o Aluno). Por isso foi o escolhido, e por isso o diagrama usa **raias**.
 
 Início e fim
 
@@ -164,6 +165,22 @@ Início e fim
 | **Aluno (sem login)** | Acessar a página pública, informar o código e consultar o resultado |
 
 > O Aluno **não tem conta nem login** (decisão de escopo do projeto): o único contato dele com o sistema é a consulta pública do gabarito por código.
+
+## Diagramas de Sequência
+
+Mostram a troca de mensagens entre o usuário, o front-end, a API e o MySQL nos três fluxos principais. Foram desenhados no planejamento, então os nomes de algumas rotas diferem da API implementada; as rotas reais estão na [seção 11](#11-especificação-da-api).
+
+**1. Cadastro de professor pelo administrador e login**
+
+![Sequência: autenticação](docs/uml/Autentica%C3%A7%C3%A3o.drawio.png)
+
+**2. Banco de questões, montagem da prova, aplicação e geração do PDF**
+
+![Sequência: criação, aplicação e PDF da prova](docs/uml/Cria%C3%A7%C3%A3o,%20aplica%C3%A7%C3%A3o%20e%20PDF%20da%20prova.drawio.png)
+
+**3. Publicação do gabarito, consulta pelo aluno, correção e relatório**
+
+![Sequência: gabarito, correção e notas](docs/uml/Gabarito,%20corre%C3%A7%C3%A3o%20e%20notas.drawio.png)
 
 ## 4. Telas do Sistema
 
@@ -345,10 +362,7 @@ O que a equipe decidiu fazer.
 O que essa escolha facilita, o que ela custa ou limita.
 ```
 
-Aqui no README, liste os ADRs (Registros de Decisão Arquitetural) criados (se necessário e houver), com link para cada arquivo:
-
-- [ADR-001: Título da decisão](docs/adr/ADR-001-titulo-da-decisao.md)
-- [ADR-002: Título da decisão](docs/adr/ADR-002-titulo-da-decisao.md)
+Aqui no README, liste os ADRs (Registros de Decisão Arquitetural) criados, com link para cada arquivo. Nenhum foi criado até o momento; o registro das decisões de Provas e Aplicações é a tarefa T20.
 
 > Já há pelo menos uma decisão relevante a registrar aqui: **escopo reduzido em relação à especificação de referência do cliente** (sem app mobile nativo e sem microsserviços, por exigência da stack da disciplina — ver seção 1).
 
@@ -356,18 +370,43 @@ Aqui no README, liste os ADRs (Registros de Decisão Arquitetural) criados (se n
 
 📌 **N2**
 
-Diagrama MER/DER do banco de dados, exportado como imagem e salvo em `docs/modelo-dados/`:
-
-```
 ![Modelo Entidade-Relacionamento](docs/modelo-dados/mer-der.png)
-```
 
-Em seguida, o dicionário de dados: uma tabela por entidade, com os campos, tipos e uma breve descrição.
+- **Dicionário de dados** (campos, tipos e descrição de cada tabela): [`docs/modelo-dados/dicionario-dados.md`](docs/modelo-dados/dicionario-dados.md)
+- **Script SQL de criação:** [`docs/modelo-dados/schema.sql`](docs/modelo-dados/schema.sql)
+- **Fonte editável do diagrama:** [`docs/modelo-dados/mer-der.drawio`](docs/modelo-dados/mer-der.drawio)
 
-| Campo | Tipo | Descrição |
-|---|---|---|
-| id | INT (PK) | Identificador único do registro |
-| nome | VARCHAR(120) | Nome do usuário |
+O banco é criado pelas migrations de `server/database/migrations/`, aplicadas em ordem com `npm run db:migrate`:
+
+| Migration | O que cria |
+|---|---|
+| `001_criar_tabelas.sql` | As 14 tabelas do domínio: `usuario`, `refresh_token`, `turma`, `aluno`, `matricula`, `questao`, `tag`, `questao_tag`, `alternativa`, `prova`, `prova_questao`, `aplicacao`, `copia_prova` e `correcao` |
+| `002_configuracoes.sql` | `configuracoes`: nome da instituição e período padrão |
+| `003_correcao_respostas.sql` | `correcao_resposta`: resposta de cada questão em uma correção |
+
+### 7.1 Estado da integração com o banco
+
+Posição em 30/10/2026. **Na main** significa que a parte já foi integrada; **Em PR** significa que está pronta em um Pull Request aberto, aguardando revisão e merge.
+
+| Frente | Parte | Situação | Observação |
+|---|---|---|---|
+| Autenticação | Login, JWT e refresh token (T07) | ✅ Na main | |
+| Administração | Usuários e configurações (T10) | ✅ Na main | |
+| Turmas | Criar, editar e arquivar (T13) | ✅ Na main | |
+| Turmas | Matrícula de alunos (T15) | 🟡 Em PR (#34) | Na main a turma ainda aparece sem alunos |
+| Turmas | Código de convite (T14) | 🟡 Em PR (#38) | |
+| Questões | Listar, criar, editar e excluir (T11) | ✅ Na main | A lista ainda mistura as questões de exemplo de `client/src/data/questions.json` (T35) |
+| Questões | Upload de imagem (T12) | 🟡 Em PR (#37) | |
+| Provas | Criar, listar, editar e arquivar (T17) | ✅ Na main | |
+| Aplicações | Criar, configurar e marcar como aplicada, com a regra de status da prova (T18 e T19) | ✅ Na main | |
+| PDF e Gabarito | Cópias e publicação do gabarito no banco (T23) | 🟡 Em PR (#33) | Na main as cópias ainda são geradas no navegador e ficam só em memória |
+| PDF e Gabarito | Geração e download do PDF no servidor (T25) | 🟡 Em PR (#35) | Na main o botão "Baixar todas em PDF" ainda só simula o download |
+| PDF e Gabarito | Consulta pública do gabarito (T26) | 🟡 Em PR (#36) | Na main a página `/gabarito` só encontra cópias carregadas no navegador |
+| PDF e Gabarito | Exportação do gabarito em PDF (T27) | 🟡 Em PR (#39) | Na main o botão ainda só simula |
+| PDF e Gabarito | Cópias vinculadas aos alunos matriculados (T24) | 🟡 Em PR (#40) | Depende da T15 |
+| Correção e Notas | Correção, lançamento manual, relatórios e histórico (T29 a T33) | ✅ Na main | Enquanto a T23 não entra, só há cópias no banco pelo seed de demonstração. O professor lê o QR e marca as respostas na tela; a leitura automática das marcações da folha ainda não existe |
+
+Os arquivos JSON de `client/src/data/` são dados de exemplo da N1. Só o `questions.json` ainda é importado pelo sistema; a varredura final dos dados fixos é a tarefa T35.
 
 ## 8. Stack Tecnológica
 
@@ -388,11 +427,14 @@ Tecnologias usadas no projeto e por que cada uma foi escolhida. A stack obrigat�
 - **cors**: libera apenas o endereço do front-end para chamar a API.
 - **helmet**: cabeçalhos HTTP de segurança.
 - **dotenv**: leitura das variáveis de ambiente do arquivo `.env`.
+- **bcryptjs**: hash das senhas.
 
 **Front-end (`client/`)**
 
 - **React 19** com **Vite 8**: interface e servidor de desenvolvimento.
 - **React Router 7**: navegação entre as telas.
+- **pdf-lib**: montagem do PDF consolidado das provas.
+- **qrcode** e **jsQR**: geração e leitura do QR Code das provas.
 
 
 ## 9. Estrutura de Pastas
@@ -406,9 +448,11 @@ Projeto-e-Arquitetura-5-fase/
 │   ├── src/
 │   │   ├── components/           # Componentes reutilizáveis e modais
 │   │   ├── context/              # Estado e dados compartilhados da aplicação
-│   │   ├── data/                 # Arquivos JSON com dados de exemplo (mock)
+│   │   ├── data/                 # Dados de exemplo da N1 (ver seção 7.1)
 │   │   ├── layouts/              # Estruturas visuais compartilhadas
 │   │   ├── pages/                # Telas do sistema
+│   │   ├── pdf/                  # Montagem do PDF consolidado
+│   │   ├── services/             # Chamadas à API e sessão do usuário
 │   │   ├── utils/                # Funções auxiliares
 │   │   ├── App.jsx               # Rotas e composição das telas
 │   │   ├── index.css             # Estilos globais
@@ -419,6 +463,7 @@ Projeto-e-Arquitetura-5-fase/
 │   └── vite.config.js
 ├── server/                       # API Node.js + Express + MySQL (arquitetura em camadas)
 │   ├── database/migrations/      # Scripts .sql do banco, aplicados em ordem
+│   ├── database/seeds/           # Dados de demonstração (npm run db:seed)
 │   ├── src/
 │   │   ├── routes/               # Endpoints, ligados aos controllers
 │   │   ├── controllers/          # Recebem a requisição e devolvem a resposta
@@ -437,6 +482,7 @@ Projeto-e-Arquitetura-5-fase/
 │   ├── docker-compose.yml        # MySQL 8 para desenvolvimento
 │   └── package.json
 ├── docs/
+│   ├── api/                      # Especificação detalhada da API por frente
 │   ├── arquitetura/              # Documento e diagrama da arquitetura em camadas
 │   ├── modelo-dados/             # MER/DER, script SQL e dicionário de dados
 │   └── uml/                      # Diagramas UML do projeto
@@ -604,7 +650,9 @@ Consulte [`server/README.md`](server/README.md) para detalhes das variáveis de 
 
 📌 **N2**
 
-A API utiliza o prefixo `/api`. Os principais endpoints de autenticação implementados na T07 são:
+A API utiliza o prefixo `/api`. Estes são os endpoints que já estão na main.
+
+**Saúde e autenticação**
 
 | Método | Rota | Descrição |
 |---|---|---|
@@ -617,7 +665,66 @@ A API utiliza o prefixo `/api`. Os principais endpoints de autenticação implem
 | POST | `/api/auth/refresh` | Renova a sessão e revoga o refresh token anterior. |
 | POST | `/api/auth/logout` | Revoga o refresh token da sessão atual. |
 
-As rotas que exigem autenticação recebem o token de acesso no cabeçalho `Authorization: Bearer <accessToken>`. A lista de endpoints das demais frentes deve acompanhar a integração de cada PR; detalhes de camadas, autenticação e desenvolvimento estão em [`server/README.md`](server/README.md).
+**Administração**
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET, POST | `/api/admin/usuarios` | Lista e cria usuários. |
+| PUT, DELETE | `/api/admin/usuarios/:id` | Edita e remove um usuário. |
+| GET, PUT | `/api/settings` | Consulta e altera as configurações do sistema. |
+
+**Turmas e questões**
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET, POST | `/api/turmas` | Lista e cria turmas. |
+| PUT | `/api/turmas/:id` | Edita uma turma. |
+| PATCH | `/api/turmas/:id/arquivar` | Arquiva uma turma. |
+| GET, POST | `/api/questoes` | Lista e cria questões. |
+| PUT, DELETE | `/api/questoes/:id` | Edita e exclui (soft-delete) uma questão. |
+
+**Provas e aplicações**
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET, POST | `/api/provas` | Lista e cria provas (nascem em Rascunho). |
+| GET, PUT | `/api/provas/:id` | Consulta uma prova e edita (só em Rascunho). |
+| POST | `/api/provas/:id/arquivar` | Arquiva a prova. |
+| GET, POST | `/api/aplicacoes` | Lista e cria aplicações; a primeira aplicação muda a prova para Pronta. |
+| GET, PUT | `/api/aplicacoes/:id` | Consulta uma aplicação e altera a configuração de geração (só Pendente). |
+| POST | `/api/aplicacoes/:id/aplicar` | Marca a aplicação como Aplicada. |
+
+**Correção e notas** (detalhes em [`docs/api/correcao-e-notas.md`](docs/api/correcao-e-notas.md))
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/correcoes/copias/:codigo` | Busca a cópia pelo código do QR, pronta para corrigir. |
+| POST | `/api/correcoes` | Corrige pelas respostas informadas e calcula a nota. |
+| POST | `/api/correcoes/manual` | Lança a nota manualmente. |
+| GET, DELETE | `/api/correcoes/:id` | Consulta e desfaz uma correção. |
+| GET | `/api/relatorios/aplicacoes` | Lista as aplicações com resumo de notas. |
+| GET | `/api/relatorios/aplicacoes/:id` | Relatório de uma aplicação. |
+| GET | `/api/relatorios/aplicacoes/:id/csv` | Exporta o relatório da aplicação. |
+| GET | `/api/relatorios/turmas` | Lista as turmas do professor. |
+| GET | `/api/relatorios/turmas/:id` | Relatório consolidado da turma. |
+| GET | `/api/relatorios/turmas/:id/csv` | Exporta o consolidado da turma. |
+| GET | `/api/alunos/:id/historico` | Histórico de notas do aluno. |
+
+**Em Pull Requests abertos** (entram nesta lista depois do merge)
+
+| Método | Rota | PR | Descrição |
+|---|---|---|---|
+| GET | `/api/copias` | #33 | Todas as cópias do professor. |
+| GET, POST | `/api/aplicacoes/:id/copias` | #33 | Lista e gera as cópias de uma aplicação. |
+| POST | `/api/aplicacoes/:id/copias/gabarito` | #33 | Publica o gabarito de uma cópia ou de todas. |
+| POST | `/api/turmas/:id/matriculas` | #34 | Matricula um aluno na turma. |
+| GET | `/api/aplicacoes/:id/pdf` | #35 | Gera e baixa o PDF consolidado. |
+| GET | `/api/gabarito/:codigo` | #36 | Consulta pública do gabarito, sem login. |
+| POST | `/api/questoes/upload-imagem` | #37 | Envia a imagem de uma questão. |
+| POST | `/api/turmas/:id/codigo-convite/regenerar` | #38 | Gera um novo código de convite. |
+| GET | `/api/aplicacoes/:id/pdf/gabarito` | #39 | Gera e baixa o gabarito em PDF. |
+
+As rotas que exigem autenticação recebem o token de acesso no cabeçalho `Authorization: Bearer <accessToken>`. A lista de endpoints deve acompanhar a integração de cada PR; detalhes de camadas, autenticação e desenvolvimento estão em [`server/README.md`](server/README.md).
 
 Especificação detalhada por frente:
 

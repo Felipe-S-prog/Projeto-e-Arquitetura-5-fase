@@ -189,3 +189,14 @@ Resposta de cada questão em uma correção pelas respostas marcadas (migration 
 | letra_marcada | CHAR(1) (aceita nulo) | Letra marcada pelo aluno, na ordem impressa da cópia; nulo quando ficou em branco ou é discursiva |
 | correta | TINYINT(1) (aceita nulo) | 1 se a letra marcada é a correta; nulo nas discursivas |
 | pontos | DECIMAL(5,2) | Pontos obtidos na questão |
+
+### configuracoes
+
+Configurações gerais do sistema, em uma única linha (migration `002_configuracoes.sql`).
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| id | TINYINT UNSIGNED (PK) | Identificador do registro; sempre 1 |
+| nome_instituicao | VARCHAR(255) | Nome da instituição |
+| periodo_padrao | VARCHAR(20) | Período letivo padrão (ex.: 2026/2) |
+| atualizado_em | TIMESTAMP | Data e hora da última alteração |
