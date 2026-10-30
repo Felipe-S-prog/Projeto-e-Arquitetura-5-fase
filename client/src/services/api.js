@@ -180,9 +180,9 @@ export async function apiRequest(path, options = {}) {
 // (Content-Disposition) e os cabeçalhos, para a tela decidir o que fazer com ele.
 export async function apiBlob(path, fallbackName) {
   const response = await send(path);
-
   const disposition = response.headers.get('Content-Disposition') ?? '';
   const name = disposition.match(/filename="?([^";]+)"?/)?.[1] ?? fallbackName;
+
   return { blob: await response.blob(), name, headers: response.headers };
 }
 

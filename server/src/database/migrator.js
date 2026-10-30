@@ -32,7 +32,7 @@ function checksum(sql) {
 
 // Conecta sem escolher banco (para poder criá-lo ou apagá-lo).
 function connectWithoutDatabase(db) {
-  return mysql.createConnection({ host: db.host, port: db.port, user: db.user, password: db.password });
+  return mysql.createConnection({ host: db.host, port: db.port, user: db.user, password: db.password, ssl: db.ssl });
 }
 
 export async function runMigrations({ db, migrationsDir = DEFAULT_MIGRATIONS_DIR, log = console.log }) {
@@ -52,6 +52,7 @@ export async function runMigrations({ db, migrationsDir = DEFAULT_MIGRATIONS_DIR
     user: db.user,
     password: db.password,
     database: db.database,
+    ssl: db.ssl,
     multipleStatements: true,
   });
 

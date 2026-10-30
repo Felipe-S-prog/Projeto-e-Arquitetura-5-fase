@@ -921,6 +921,7 @@ const DataProvider = ({ children }) => {
       addClass,
       updateClass,
       archiveClass,
+      enrollStudent,
       addExam,
       createApplication,
       updateApplication,
@@ -965,6 +966,7 @@ const DataProvider = ({ children }) => {
       addClass,
       updateClass,
       archiveClass,
+      enrollStudent,
       addExam,
       createApplication,
       updateApplication,
@@ -1006,4 +1008,3 @@ export function useData() {
 }
 
 export { DataProvider };
-
