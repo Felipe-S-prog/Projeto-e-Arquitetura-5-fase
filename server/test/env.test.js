@@ -53,3 +53,24 @@ test('loadConfig exige segredo JWT exclusivo em produção', () => {
     JWT_ACCESS_SECRET: 'um-segredo-forte-com-mais-de-32-caracteres',
   }));
 });
+
+
+const certificado = '-----BEGIN CERTIFICATE-----\nMIIBfake\n-----END CERTIFICATE-----';
+
+test('loadConfig: sem variáveis de SSL a conexão continua igual (sem ssl)', () => {
+  assert.equal('ssl' in loadConfig(base).db, false);
+});
+
+test('loadConfig: DB_SSL_CA liga o SSL e aceita "\\n" no lugar das quebras de linha', () => {
+  const config = loadConfig({ ...base, DB_SSL_CA: certificado.replace(/\n/g, '\\n') });
+  assert.deepEqual(config.db.ssl, { ca: certificado, rejectUnauthorized: true });
+});
+
+test('loadConfig: DB_SSL=true liga o SSL sem certificado próprio, sempre verificando o servidor', () => {
+  assert.deepEqual(loadConfig({ ...base, DB_SSL: 'true' }).db.ssl, { rejectUnauthorized: true });
+});
+
+test('loadConfig: recusa certificado que não parece PEM e arquivo ilegível', () => {
+  assert.throws(() => loadConfig({ ...base, DB_SSL_CA: 'qualquer coisa' }), /não parece um certificado PEM/);
+  assert.throws(() => loadConfig({ ...base, DB_SSL_CA_PATH: '/nao/existe/ca.pem' }), /DB_SSL_CA_PATH inválido/);
+});

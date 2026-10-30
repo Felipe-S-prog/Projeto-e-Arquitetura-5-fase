@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { apiBlob } from '../services/api';
 import { Breadcrumb, PageHeader, FormField, Select, PrimaryButton } from '../components/ui';
 
 const cardStyle = {
@@ -29,11 +30,20 @@ function Row({ label, value, last }) {
   );
 }
 
-// Tela de teste do módulo de montagem do PDF (T22). Gera o PDF consolidado real da
-// aplicação e mostra na tela. A ligação com o botão "Baixar todas em PDF" é a T25.
+// Avisos do PDF vêm do servidor no cabeçalho X-Pdf-Avisos (JSON com encodeURIComponent).
+function readWarnings(headers) {
+  try {
+    return JSON.parse(decodeURIComponent(headers.get('X-Pdf-Avisos') || '%5B%5D'));
+  } catch {
+    return [];
+  }
+}
+
+// Tela de teste do PDF consolidado (T22). Pede o PDF real da aplicação ao servidor
+// (GET /aplicacoes/:id/pdf, T25) e mostra na tela, sem marcar a aplicação como Aplicada.
 export default function PdfTest() {
   const { id } = useParams();
-  const { getApplicationById, getExamById, getClassById, examQuestionsDetailed, generateApplicationCopies, settings } = useData();
+  const { getApplicationById, getExamById, generateApplicationCopies } = useData();
 
   const app = getApplicationById(id);
   const [mode, setMode] = useState('completo');
@@ -43,10 +53,10 @@ export default function PdfTest() {
   const [result, setResult] = useState(null);
   const urlRef = useRef(null);
 
-  // Garante que a aplicação tenha cópias, como na pré-visualização.
+  // Garante que a aplicação tenha cópias, como na pré-visualização (só enquanto Pendente).
   useEffect(() => {
-    if (app && (!app.copies || app.copies.length === 0)) {
-      generateApplicationCopies(app.id);
+    if (app && app.status === 'Pendente' && (!app.copies || app.copies.length === 0)) {
+      generateApplicationCopies(app.id).catch((err) => setError(err.message || 'Não foi possível gerar as provas.'));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [app?.id]);
@@ -56,41 +66,25 @@ export default function PdfTest() {
 
   if (!app) return <div>Aplicação não encontrada.</div>;
   const exam = getExamById(app.examId);
-  const cls = getClassById(app.classId);
   const copies = app.copies || [];
 
   const generate = async () => {
     setBusy(true);
     setError('');
     try {
-      // import dinâmico: pdf-lib só é baixado quando o professor pede o PDF
-      const [{ buildConsolidatedPdf }, { loadQuestionImages }] = await Promise.all([
-        import('../pdf/buildConsolidatedPdf'),
-        import('../pdf/loadQuestionImages'),
-      ]);
-      const questions = examQuestionsDetailed(app.examId);
-      const { images, failed } = await loadQuestionImages(questions);
+      const params = new URLSearchParams({ modo: mode, frenteVerso: String(duplex) });
       const started = performance.now();
-      const built = await buildConsolidatedPdf({
-        exam,
-        className: cls?.name,
-        date: app.date,
-        institution: settings?.institutionName,
-        questions,
-        copies,
-        images,
-        mode,
-        duplex,
-      });
+      const { blob, name, headers } = await apiBlob(`/aplicacoes/${app.id}/pdf?${params}`, 'provas.pdf');
       const seconds = ((performance.now() - started) / 1000).toFixed(1);
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
-      urlRef.current = URL.createObjectURL(new Blob([built.bytes], { type: 'application/pdf' }));
+      urlRef.current = URL.createObjectURL(blob);
       setResult({
         url: urlRef.current,
-        pageCount: built.pageCount,
-        sizeKb: Math.round(built.bytes.length / 1024),
+        name,
+        pageCount: Number(headers.get('X-Pdf-Paginas')) || '—',
+        sizeKb: Math.round(blob.size / 1024),
         seconds,
-        warnings: [...built.warnings, ...failed.map((qid) => `A imagem da questão ${qid} não carregou.`)],
+        warnings: readWarnings(headers),
       });
     } catch (e) {
       setResult(null);
@@ -150,7 +144,7 @@ export default function PdfTest() {
           <div style={{ marginTop: 16, marginBottom: 16 }}>
             <a
               href={result.url}
-              download={`${exam?.title || 'prova'}.pdf`}
+              download={result.name}
               style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}
             >
               Baixar o PDF

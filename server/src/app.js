@@ -1,4 +1,4 @@
-﻿import cors from 'cors';
+import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import { fileURLToPath } from 'node:url';
@@ -14,10 +14,9 @@ import { createApiAuthMiddleware } from './middlewares/apiAuth.js';
 export function createApp({ pool, config }) {
   const app = express();
 
-  app.use(helmet()); // cabe├ºalhos de seguran├ºa
-  // s├│ o front autorizado pode chamar a API; Content-Disposition liberado para o front ler o nome dos arquivos baixados
-  app.use(cors({ origin: config.corsOrigins, exposedHeaders: ['Content-Disposition'] }));
-  app.use(express.json({ limit: '1mb' }));
+  app.use(helmet());
+  // Content-Disposition e X-Pdf-* são usados pelo frontend nos downloads e PDFs.
+  app.use(cors({ origin: config.corsOrigins, exposedHeaders: ['Content-Disposition', 'X-Pdf-Paginas', 'X-Pdf-Avisos'] }));  app.use(express.json({ limit: '1mb' }));
     // Disponibiliza as imagens das questões para o frontend.
   app.use(
     '/uploads/questoes',

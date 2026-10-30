@@ -10,6 +10,7 @@ export function createPool(dbConfig) {
     user: dbConfig.user,
     password: dbConfig.password,
     database: dbConfig.database,
+    ssl: dbConfig.ssl, // só definido quando o banco hospedado exige SSL (ver DB_SSL_CA em .env.example)
     waitForConnections: true,
     connectionLimit: 10,
     charset: 'utf8mb4',

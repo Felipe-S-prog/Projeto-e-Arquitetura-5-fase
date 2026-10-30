@@ -176,14 +176,19 @@ export async function apiRequest(path, options = {}) {
   return response.status === 204 ? null : response.json();
 }
 
-export async function apiDownload(path, fallbackName) {
+// Baixa um arquivo da API sem salvar: devolve o conteúdo, o nome sugerido pelo servidor
+// (Content-Disposition) e os cabeçalhos, para a tela decidir o que fazer com ele.
+export async function apiBlob(path, fallbackName) {
   const response = await send(path);
-
   const disposition = response.headers.get('Content-Disposition') ?? '';
-  const match = disposition.match(/filename="?([^";]+)"?/);
-  const name = match?.[1] ?? fallbackName;
+  const name = disposition.match(/filename="?([^";]+)"?/)?.[1] ?? fallbackName;
 
-  const url = URL.createObjectURL(await response.blob());
+  return { blob: await response.blob(), name, headers: response.headers };
+}
+export async function apiDownload(path, fallbackName) {
+  const { blob, name } = await apiBlob(path, fallbackName);
+
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
 
   link.href = url;

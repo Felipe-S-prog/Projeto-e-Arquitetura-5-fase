@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { apiDownload } from '../services/api';
 import { Breadcrumb, PrimaryButton, SecondaryButton } from '../components/ui';
 import { ExamSheetIcon } from '../components/icons';
 import QrCode from '../components/QrCode';
@@ -22,12 +23,16 @@ export default function PdfPreview() {
   const [expanded, setExpanded] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [confirmError, setConfirmError] = useState('');
+  const [downloading, setDownloading] = useState(false);
 
   // Segurança para navegação direta (ex: voltar/avançar no navegador) sem
-  // ter passado pelo botão "Gerar pré-visualização" ainda.
+  // ter passado pelo botão "Gerar pré-visualização" ainda. Só gera enquanto a
+  // aplicação está Pendente: depois do download as cópias do banco ficam fixas.
   useEffect(() => {
-    if (app && (!app.copies || app.copies.length === 0)) {
-      generateApplicationCopies(app.id);
+    if (app && app.status === 'Pendente' && (!app.copies || app.copies.length === 0)) {
+      generateApplicationCopies(app.id).catch((err) =>
+        setConfirmError(err.message || 'Não foi possível gerar as provas.'),
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [app?.id]);
@@ -40,16 +45,22 @@ export default function PdfPreview() {
   const copies = app.copies || [];
   const shuffleSummary = `Questões: ${app.shuffleQuestions ? 'sim' : 'não'} · Alternativas: ${app.shuffleAlternatives ? 'sim' : 'não'}`;
 
+  // Baixa o PDF consolidado gerado pelo servidor a partir das cópias do banco (T25) e só
+  // depois marca a aplicação como Aplicada: se o PDF falhar, a aplicação continua Pendente.
   const confirmDownload = async () => {
     setConfirmError('');
+    setDownloading(true);
 
     try {
+      await apiDownload(`/aplicacoes/${app.id}/pdf`, 'provas.pdf');
       await confirmApplicationDownload(app.id);
       setShowModal(false);
       navigate('/aplicacoes');
     } catch (err) {
       setShowModal(false);
-      setConfirmError(err.message || 'Não foi possível registrar o download.');
+      setConfirmError(err.message || 'Não foi possível baixar o PDF.');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -179,6 +190,7 @@ export default function PdfPreview() {
           shuffleSummary={shuffleSummary}
           onConfirm={confirmDownload}
           onCancel={() => setShowModal(false)}
+          busy={downloading}
         />
       )}
     </div>
