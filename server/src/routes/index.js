@@ -3,6 +3,7 @@ import { createCorrecaoRoutes } from './correcao.routes.js';
 import { createHealthRoutes } from './health.routes.js';
 import { createAplicacaoRoutes } from './aplicacao.routes.js';
 import { createCopiaRoutes, createCopiasDaAplicacaoRoutes } from './copia.routes.js';
+import { createPdfRoutes } from './pdf.routes.js';
 import { createAlunoHistoricoRoutes, createRelatorioRoutes } from './relatorio.routes.js';
 import { createAdminRoutes } from './admin.routes.js';
 import { createSettingsRoutes } from './settings.routes.js';
@@ -15,6 +16,7 @@ export function createRoutes({ pool }) {
 
   router.use('/health', createHealthRoutes({ pool }));
   router.use('/aplicacoes/:aplicacaoId/copias', createCopiasDaAplicacaoRoutes({ pool }));
+  router.use('/aplicacoes/:aplicacaoId/pdf', createPdfRoutes({ pool }));
   router.use('/aplicacoes', createAplicacaoRoutes({ pool }));
   router.use('/copias', createCopiaRoutes({ pool }));
   router.use('/correcoes', createCorrecaoRoutes({ pool }));
