@@ -1,6 +1,6 @@
 import { PrimaryButton, SecondaryButton } from './ui';
 
-export default function DownloadModal({ examTitle, className, quantity, shuffleSummary, onConfirm, onCancel }) {
+export default function DownloadModal({ examTitle, className, quantity, shuffleSummary, onConfirm, onCancel, busy = false }) {
   return (
     <div
       style={{
@@ -25,10 +25,10 @@ export default function DownloadModal({ examTitle, className, quantity, shuffleS
           <Row label="Embaralhamento" value={shuffleSummary} last />
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <PrimaryButton onClick={onConfirm} style={{ flex: 1 }}>
-            Confirmar e baixar
+          <PrimaryButton onClick={onConfirm} style={{ flex: 1 }} disabled={busy}>
+            {busy ? 'Baixando...' : 'Confirmar e baixar'}
           </PrimaryButton>
-          <SecondaryButton onClick={onCancel} style={{ flex: 1 }}>
+          <SecondaryButton onClick={onCancel} style={{ flex: 1 }} disabled={busy}>
             Cancelar
           </SecondaryButton>
         </div>

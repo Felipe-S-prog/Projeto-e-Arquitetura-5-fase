@@ -362,9 +362,14 @@ O que a equipe decidiu fazer.
 O que essa escolha facilita, o que ela custa ou limita.
 ```
 
-Aqui no README, liste os ADRs (Registros de Decisão Arquitetural) criados, com link para cada arquivo. Nenhum foi criado até o momento; o registro das decisões de Provas e Aplicações é a tarefa T20.
+ADRs (Registros de Decisão Arquitetural) do projeto:
 
-> Já há pelo menos uma decisão relevante a registrar aqui: **escopo reduzido em relação à especificação de referência do cliente** (sem app mobile nativo e sem microsserviços, por exigência da stack da disciplina — ver seção 1).
+- [ADR-001: Escopo reduzido em relação à especificação de referência do cliente](docs/adr/ADR-001-escopo-reduzido-sem-app-mobile-e-microsservicos.md)
+- [ADR-002: API em camadas (rota → controller → service → repository → model)](docs/adr/ADR-002-arquitetura-em-camadas.md)
+- [ADR-003: MySQL como banco e estrutura criada por migrations versionadas](docs/adr/ADR-003-mysql-com-migrations-versionadas.md)
+- [ADR-004: Autenticação com JWT, refresh token rotativo e cadastro por convite](docs/adr/ADR-004-autenticacao-jwt-com-refresh-token-e-cadastro-por-convite.md)
+- [ADR-005: Ciclo de status da prova (Rascunho → Pronta → Arquivada)](docs/adr/ADR-005-ciclo-de-status-da-prova.md)
+
 
 ## 7. Modelo de Dados
 
@@ -386,25 +391,25 @@ O banco é criado pelas migrations de `server/database/migrations/`, aplicadas e
 
 ### 7.1 Estado da integração com o banco
 
-Posição em 30/10/2026. **Na main** significa que a parte já foi integrada; **Em PR** significa que está pronta em um Pull Request aberto, aguardando revisão e merge.
+Posição em 30/10/2026, entrega da N2.
 
-| Frente | Parte | Situação | Observação |
+| Frente | Parte | Lê e grava no MySQL? | Observação |
 |---|---|---|---|
-| Autenticação | Login, JWT e refresh token (T07) | ✅ Na main | |
-| Administração | Usuários e configurações (T10) | ✅ Na main | |
-| Turmas | Criar, editar e arquivar (T13) | ✅ Na main | |
-| Turmas | Matrícula de alunos (T15) | 🟡 Em PR (#34) | Na main a turma ainda aparece sem alunos |
-| Turmas | Código de convite (T14) | 🟡 Em PR (#38) | |
-| Questões | Listar, criar, editar e excluir (T11) | ✅ Na main | A lista ainda mistura as questões de exemplo de `client/src/data/questions.json` (T35) |
-| Questões | Upload de imagem (T12) | 🟡 Em PR (#37) | |
-| Provas | Criar, listar, editar e arquivar (T17) | ✅ Na main | |
-| Aplicações | Criar, configurar e marcar como aplicada, com a regra de status da prova (T18 e T19) | ✅ Na main | |
-| PDF e Gabarito | Cópias e publicação do gabarito no banco (T23) | 🟡 Em PR (#33) | Na main as cópias ainda são geradas no navegador e ficam só em memória |
-| PDF e Gabarito | Geração e download do PDF no servidor (T25) | 🟡 Em PR (#35) | Na main o botão "Baixar todas em PDF" ainda só simula o download |
-| PDF e Gabarito | Consulta pública do gabarito (T26) | 🟡 Em PR (#36) | Na main a página `/gabarito` só encontra cópias carregadas no navegador |
-| PDF e Gabarito | Exportação do gabarito em PDF (T27) | 🟡 Em PR (#39) | Na main o botão ainda só simula |
-| PDF e Gabarito | Cópias vinculadas aos alunos matriculados (T24) | 🟡 Em PR (#40) | Depende da T15 |
-| Correção e Notas | Correção, lançamento manual, relatórios e histórico (T29 a T33) | ✅ Na main | Enquanto a T23 não entra, só há cópias no banco pelo seed de demonstração. O professor lê o QR e marca as respostas na tela; a leitura automática das marcações da folha ainda não existe |
+| Autenticação | Login, JWT e refresh token (T07) | ✅ Sim | |
+| Administração | Usuários e configurações (T10) | ✅ Sim | |
+| Turmas | Criar, editar e arquivar (T13) | ✅ Sim | |
+| Turmas | Matrícula de alunos (T15) | ✅ Sim | |
+| Turmas | Código de convite (T14) | 🟡 Em PR (#38) | Ainda não integrado à main |
+| Questões | Listar, criar, editar e excluir (T11) | ✅ Sim | Só objetivas pela tela. A lista ainda mistura as questões de exemplo de `client/src/data/questions.json` (T35) |
+| Questões | Upload de imagem (T12) | ✅ Sim | Arquivos em `server/uploads/questoes`; o banco guarda o caminho |
+| Provas | Criar, listar, editar e arquivar (T17) | ✅ Sim | |
+| Aplicações | Criar, configurar e marcar como aplicada, com a regra de status da prova (T18 e T19) | ✅ Sim | |
+| PDF e Gabarito | Cópias e publicação do gabarito (T23) | ✅ Sim | Geradas pelo servidor em `copia_prova` |
+| PDF e Gabarito | Cópias vinculadas aos alunos matriculados (T24) | ✅ Sim | Uma cópia nominal por aluno |
+| PDF e Gabarito | Geração e download do PDF no servidor (T25) | ✅ Sim | Questão discursiva ainda não é aceita no PDF; imagens WEBP e GIF ficam de fora, com aviso |
+| PDF e Gabarito | Consulta pública do gabarito, sem login (T26) | ✅ Sim | |
+| PDF e Gabarito | Exportação do gabarito em PDF (T27) | ✅ Sim | |
+| Correção e Notas | Correção, lançamento manual, relatórios e histórico (T29 a T33) | ✅ Sim | O professor lê o QR e marca as respostas na tela; a leitura automática das marcações da folha ainda não existe |
 
 Os arquivos JSON de `client/src/data/` são dados de exemplo da N1. Só o `questions.json` ainda é importado pelo sistema; a varredura final dos dados fixos é a tarefa T35.
 
@@ -428,13 +433,14 @@ Tecnologias usadas no projeto e por que cada uma foi escolhida. A stack obrigat�
 - **helmet**: cabeçalhos HTTP de segurança.
 - **dotenv**: leitura das variáveis de ambiente do arquivo `.env`.
 - **bcryptjs**: hash das senhas.
+- **pdf-lib** e **qrcode**: montagem do PDF das provas e do gabarito, com o QR Code de cada cópia.
+- **multer**: recebimento das imagens enviadas nas questões.
 
 **Front-end (`client/`)**
 
 - **React 19** com **Vite 8**: interface e servidor de desenvolvimento.
 - **React Router 7**: navegação entre as telas.
-- **pdf-lib**: montagem do PDF consolidado das provas.
-- **qrcode** e **jsQR**: geração e leitura do QR Code das provas.
+- **qrcode** e **jsQR**: exibição e leitura do QR Code das provas.
 
 
 ## 9. Estrutura de Pastas
@@ -451,7 +457,6 @@ Projeto-e-Arquitetura-5-fase/
 │   │   ├── data/                 # Dados de exemplo da N1 (ver seção 7.1)
 │   │   ├── layouts/              # Estruturas visuais compartilhadas
 │   │   ├── pages/                # Telas do sistema
-│   │   ├── pdf/                  # Montagem do PDF consolidado
 │   │   ├── services/             # Chamadas à API e sessão do usuário
 │   │   ├── utils/                # Funções auxiliares
 │   │   ├── App.jsx               # Rotas e composição das telas
@@ -472,6 +477,7 @@ Projeto-e-Arquitetura-5-fase/
 │   │   ├── models/               # Representação das entidades
 │   │   ├── middlewares/          # Tratamento de erros, 404 e log de requisições
 │   │   ├── errors/               # Erros esperados da aplicação (AppError)
+│   │   ├── pdf/                  # Montagem do PDF das provas e do gabarito
 │   │   ├── database/             # Pool de conexão e migrations
 │   │   ├── config/               # Leitura das variáveis de ambiente
 │   │   ├── utils/                # Funções auxiliares
@@ -482,6 +488,7 @@ Projeto-e-Arquitetura-5-fase/
 │   ├── docker-compose.yml        # MySQL 8 para desenvolvimento
 │   └── package.json
 ├── docs/
+│   ├── adr/                      # Registros de decisões de arquitetura
 │   ├── api/                      # Especificação detalhada da API por frente
 │   ├── arquitetura/              # Documento e diagrama da arquitetura em camadas
 │   ├── modelo-dados/             # MER/DER, script SQL e dicionário de dados
@@ -680,8 +687,10 @@ A API utiliza o prefixo `/api`. Estes são os endpoints que já estão na main.
 | GET, POST | `/api/turmas` | Lista e cria turmas. |
 | PUT | `/api/turmas/:id` | Edita uma turma. |
 | PATCH | `/api/turmas/:id/arquivar` | Arquiva uma turma. |
+| POST | `/api/turmas/:id/matriculas` | Matricula um aluno na turma. |
 | GET, POST | `/api/questoes` | Lista e cria questões. |
 | PUT, DELETE | `/api/questoes/:id` | Edita e exclui (soft-delete) uma questão. |
+| POST | `/api/questoes/upload-imagem` | Envia a imagem de uma questão. |
 
 **Provas e aplicações**
 
@@ -693,6 +702,17 @@ A API utiliza o prefixo `/api`. Estes são os endpoints que já estão na main.
 | GET, POST | `/api/aplicacoes` | Lista e cria aplicações; a primeira aplicação muda a prova para Pronta. |
 | GET, PUT | `/api/aplicacoes/:id` | Consulta uma aplicação e altera a configuração de geração (só Pendente). |
 | POST | `/api/aplicacoes/:id/aplicar` | Marca a aplicação como Aplicada. |
+
+**Cópias, PDF e gabarito** (detalhes em [`docs/api/copias-e-gabarito.md`](docs/api/copias-e-gabarito.md))
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/copias` | Todas as cópias do professor. |
+| GET, POST | `/api/aplicacoes/:id/copias` | Lista e gera as cópias de uma aplicação. |
+| POST | `/api/aplicacoes/:id/copias/gabarito` | Publica o gabarito de uma cópia ou de todas. |
+| GET | `/api/aplicacoes/:id/pdf` | Gera e baixa o PDF consolidado das provas. |
+| GET | `/api/aplicacoes/:id/pdf/gabarito` | Gera e baixa o gabarito em PDF. |
+| GET | `/api/gabarito/:codigo` | Consulta pública do gabarito, sem login. |
 
 **Correção e notas** (detalhes em [`docs/api/correcao-e-notas.md`](docs/api/correcao-e-notas.md))
 
@@ -710,24 +730,11 @@ A API utiliza o prefixo `/api`. Estes são os endpoints que já estão na main.
 | GET | `/api/relatorios/turmas/:id/csv` | Exporta o consolidado da turma. |
 | GET | `/api/alunos/:id/historico` | Histórico de notas do aluno. |
 
-**Em Pull Requests abertos** (entram nesta lista depois do merge)
-
-| Método | Rota | PR | Descrição |
-|---|---|---|---|
-| GET | `/api/copias` | #33 | Todas as cópias do professor. |
-| GET, POST | `/api/aplicacoes/:id/copias` | #33 | Lista e gera as cópias de uma aplicação. |
-| POST | `/api/aplicacoes/:id/copias/gabarito` | #33 | Publica o gabarito de uma cópia ou de todas. |
-| POST | `/api/turmas/:id/matriculas` | #34 | Matricula um aluno na turma. |
-| GET | `/api/aplicacoes/:id/pdf` | #35 | Gera e baixa o PDF consolidado. |
-| GET | `/api/gabarito/:codigo` | #36 | Consulta pública do gabarito, sem login. |
-| POST | `/api/questoes/upload-imagem` | #37 | Envia a imagem de uma questão. |
-| POST | `/api/turmas/:id/codigo-convite/regenerar` | #38 | Gera um novo código de convite. |
-| GET | `/api/aplicacoes/:id/pdf/gabarito` | #39 | Gera e baixa o gabarito em PDF. |
-
 As rotas que exigem autenticação recebem o token de acesso no cabeçalho `Authorization: Bearer <accessToken>`. A lista de endpoints deve acompanhar a integração de cada PR; detalhes de camadas, autenticação e desenvolvimento estão em [`server/README.md`](server/README.md).
 
 Especificação detalhada por frente:
 
+- **Cópias, PDF e gabarito:** [`docs/api/copias-e-gabarito.md`](docs/api/copias-e-gabarito.md)
 - **Correção e Notas** (correção automática, lançamento manual, relatórios e histórico do aluno): [`docs/api/correcao-e-notas.md`](docs/api/correcao-e-notas.md)
 
 ## 12. Testes e Validações
