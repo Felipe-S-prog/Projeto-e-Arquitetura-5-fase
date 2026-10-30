@@ -15,7 +15,8 @@ export function createApp({ pool, config }) {
 
   app.use(helmet()); // cabeçalhos de segurança
   // só o front autorizado pode chamar a API; Content-Disposition liberado para o front ler o nome dos arquivos baixados
-  app.use(cors({ origin: config.corsOrigins, exposedHeaders: ['Content-Disposition'] }));
+  // e X-Pdf-* para mostrar as páginas e os avisos do PDF consolidado (T25)
+  app.use(cors({ origin: config.corsOrigins, exposedHeaders: ['Content-Disposition', 'X-Pdf-Paginas', 'X-Pdf-Avisos'] }));
   app.use(express.json({ limit: '1mb' }));
   if (config.nodeEnv !== 'test') app.use(requestLogger);
 

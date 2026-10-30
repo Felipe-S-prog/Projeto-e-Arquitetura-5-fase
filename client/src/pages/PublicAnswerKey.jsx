@@ -1,29 +1,28 @@
 import { useState } from 'react';
 import { LogoMark } from '../components/icons';
 import { TextInput, PrimaryButton } from '../components/ui';
-import { useData } from '../context/DataContext';
-import { resolveAnswerKey } from '../utils/answerKey';
+import { apiRequest } from '../services/api';
 
+// Página pública (sem login) em que o aluno digita o código da prova e vê só as letras certas.
+// Consulta GET /api/gabarito/:codigo (T26); o servidor só responde se o gabarito foi publicado.
 export default function PublicAnswerKey() {
-  const { findCopyByCode, getExamById, examQuestionsDetailed } = useData();
   const [code, setCode] = useState('');
   const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const found = findCopyByCode(code);
-    if (!found) {
-      setResult({ status: 'not-found' });
-      return;
+    setLoading(true);
+    try {
+      const answerKey = await apiRequest(`/gabarito/${encodeURIComponent(code.trim())}`);
+      setResult({ status: 'ok', examTitle: answerKey.examTitle, answers: answerKey.answers });
+    } catch (err) {
+      if (err.status === 404 || err.status === 400) setResult({ status: 'not-found' });
+      else if (err.status === 403) setResult({ status: 'not-published' });
+      else setResult({ status: 'error', message: err.message || 'Não foi possível consultar o gabarito agora.' });
+    } finally {
+      setLoading(false);
     }
-    const { application, copy } = found;
-    if (!copy.answerKeyPublished) {
-      setResult({ status: 'not-published' });
-      return;
-    }
-    const exam = getExamById(application.examId);
-    const examQuestions = examQuestionsDetailed(application.examId);
-    setResult({ status: 'ok', examTitle: exam?.title, answers: resolveAnswerKey(copy, examQuestions) });
   };
 
   return (
@@ -59,8 +58,16 @@ export default function PublicAnswerKey() {
             style={{ textAlign: 'center', fontSize: 18, fontWeight: 700, letterSpacing: '0.08em' }}
             required
           />
-          <PrimaryButton type="submit">Consultar gabarito</PrimaryButton>
+          <PrimaryButton type="submit" disabled={loading}>
+            {loading ? 'Consultando...' : 'Consultar gabarito'}
+          </PrimaryButton>
         </form>
+
+        {result?.status === 'error' && (
+          <div style={{ marginTop: 20, fontSize: 13.5, color: 'var(--red-text)', textAlign: 'center' }}>
+            {result.message}
+          </div>
+        )}
 
         {result?.status === 'not-found' && (
           <div style={{ marginTop: 20, fontSize: 13.5, color: 'var(--red-text)', textAlign: 'center' }}>
@@ -90,7 +97,7 @@ export default function PublicAnswerKey() {
                   }}
                 >
                   <span style={{ color: 'var(--muted-2)' }}>Questão {a.number}</span>
-                  <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{a.correctLetter}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{a.correctLetter ?? 'Discursiva'}</span>
                 </div>
               ))}
             </div>

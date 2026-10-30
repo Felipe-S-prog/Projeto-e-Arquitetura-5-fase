@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import dotenv from 'dotenv';
 
 // Carrega o arquivo .env (se existir) para process.env.
@@ -19,6 +20,31 @@ function parsePort(value, name) {
   return port;
 }
 
+// Bancos hospedados (Aiven, por exemplo) só aceitam conexão com SSL e usam um certificado
+// de autoridade (CA) próprio. Para ligar o SSL, informe UMA destas variáveis:
+//   DB_SSL_CA       -> o texto do certificado (-----BEGIN CERTIFICATE-----...). "\n" vira quebra de linha;
+//   DB_SSL_CA_PATH  -> caminho de um arquivo .pem com o certificado;
+//   DB_SSL=true     -> liga o SSL usando as autoridades que o Node já conhece (sem CA própria).
+// Sem nenhuma delas, a conexão é a de sempre (sem SSL), como no MySQL local do grupo.
+// O certificado do servidor é sempre verificado (rejectUnauthorized: true).
+function parseDbSsl(env) {
+  let ca;
+  if (env.DB_SSL_CA_PATH) {
+    try {
+      ca = readFileSync(env.DB_SSL_CA_PATH, 'utf8');
+    } catch {
+      throw new Error(`DB_SSL_CA_PATH inválido: não foi possível ler "${env.DB_SSL_CA_PATH}".`);
+    }
+  } else if (env.DB_SSL_CA) {
+    ca = env.DB_SSL_CA.replace(/\\n/g, '\n');
+  }
+  if (ca !== undefined && !ca.includes('BEGIN CERTIFICATE')) {
+    throw new Error('O certificado informado em DB_SSL_CA / DB_SSL_CA_PATH não parece um certificado PEM válido.');
+  }
+  if (ca === undefined && env.DB_SSL !== 'true') return null;
+  return ca === undefined ? { rejectUnauthorized: true } : { ca, rejectUnauthorized: true };
+}
+
 export function loadConfig(env = process.env) {
   const missing = [];
   if (!env.DB_USER) missing.push('DB_USER');
@@ -34,6 +60,7 @@ export function loadConfig(env = process.env) {
     throw new Error('DB_NAME inválido: use apenas letras, números e "_" (máximo de 64 caracteres).');
   }
 
+  const dbSsl = parseDbSsl(env);
   const nodeEnv = env.NODE_ENV || 'development';
   const jwtSecret = env.JWT_ACCESS_SECRET || 'sgp-development-secret-change-before-deploy-2026';
   if (nodeEnv === 'production' && (!env.JWT_ACCESS_SECRET || env.JWT_ACCESS_SECRET.startsWith('troque-por-'))) {
@@ -74,6 +101,7 @@ export function loadConfig(env = process.env) {
       user: env.DB_USER,
       password: env.DB_PASSWORD,
       database: env.DB_NAME,
+      ...(dbSsl ? { ssl: dbSsl } : {}),
     },
     auth: {
       jwtSecret,
