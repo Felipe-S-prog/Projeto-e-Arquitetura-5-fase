@@ -14,6 +14,7 @@ Professores e administradores (RF01). O aluno não tem conta no sistema.
 | senha_hash | VARCHAR(255) (aceita nulo) | Hash bcrypt da senha (RNF02); fica nulo enquanto o usuário está Convidado |
 | papel | ENUM('ADMINISTRADOR','PROFESSOR') | Perfil de acesso |
 | status | ENUM('CONVIDADO','ATIVO','ANONIMIZADO') | Situação da conta; ANONIMIZADO mantém o histórico (LGPD) |
+| versao_sessao | INT UNSIGNED | Versão da sessão; ao mudar, invalida os tokens de acesso já emitidos (RNF03) |
 | criado_em | DATETIME | Data e hora de criação do cadastro |
 
 ### refresh_token
@@ -189,3 +190,14 @@ Resposta de cada questão em uma correção pelas respostas marcadas (migration 
 | letra_marcada | CHAR(1) (aceita nulo) | Letra marcada pelo aluno, na ordem impressa da cópia; nulo quando ficou em branco ou é discursiva |
 | correta | TINYINT(1) (aceita nulo) | 1 se a letra marcada é a correta; nulo nas discursivas |
 | pontos | DECIMAL(5,2) | Pontos obtidos na questão |
+
+### configuracoes
+
+Configurações gerais do sistema, em uma única linha (migration `002_configuracoes.sql`).
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| id | TINYINT UNSIGNED (PK) | Identificador do registro; sempre 1 |
+| nome_instituicao | VARCHAR(255) | Nome da instituição |
+| periodo_padrao | VARCHAR(20) | Período letivo padrão (ex.: 2026/2) |
+| atualizado_em | TIMESTAMP | Data e hora da última alteração |
