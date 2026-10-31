@@ -1,3 +1,4 @@
+
 import { createHash, randomBytes } from 'node:crypto';
 import { AppError } from '../errors/AppError.js';
 import { hashPassword, comparePassword, validatePassword } from '../utils/password.js';
@@ -63,33 +64,47 @@ export function createAuthService(repository, config) {
 
   async function createSession(user, device) {
     const refreshToken = randomBytes(32).toString('base64url');
+
     await repository.createRefreshToken({
       userId: Number(user.id),
       tokenHash: tokenHash(refreshToken),
       device,
       expiresInDays: config.auth.refreshTokenTtlDays,
     });
+
     return buildSession(user, refreshToken);
   }
 
   return {
     async bootstrapStatus() {
-      return { needsBootstrap: config.auth.allowAdminBootstrap && !(await repository.hasBootstrapAdministrator()) };
+      return {
+        needsBootstrap: config.auth.allowAdminBootstrap &&
+          !(await repository.hasBootstrapAdministrator()),
+      };
     },
 
     async bootstrapAdministrator(data) {
       if (!config.auth.allowAdminBootstrap) {
         throw AppError.forbidden('A criação pública do primeiro administrador está desabilitada neste ambiente.');
       }
+
       const name = validateName(data?.name);
       const email = normalizeEmail(data?.email);
       validateEmail(email);
       validateDomain(email, 'ADMINISTRADOR');
       validatePassword(data?.password);
+
       const device = validateDevice(data?.device);
       const passwordHash = await hashPassword(data.password);
-      const user = await repository.createBootstrapAdministrator({ name, email, passwordHash });
+
+      const user = await repository.createBootstrapAdministrator({
+        name,
+        email,
+        passwordHash,
+      });
+
       if (!user) throw AppError.conflict('O administrador inicial já foi configurado.');
+
       return createSession(user, device);
     },
 
@@ -97,70 +112,114 @@ export function createAuthService(repository, config) {
       const email = normalizeEmail(data?.email);
       validateEmail(email);
       validatePassword(data?.password);
+
       const device = validateDevice(data?.device);
       const invitedUser = await repository.findUserByEmail(email);
-      // ATIVO sem hash cobre contas antigas criadas antes da autenticação real.
+
       const pendingInvitation = invitedUser &&
         ['CONVIDADO', 'ATIVO'].includes(invitedUser.status) &&
         !invitedUser.senha_hash;
+
       if (!pendingInvitation) {
         throw AppError.conflict('Não existe um convite pendente para esse e-mail. Solicite acesso ao administrador.');
       }
+
       validateDomain(email, invitedUser.papel);
+
       const passwordHash = await hashPassword(data.password);
-      const user = await repository.activateInvitation({ userId: invitedUser.id, passwordHash });
+
+      const user = await repository.activateInvitation({
+        userId: invitedUser.id,
+        passwordHash,
+      });
+
       if (!user) throw AppError.conflict('Este convite já foi utilizado ou não está mais disponível.');
+
       return createSession(user, device);
     },
 
     async login(data) {
       const email = normalizeEmail(data?.email);
       const password = data?.password;
+
       if (!EMAIL_RE.test(email) || typeof password !== 'string') {
         throw AppError.unauthorized('E-mail ou senha inválidos.');
       }
+
       const user = await repository.findUserByEmail(email);
+
       if (!user || user.status !== 'ATIVO' || !user.senha_hash) {
         throw AppError.unauthorized('E-mail ou senha inválidos.');
       }
+
       if (!emailAllowedForRole(email, user.papel, config)) {
         throw AppError.unauthorized('E-mail ou senha inválidos.');
       }
+
       if (!(await comparePassword(password, user.senha_hash))) {
         throw AppError.unauthorized('E-mail ou senha inválidos.');
       }
+
       return createSession(user, validateDevice(data?.device));
     },
 
     async refresh(data) {
       const oldToken = data?.refreshToken;
+
       if (typeof oldToken !== 'string' || oldToken.length < 32 || oldToken.length > 200) {
         throw AppError.unauthorized('Refresh token inválido ou expirado.');
       }
+
       const oldHash = tokenHash(oldToken);
       const oldSession = await repository.findRefreshTokenByHash(oldHash);
-      if (!oldSession) throw AppError.unauthorized('Refresh token inválido ou expirado.');
+
+      if (!oldSession) {
+        throw AppError.unauthorized('Refresh token inválido ou expirado.');
+      }
 
       const device = validateDevice(data?.device) ?? oldSession.dispositivo ?? null;
       const newRefreshToken = randomBytes(32).toString('base64url');
+
       const rotated = await repository.rotateRefreshToken({
         oldTokenId: oldSession.refresh_token_id,
         tokenHash: tokenHash(newRefreshToken),
         device,
         expiresInDays: config.auth.refreshTokenTtlDays,
       });
-      if (!rotated) throw AppError.unauthorized('Refresh token já utilizado ou expirado. Entre novamente.');
 
-      return buildSession({ ...oldSession, id: oldSession.usuario_id }, newRefreshToken);
+      if (!rotated) {
+        throw AppError.unauthorized('Refresh token já utilizado ou expirado. Entre novamente.');
+      }
+
+      return buildSession(
+        { ...oldSession, id: oldSession.usuario_id },
+        newRefreshToken,
+      );
     },
 
     async logout(userId, data) {
       const refreshToken = data?.refreshToken;
+
       if (typeof refreshToken !== 'string' || refreshToken.length < 32 || refreshToken.length > 200) {
         throw AppError.badRequest('Informe o refresh token da sessão atual.');
       }
-      await repository.revokeRefreshToken({ tokenHash: tokenHash(refreshToken), userId });
+
+      await repository.revokeRefreshToken({
+        tokenHash: tokenHash(refreshToken),
+        userId,
+      });
+
       return { message: 'Sessão encerrada.' };
+    },
+
+    async logoutAll(userId) {
+      const revoked = await repository.revokeAllSessions(userId);
+
+      if (!revoked) {
+        throw AppError.unauthorized('A conta não está ativa. Entre novamente.');
+      }
+
+      return { message: 'Todas as sessões foram encerradas.' };
     },
   };
 }

@@ -1,3 +1,4 @@
+
 import { AppError } from '../errors/AppError.js';
 import { verifyAccessToken } from '../utils/jwt.js';
 
@@ -17,36 +18,64 @@ const PROTECTED_PREFIXES = [
   '/aplicacoes', '/copias', '/correcoes', '/relatorios', '/alunos',
 ];
 
+const SESSION_PATHS = new Set([
+  '/auth/logout',
+  '/auth/logout-all',
+  '/auth/session',
+]);
+
 export function createApiAuthMiddleware({ pool, config }) {
   return async (req, res, next) => {
     try {
       const path = req.path.replace(/\/$/, '') || '/';
+
       if (PUBLIC_PATHS.has(path)) return next();
 
-      const isLogout = path === '/auth/logout';
+      const isSessionAction = SESSION_PATHS.has(path);
+
       const protectedPrefix = PROTECTED_PREFIXES.find(
         (prefix) => path === prefix || path.startsWith(`${prefix}/`),
       );
-      if (!isLogout && !protectedPrefix) return next();
+
+      if (!isSessionAction && !protectedPrefix) return next();
 
       const authorization = req.get('authorization') ?? '';
       const match = authorization.match(/^Bearer\s+(.+)$/i);
-      if (!match) throw AppError.unauthorized('Envie um token de acesso no cabeçalho Authorization.');
+
+      if (!match) {
+        throw AppError.unauthorized('Envie um token de acesso no cabeçalho Authorization.');
+      }
 
       const payload = verifyAccessToken(match[1], config.auth.jwtSecret);
+
       const [rows] = await pool.execute(
-        `SELECT id, nome, email, papel, status FROM usuario
-         WHERE id = ? AND status = 'ATIVO' LIMIT 1`,
+        `SELECT id, nome, email, papel, status, versao_sessao
+         FROM usuario
+         WHERE id = ? AND status = 'ATIVO'
+         LIMIT 1`,
         [Number(payload.sub)],
       );
-      const user = rows[0];
-      if (!user) throw AppError.unauthorized('A conta não está ativa. Entre novamente.');
 
-      if (!isLogout) {
-        const requiredRole = path === '/admin' || path.startsWith('/admin/') ||
+      const user = rows[0];
+
+      if (!user) {
+        throw AppError.unauthorized('A conta não está ativa. Entre novamente.');
+      }
+
+      const tokenSessionVersion = Number(payload.sv ?? 0);
+      const currentSessionVersion = Number(user.versao_sessao ?? 0);
+
+      if (tokenSessionVersion !== currentSessionVersion) {
+        throw AppError.unauthorized('Sua sessão foi encerrada. Entre novamente.');
+      }
+
+      if (!isSessionAction) {
+        const requiredRole =
+          path === '/admin' || path.startsWith('/admin/') ||
           path === '/settings' || path.startsWith('/settings/')
-          ? 'ADMINISTRADOR'
-          : 'PROFESSOR';
+            ? 'ADMINISTRADOR'
+            : 'PROFESSOR';
+
         if (user.papel !== requiredRole) {
           throw AppError.forbidden('Seu papel não permite acessar este recurso.');
         }
@@ -58,16 +87,20 @@ export function createApiAuthMiddleware({ pool, config }) {
         email: user.email,
         papel: user.papel,
         role: user.papel,
+        versaoSessao: currentSessionVersion,
       };
 
       // Compatibilidade temporária com rotas antigas que ainda leem professor_id
       // do body/query. O valor vem do JWT e nunca do que o cliente enviou.
       if (user.papel === 'PROFESSOR') {
         req.professorId = Number(user.id);
+
         if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
           req.body = {};
         }
+
         req.body.professor_id = Number(user.id);
+
         Object.defineProperty(req, 'query', {
           configurable: true,
           enumerable: true,
@@ -75,6 +108,7 @@ export function createApiAuthMiddleware({ pool, config }) {
           value: { ...req.query, professor_id: String(user.id) },
         });
       }
+
       next();
     } catch (error) {
       next(error);
