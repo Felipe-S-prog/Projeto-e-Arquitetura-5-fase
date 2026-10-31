@@ -4,8 +4,8 @@
 
 **Plataforma web para professores criarem, aplicarem e corrigirem provas de forma automatizada. O aluno não acessa a plataforma: consulta o gabarito publicado por um link público, sem necessidade de login.**
 
-🔗 **Link do sistema hospedado:** ([https://projeto5fase.netlify.app/](https://projeto5fase.netlify.app/))
-<br>
+🔗 **Link do sistema hospedado:** [https://sgp-front-dc1.pages.dev](https://sgp-front-dc1.pages.dev)  
+🔗 **API (verificação de status):** [https://sgp-api-97te.onrender.com/api/health](https://sgp-api-97te.onrender.com/api/health)  
 🔗 **Link dos slides:** https://catolicasc-my.sharepoint.com/:p:/g/personal/matheus_kuchenbecker_catolicasc_edu_br/IQAvxzL0gGprSa9NjLN3J_VeATAhEe-oNpuc5HMO3loNs6I?e=BOYppk
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
@@ -24,11 +24,11 @@
 
 | Nome completo | Papel / principais frentes no projeto |
 |---|---|
-| BRUNO ROVANI MARCELINO | Autenticação e Perfil — cadastro de professor por um administrador, login de professor/administrador, JWT/refresh token, anonimização de conta (LGPD) |
-| CAMILA TEXEIRA | 	Turmas e Questões — criação de turmas, matrícula por e-mail/código de convite, CRUD do banco de questões |
-| FELIPE DOS SANTOS | Provas e Aplicações — montagem de provas (banco de questões da prova), aplicação de provas a turmas |
-| MATHEUS KUCHENBECKER | Geração de PDF e Gabarito — versões, embaralhamento de questões/alternativas, identificação do aluno, publicação de gabarito |
-| MIGUEL CARLOS BERTOLDI | Correção e Notas — fluxo de correção, lançamento manual de nota, relatórios e histórico de notas por turma |
+| BRUNO ROVANI MARCELINO | Autenticação e Perfil — cadastro de professor por um administrador, login de professor/administrador, JWT/refresh token e implementação parcial da anonimização de conta (LGPD — T09, não concluída). |
+| CAMILA TEXEIRA | Turmas e Questões — criação de turmas, matrícula por e-mail/código de convite, CRUD do banco de questões. |
+| FELIPE DOS SANTOS | Provas e Aplicações — montagem de provas (banco de questões da prova), aplicação de provas a turmas. |
+| MATHEUS KUCHENBECKER | Geração de PDF e Gabarito — versões, embaralhamento de questões/alternativas, identificação do aluno, publicação de gabarito. |
+| MIGUEL CARLOS BERTOLDI | Correção e Notas — fluxo de correção, lançamento manual de nota, relatórios e histórico de notas por turma. |
 
 ## 📑 Sumário
 
@@ -42,6 +42,7 @@
 - [6. Decisões Arquiteturais (ADRs)](#6-decisões-arquiteturais-adrs)
 - [7. Modelo de Dados](#7-modelo-de-dados)
   - [7.1 Estado da integração com o banco](#71-estado-da-integração-com-o-banco)
+  - [7.2 Situação da T09 — Anonimização de conta (LGPD)](#72-situação-da-t09--anonimização-de-conta-lgpd)
 - [8. Stack Tecnológica](#8-stack-tecnológica)
 - [9. Estrutura de Pastas](#9-estrutura-de-pastas)
 - [10. Como Executar o Projeto](#10-como-executar-o-projeto)
@@ -80,17 +81,17 @@ Dentro do escopo do projeto:
 - Criação de provas reutilizáveis (banco de questões da prova) e aplicação dessas provas a uma ou mais turmas.
 - Geração de um PDF único consolidado por aplicação, com quantidade configurável de versões, embaralhamento de questões e alternativas, e opção de prova com ou sem identificação do aluno.
 - Publicação de gabarito (por versão ou por aplicação) em um link público, sem exigir login do aluno.
-- Correção automatizada a partir da leitura do gabarito preenchido pelo aluno.
+- Correção automatizada a partir da leitura do gabarito preenchido.
 - Lançamento manual de nota quando a prova foi gerada sem identificação do aluno.
 - Relatórios de notas (por aplicação e consolidados), com exportação.
 - Histórico de notas e desempenho do aluno, consultado pelo professor (o aluno não tem essa consulta dentro do sistema).
 
-Fora do escopo do semestre (ponto em aberto, a validar com o cliente e com a professora da disciplina antes da apresentação de 28/08):
+Fora do escopo do semestre:
 
-- **App mobile nativo** dedicado à leitura de QR Code — a especificação de referência do cliente prevê um app React Native exclusivo do professor para essa etapa; como a disciplina exige stack **Node.js + Express + MySQL**, a equipe ainda vai decidir se a correção será feita via **web** (ex.: upload da foto do gabarito) ou se o app mobile fica como extensão futura, fora do MVP entregue no semestre.
+- **App mobile nativo** dedicado à leitura de QR Code — a especificação de referência do cliente prevê um app React Native exclusivo do professor para essa etapa; como a disciplina exige stack **Node.js + Express + MySQL**, a equipe optou por manter a correção na aplicação web nesta entrega. A leitura automática das marcações da folha ainda não faz parte do sistema.
 - **Arquitetura de microsserviços** (Auth, Exam/Class/Application, Grade, Sync, Vision) proposta na especificação de referência — o projeto da disciplina segue uma **arquitetura em camadas única** (rota → controle → serviço → repositório → model), conforme exigido pela metodologia da disciplina.
 - Fila de sincronização offline e deduplicação de correções (dependem diretamente do app mobile acima).
-- Exclusão física de dados (LGPD) — só a anonimização de conta está prevista.
+- Exclusão física de dados (LGPD) — a proposta é utilizar anonimização de conta; a implementação da T09, entretanto, não foi concluída nesta entrega.
 - **Conta e login de aluno na plataforma** — decisão validada com o cliente: o aluno nunca acessa o sistema diretamente. Contas de professor são criadas por um administrador; o único ponto de contato do aluno é o gabarito publicado via link público, sem autenticação.
 
 ## 2. Requisitos
@@ -123,7 +124,7 @@ Fora do escopo do semestre (ponto em aberto, a validar com o cliente e com a pro
 | RNF03 | O login deve emitir token JWT de acesso e refresh token, com suporte a logout do dispositivo atual e logout de todos os dispositivos. |
 | RNF04 | O isolamento de dados entre professores deve ser garantido: um professor só pode acessar suas próprias turmas, questões, provas e notas. Alunos não autenticam no sistema, então esse isolamento não se aplica a eles. |
 | RNF05 | O sistema deve responder em tempo aceitável em uma conexão padrão (meta inicial: até 2s nas operações comuns). |
-| RNF06 | O sistema deve estar hospedado em um serviço gratuito (Netlify, Vercel, GitHub Pages ou similar) e permanecer acessível ao longo do semestre. |
+| RNF06 | O sistema deve estar hospedado em um serviço gratuito e permanecer acessível ao longo do semestre. Nesta entrega, o front-end está publicado no Cloudflare Pages e a API no Render. |
 
 ## 3. Modelagem (UML)
 
@@ -145,11 +146,11 @@ O diagrama acima representa a parte de Provas e Aplicações do SGP (RF04 e RF05
 
 ![Diagrama de Atividades](docs/uml/diagrama-atividades.png)
 
-Escolha do fluxo
+**Escolha do fluxo**
 
 O caso de uso do grupo (`casos-de-uso.png`) tem várias ações do Professor: *Criar Aplicação*, *Gerar Provas em PDF* e *Publicar Gabarito*. Elas formam **um único fluxo de ponta a ponta**, e é o único em que o processo passa por mais de um participante (Professor, Sistema e, no final, o Aluno). Por isso foi o escolhido, e por isso o diagrama usa **raias**.
 
-Início e fim
+**Início e fim**
 
 | | Descrição |
 |---|---|
@@ -186,9 +187,7 @@ Mostram a troca de mensagens entre o usuário, o front-end, a API e o MySQL nos 
 
 ### 📌 N1 — Telas do Sistema
 
-Prints das telas principais, apresentados na ordem do fluxo de navegação (a tela A leva à tela B).
-
-Cada imagem é acompanhada de uma breve descrição de sua funcionalidade.
+Prints das telas principais, apresentados na ordem do fluxo de navegação (a tela A leva à tela B). Cada imagem é acompanhada de uma breve descrição de sua funcionalidade.
 
 ### 4.1 Tela de Login
 
@@ -262,9 +261,9 @@ Cada imagem é acompanhada de uma breve descrição de sua funcionalidade.
 
 **Descrição:** Na aba de **Turmas**, é possível criar ou editar uma turma existente. Ao clicar em **+ Criar Turma**, devem ser preenchidos os seguintes dados:
 
-- **Nome:** 
-- **Disciplina:** 
-- **Período / ano letivo:** 
+- **Nome:**
+- **Disciplina:**
+- **Período / ano letivo:**
 
 <p align="center">
   <img width="964" height="550" alt="Criação de turma" src="https://github.com/user-attachments/assets/42c99c9f-e201-4804-99cb-9a2a71b33cf5" />
@@ -322,7 +321,6 @@ Cada imagem é acompanhada de uma breve descrição de sua funcionalidade.
   <img width="445" height="141" alt="Confirmação de remoção" src="https://github.com/user-attachments/assets/4c73250b-59c8-4f55-9f78-95cea29cb6fb" />
 </p>
 
-
 ## 5. Arquitetura de Software
 
 📌 **N3** (pode ser esboçada antes, mas passa a ser obrigatória na entrega final)
@@ -370,7 +368,6 @@ ADRs (Registros de Decisão Arquitetural) do projeto:
 - [ADR-004: Autenticação com JWT, refresh token rotativo e cadastro por convite](docs/adr/ADR-004-autenticacao-jwt-com-refresh-token-e-cadastro-por-convite.md)
 - [ADR-005: Ciclo de status da prova (Rascunho → Pronta → Arquivada)](docs/adr/ADR-005-ciclo-de-status-da-prova.md)
 
-
 ## 7. Modelo de Dados
 
 📌 **N2**
@@ -390,42 +387,51 @@ O banco é criado pelas migrations de `server/database/migrations/`, aplicadas e
 | `003_correcao_respostas.sql` | `correcao_resposta`: resposta de cada questão em uma correção |
 | `004_versao_sessao.sql` | `usuario.versao_sessao`: invalida os tokens de acesso no logout de todos os dispositivos |
 
+O migrator também configura SSL/TLS quando necessário para conectar a bancos hospedados que exigem conexão criptografada.
+
 ### 7.1 Estado da integração com o banco
 
-Posição em 30/10/2026, entrega da N2.
+Posição da entrega da N2.
 
 | Frente | Parte | Lê e grava no MySQL? | Observação |
 |---|---|---|---|
-| Autenticação | Login, JWT e refresh token (T07) | ✅ Sim | |
-| Autenticação | Logout de todos os dispositivos (T08) | ✅ Sim | |
-| Autenticação | Anonimização de conta (T09) | 🟡 Em andamento | Ainda não integrada à main |
+| Autenticação | Login, JWT e refresh token (T07) | ✅ Sim | Cadastro por convite, hash de senha e proteção de rotas autenticadas. |
+| Autenticação | Logout de todos os dispositivos (T08) | ✅ Sim | Incrementa a versão da sessão e revoga os refresh tokens; migration `004_versao_sessao.sql` aplicada no banco de produção. |
+| Autenticação | Anonimização de conta (T09) | ❌ Não concluída | Implementação iniciada, mas não finalizada nem integrada à `main`; o endpoint previsto ainda não está disponível na API publicada. Ver seção 7.2. |
 | Administração | Usuários e configurações (T10) | ✅ Sim | |
 | Turmas | Criar, editar e arquivar (T13) | ✅ Sim | |
-| Turmas | Matrícula pelo professor (T15) | ⚠️ Com defeito | A rota `POST /api/turmas/:id/matriculas` saiu da main no merge da T14; a tela ainda a chama e a matrícula manual falha |
-| Turmas | Código de convite e ingresso do aluno (T14) | ✅ Sim | O aluno informa nome, e-mail e código em `/turmas/ingresso`, sem criar conta |
-| Questões | Listar, criar, editar e excluir (T11) | ✅ Sim | Só objetivas pela tela. A lista ainda mistura as questões de exemplo de `client/src/data/questions.json` (T35) |
-| Questões | Upload de imagem (T12) | ✅ Sim | Arquivos em `server/uploads/questoes`; o banco guarda o caminho |
+| Turmas | Matrícula pelo professor (T15) | ✅ Sim | A rota `POST /api/turmas/:id/matriculas` foi restaurada pela PR #56 e incluída na `main`, substituindo o estado anterior em que a rota estava ausente. |
+| Turmas | Código de convite e ingresso do aluno (T14) | ✅ Sim | O aluno informa nome, e-mail e código em `/turmas/ingresso`, sem criar conta. |
+| Questões | Listar, criar, editar e excluir (T11) | ✅ Sim | A tela trabalha com questões objetivas; a listagem utilizada na montagem de provas passou a consultar somente a API, sem incluir as questões de exemplo embutidas no front-end. |
+| Questões | Upload de imagem (T12) | ✅ Sim | Arquivos em `server/uploads/questoes`; o banco guarda o caminho. |
 | Provas | Criar, listar, editar e arquivar (T17) | ✅ Sim | |
 | Aplicações | Criar, configurar e marcar como aplicada, com a regra de status da prova (T18 e T19) | ✅ Sim | |
-| PDF e Gabarito | Cópias e publicação do gabarito (T23) | ✅ Sim | Geradas pelo servidor em `copia_prova` |
-| PDF e Gabarito | Cópias vinculadas aos alunos matriculados (T24) | ✅ Sim | Uma cópia nominal por aluno |
-| PDF e Gabarito | Geração e download do PDF no servidor (T25) | ✅ Sim | Questão discursiva ainda não é aceita no PDF; imagens WEBP e GIF ficam de fora, com aviso |
+| PDF e Gabarito | Cópias e publicação do gabarito (T23) | ✅ Sim | Geradas pelo servidor em `copia_prova`. |
+| PDF e Gabarito | Cópias vinculadas aos alunos matriculados (T24) | ✅ Sim | Uma cópia nominal por aluno. |
+| PDF e Gabarito | Geração e download do PDF no servidor (T25) | ✅ Sim | Questão discursiva ainda não é aceita no PDF; imagens WEBP e GIF ficam de fora, com aviso. |
 | PDF e Gabarito | Consulta pública do gabarito, sem login (T26) | ✅ Sim | |
 | PDF e Gabarito | Exportação do gabarito em PDF (T27) | ✅ Sim | |
-| Correção e Notas | Correção, lançamento manual, relatórios e histórico (T29 a T33) | ✅ Sim | O professor lê o QR e marca as respostas na tela; a leitura automática das marcações da folha ainda não existe |
+| Correção e Notas | Correção, lançamento manual, relatórios e histórico (T29 a T33) | ✅ Sim | O professor lê o QR e marca as respostas na tela; a leitura automática das marcações da folha ainda não existe. |
 
-Os arquivos JSON de `client/src/data/` são dados de exemplo da N1. Só o `questions.json` ainda é importado pelo sistema; a varredura final dos dados fixos é a tarefa T35.
+A T35 removeu as questões de exemplo que eram carregadas pelo `DataContext` do front-end. Com isso, a lista usada na montagem das provas passa a vir da API e evita a seleção de questões fictícias que não existem no MySQL. O diretório `client/src/data/` ainda pode conter arquivos de apoio ou dados de demonstração, mas eles não devem ser tratados como fonte das questões reais do sistema.
+
+### 7.2 Situação da T09 — Anonimização de conta (LGPD)
+
+A T09 prevê a implementação do endpoint `POST /api/me/anonymize`, para que o usuário autenticado solicite a anonimização da própria conta. A finalidade é substituir os dados pessoais identificáveis por valores anonimizados, preservar o registro do usuário e manter o histórico de notas e correções associado aos registros acadêmicos, sem realizar a exclusão física do histórico.
+
+**Situação na entrega da N2:** a implementação foi iniciada, mas ficou parcial e não foi concluída dentro do prazo. A funcionalidade não foi integrada à `main` e não está disponível na versão hospedada. Portanto, o endpoint `POST /api/me/anonymize` não deve ser considerado implementado ou utilizável nesta versão do sistema.
+
+A conclusão da T09 permanece pendente para uma próxima etapa. Até que seja implementada, revisada, testada e integrada, a conta do usuário não deve ser considerada anonimizável pelo sistema.
 
 ## 8. Stack Tecnológica
 
-📌 **N1** (lista inicial, pode crescer nas entregas seguintes)
+📌 **N1** (lista inicial, atualizada conforme o projeto evolui)
 
 Tecnologias usadas no projeto e por que cada uma foi escolhida. A stack obrigatória da disciplina é:
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)
-
 
 **Back-end (`server/`)**
 
@@ -445,19 +451,18 @@ Tecnologias usadas no projeto e por que cada uma foi escolhida. A stack obrigat�
 - **React Router 7**: navegação entre as telas.
 - **qrcode** e **jsQR**: exibição e leitura do QR Code das provas.
 
-
 ## 9. Estrutura de Pastas
 
 📌 **N1**, atualizada conforme o projeto cresce
 
-```
+```text
 Projeto-e-Arquitetura-5-fase/
 ├── client/                       # Aplicação web React com Vite
 │   ├── public/                   # Arquivos estáticos usados pelo frontend
 │   ├── src/
 │   │   ├── components/           # Componentes reutilizáveis e modais
 │   │   ├── context/              # Estado e dados compartilhados da aplicação
-│   │   ├── data/                 # Dados de exemplo da N1 (ver seção 7.1)
+│   │   ├── data/                 # Arquivos de apoio e dados de demonstração
 │   │   ├── layouts/              # Estruturas visuais compartilhadas
 │   │   ├── pages/                # Telas do sistema
 │   │   ├── services/             # Chamadas à API e sessão do usuário
@@ -655,12 +660,11 @@ O arquivo `server/.env` e o arquivo `client/.env.local` contêm configurações 
 
 Consulte [`server/README.md`](server/README.md) para detalhes das variáveis de ambiente, camadas, migrations, autenticação e testes. A autenticação da T07 já utiliza cadastro por convite, senha, JWT e refresh token; as demais funcionalidades são integradas por frente, conforme a evolução das PRs.
 
-
 ## 11. Especificação da API
 
 📌 **N2**
 
-A API utiliza o prefixo `/api`. Estes são os endpoints que já estão na main.
+A API utiliza o prefixo `/api`. A lista abaixo apresenta os endpoints integrados à `main` nesta entrega. A T09 não aparece como rota porque seu endpoint de anonimização ainda não foi concluído nem integrado.
 
 **Saúde e autenticação**
 
@@ -692,6 +696,7 @@ A API utiliza o prefixo `/api`. Estes são os endpoints que já estão na main.
 | GET, POST | `/api/turmas` | Lista e cria turmas. |
 | PUT | `/api/turmas/:id` | Edita uma turma. |
 | PATCH | `/api/turmas/:id/arquivar` | Arquiva uma turma. |
+| POST | `/api/turmas/:id/matriculas` | Matricula um aluno manualmente em uma turma. |
 | POST | `/api/turmas/:id/codigo-convite/regenerar` | Gera um novo código de convite; o anterior deixa de valer. |
 | POST | `/api/turmas/ingresso` | Matricula o aluno pelo código de convite (pública). |
 | GET, POST | `/api/questoes` | Lista e cria questões. |
@@ -763,7 +768,7 @@ Guia rápido de como usar o sistema, do ponto de vista de quem vai operá-lo (o 
 
 Nome: principais contribuições no projeto (ex.: telas de cadastro, integração com banco, documentação). Serve para deixar claro quem fez o quê na entrega da equipe; não substitui o diário de organização de tarefas individual de cada pessoa.
 
-- **Bruno**: Autenticação e Perfil (cadastro/login, JWT/refresh, anonimização de conta).
+- **Bruno**: Autenticação e Perfil (cadastro/login, JWT/refresh e logout de todos os dispositivos — T08). A T09 (anonimização de conta) foi iniciada, mas não concluída nem integrada nesta entrega; ver seção 7.2.
 - **Camila**: Turmas e Questões (turmas, matrícula, banco de questões).
 - **Felipe dos Santos**: Provas e Aplicações (montagem e aplicação de provas às turmas).
 - **Matheus**: Geração de PDF e Gabarito (versões, embaralhamento de questões/alternativas, identificação do aluno, publicação de gabarito).
