@@ -22,7 +22,7 @@ export function createRoutes({ pool }) {
   router.use('/aplicacoes/:aplicacaoId/pdf', createPdfRoutes({ pool }));
   router.use('/aplicacoes', createAplicacaoRoutes({ pool }));
   router.use('/copias', createCopiaRoutes({ pool }));
-  router.use('/gabarito', createGabaritoRoutes({ pool })); // p├║blica: consulta do aluno pelo c├│digo
+  router.use('/gabarito', createGabaritoRoutes({ pool })); // pública: consulta do aluno pelo código
   router.use('/correcoes', createCorrecaoRoutes({ pool }));
   router.use('/relatorios', createRelatorioRoutes({ pool }));
   router.use('/alunos', createAlunoHistoricoRoutes({ pool }));
