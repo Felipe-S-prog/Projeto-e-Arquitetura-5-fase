@@ -8,7 +8,6 @@ import {
   useState,
 } from 'react';
 
-import questionsSeed from '../data/questions.json';
 import { useAuth } from './AuthContext';
 import { apiRequest } from '../services/api';
 
@@ -98,9 +97,7 @@ function unwrapQuestion(payload) {
 
 const DataProvider = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
-  const [questions, setQuestions] = useState(() =>
-    questionsSeed.map((question) => ({ ...question })),
-  );
+  const [questions, setQuestions] = useState([]);
 
   // Carrega as questões da API.
   useEffect(() => {
@@ -170,7 +167,7 @@ const DataProvider = ({ children }) => {
   const [settingsError, setSettingsError] = useState('');
 
   useEffect(() => {
-    setQuestions(questionsSeed.map((question) => ({ ...question })));
+    setQuestions([]);
     setClasses([]);
     setExams([]);
     setApplications([]);
