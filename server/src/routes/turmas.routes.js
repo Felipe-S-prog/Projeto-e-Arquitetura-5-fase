@@ -201,6 +201,118 @@ export function createTurmasRoutes({ pool }) {
     }
   });
 
+  // Matricular um aluno pelo nome e e-mail (T15).
+  router.post('/:id/matriculas', async (req, res, next) => {
+    try {
+      const turmaId = Number(req.params.id);
+
+      if (!Number.isInteger(turmaId) || turmaId <= 0) {
+        throw AppError.badRequest('ID de turma inválido.');
+      }
+
+      const nome = typeof req.body.nome === 'string' ? req.body.nome.trim() : '';
+      const email =
+        typeof req.body.email === 'string'
+          ? req.body.email.trim().toLowerCase()
+          : '';
+      const numeroMatricula =
+        typeof req.body.numero_matricula === 'string'
+          ? req.body.numero_matricula.trim() || null
+          : null;
+
+      if (!nome || nome.length > 120) {
+        throw AppError.badRequest(
+          'Informe o nome do aluno (máximo de 120 caracteres).',
+        );
+      }
+
+      if (
+        !email ||
+        email.length > 160 ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+      ) {
+        throw AppError.badRequest('Informe um e-mail válido.');
+      }
+
+      if (numeroMatricula && numeroMatricula.length > 30) {
+        throw AppError.badRequest(
+          'O número de matrícula aceita até 30 caracteres.',
+        );
+      }
+
+      const [turmas] = await pool.execute(
+        `SELECT id, status
+         FROM turma
+         WHERE id = ? AND professor_id = ?`,
+        [turmaId, req.professorId],
+      );
+
+      if (!turmas.length) {
+        throw AppError.notFound('Turma não encontrada.');
+      }
+
+      if (turmas[0].status === 'ARQUIVADA') {
+        throw AppError.badRequest(
+          'Não é possível matricular alunos em uma turma arquivada.',
+        );
+      }
+
+      // Reutiliza o cadastro se esse e-mail já existir.
+      const [alunosExistentes] = await pool.execute(
+        `SELECT id, nome, email, numero_matricula
+         FROM aluno
+         WHERE email = ?`,
+        [email],
+      );
+
+      let aluno = alunosExistentes[0];
+
+      if (!aluno) {
+        const [resultadoAluno] = await pool.execute(
+          `INSERT INTO aluno (nome, email, numero_matricula)
+           VALUES (?, ?, ?)`,
+          [nome, email, numeroMatricula],
+        );
+
+        aluno = {
+          id: resultadoAluno.insertId,
+          nome,
+          email,
+          numero_matricula: numeroMatricula,
+        };
+      }
+
+      const [matriculasExistentes] = await pool.execute(
+        `SELECT 1
+         FROM matricula
+         WHERE turma_id = ? AND aluno_id = ?`,
+        [turmaId, aluno.id],
+      );
+
+      if (matriculasExistentes.length > 0) {
+        throw AppError.badRequest(
+          'Este aluno já está matriculado nesta turma.',
+        );
+      }
+
+      await pool.execute(
+        `INSERT INTO matricula (turma_id, aluno_id)
+         VALUES (?, ?)`,
+        [turmaId, aluno.id],
+      );
+
+      res.status(201).json({
+        id: Number(aluno.id),
+        name: aluno.nome,
+        email: aluno.email,
+        registration: aluno.numero_matricula,
+        numeroMatricula: aluno.numero_matricula,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Editar turma.
   router.put('/:id', async (req, res, next) => {
     try {
