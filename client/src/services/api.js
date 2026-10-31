@@ -39,7 +39,7 @@ async function rawSend(path, { method = 'GET', body, headers = {} } = {}) {
     typeof FormData !== 'undefined' && body instanceof FormData;
 
   // O navegador define automaticamente o Content-Type e o boundary
-  // quando o corpo da requisi├º├úo ├® um FormData.
+  // quando o corpo da requisição é um FormData.
   if (
     body !== undefined &&
     !isFormData &&
@@ -76,7 +76,7 @@ async function rawSend(path, { method = 'GET', body, headers = {} } = {}) {
     throw new ApiError(
       0,
       'NETWORK_ERROR',
-      'N├úo foi poss├¡vel conectar ├á API. Confira se o servidor est├í rodando.',
+      'Não foi possível conectar à API. Confira se o servidor está rodando.',
     );
   }
 }
@@ -102,7 +102,7 @@ async function refreshSession() {
       throw new ApiError(
         401,
         'UNAUTHORIZED',
-        'Sua sess├úo expirou. Entre novamente.',
+        'Sua sessão expirou. Entre novamente.',
       );
     }
 
@@ -116,7 +116,7 @@ async function refreshSession() {
         throw new ApiError(
           401,
           'UNAUTHORIZED',
-          'Sua sess├úo expirou. Entre novamente.',
+          'Sua sessão expirou. Entre novamente.',
         );
       }
 
@@ -150,7 +150,7 @@ async function send(path, options = {}) {
       await refreshSession();
       response = await rawSend(path, options);
     } catch {
-      // Mant├®m a resposta original 401 se a renova├º├úo falhar.
+      // Mantém a resposta original 401 se a renovação falhar.
     }
   }
 
@@ -176,8 +176,8 @@ export async function apiRequest(path, options = {}) {
   return response.status === 204 ? null : response.json();
 }
 
-// Baixa um arquivo da API sem salvar: devolve o conte├║do, o nome sugerido pelo servidor
-// (Content-Disposition) e os cabe├ºalhos, para a tela decidir o que fazer com ele.
+// Baixa um arquivo da API sem salvar: devolve o conteúdo, o nome sugerido pelo servidor
+// (Content-Disposition) e os cabeçalhos, para a tela decidir o que fazer com ele.
 export async function apiBlob(path, fallbackName) {
   const response = await send(path);
   const disposition = response.headers.get('Content-Disposition') ?? '';

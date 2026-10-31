@@ -44,7 +44,7 @@ export default function ClassDetail() {
   }
 
   if (!cls) {
-    return <div>Turma n├úo encontrada.</div>;
+    return <div>Turma não encontrada.</div>;
   }
 
   const apps = classApplications(cls.id);
@@ -65,7 +65,7 @@ export default function ClassDetail() {
       setArchiving(true);
       await archiveClass(cls.id);
     } catch (err) {
-      setError(err.message || 'N├úo foi poss├¡vel arquivar a turma.');
+      setError(err.message || 'Não foi possível arquivar a turma.');
     } finally {
       setArchiving(false);
     }
@@ -99,7 +99,7 @@ export default function ClassDetail() {
       setStudentEmail('');
       setSuccess('Aluno matriculado com sucesso!');
     } catch (err) {
-      setError(err.message || 'N├úo foi poss├¡vel matricular o aluno.');
+      setError(err.message || 'Não foi possível matricular o aluno.');
     } finally {
       setEnrolling(false);
     }
@@ -108,7 +108,7 @@ export default function ClassDetail() {
   const handleRegenerateCode = async () => {
     if (
       !window.confirm(
-        'Regenerar o c├│digo? O c├│digo anterior deixar├í de funcionar.',
+        'Regenerar o código? O código anterior deixará de funcionar.',
       )
     ) {
       return;
@@ -121,7 +121,7 @@ export default function ClassDetail() {
       await regenerateInviteCode(cls.id);
     } catch (err) {
       setError(
-        err.message || 'N├úo foi poss├¡vel regenerar o c├│digo de convite.',
+        err.message || 'Não foi possível regenerar o código de convite.',
       );
     } finally {
       setRegeneratingCode(false);
@@ -137,7 +137,7 @@ export default function ClassDetail() {
       window.alert('Link de ingresso copiado!');
     } catch {
       setError(
-        'N├úo foi poss├¡vel copiar automaticamente. Copie o link exibido manualmente.',
+        'Não foi possível copiar automaticamente. Copie o link exibido manualmente.',
       );
     }
   };
@@ -184,7 +184,7 @@ export default function ClassDetail() {
               flexWrap: 'wrap',
             }}
           >
-            {cls.subject} ┬À {cls.period}
+            {cls.subject} · {cls.period}
             <Badge status={cls.status} />
           </div>
         </div>
@@ -244,7 +244,7 @@ export default function ClassDetail() {
             marginBottom: 12,
           }}
         >
-          C├│digo de convite
+          Código de convite
         </h2>
 
         <div
@@ -263,7 +263,7 @@ export default function ClassDetail() {
               color: 'var(--ink)',
             }}
           >
-            {cls.codigoConvite || 'N├úo dispon├¡vel'}
+            {cls.codigoConvite || 'Não disponível'}
           </code>
 
           <SecondaryButton
@@ -274,7 +274,7 @@ export default function ClassDetail() {
             }
             onClick={handleRegenerateCode}
           >
-            {regeneratingCode ? 'Regenerando...' : 'Regenerar c├│digo'}
+            {regeneratingCode ? 'Regenerando...' : 'Regenerar código'}
           </SecondaryButton>
         </div>
 
@@ -285,7 +285,7 @@ export default function ClassDetail() {
             lineHeight: 1.5,
           }}
         >
-          Compartilhe o c├│digo com os alunos. Ao regener├í-lo, o c├│digo
+          Compartilhe o código com os alunos. Ao regenerá-lo, o código
           anterior deixa de funcionar.
         </p>
 
@@ -366,7 +366,7 @@ export default function ClassDetail() {
 
         {isArchived ? (
           <p style={{ fontSize: 14, color: 'var(--muted)' }}>
-            Esta turma est├í arquivada e n├úo aceita novas matr├¡culas.
+            Esta turma está arquivada e não aceita novas matrículas.
           </p>
         ) : (
           <form
@@ -500,7 +500,7 @@ export default function ClassDetail() {
                       color: 'var(--muted)',
                     }}
                   >
-                    Matr├¡cula: {student.numeroMatricula}
+                    Matrícula: {student.numeroMatricula}
                   </div>
                 )}
               </div>
@@ -522,7 +522,7 @@ export default function ClassDetail() {
           marginBottom: 14,
         }}
       >
-        HIST├ôRICO DE APLICA├ç├òES NESTA TURMA
+        HISTÓRICO DE APLICAÇÕES NESTA TURMA
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -560,7 +560,7 @@ export default function ClassDetail() {
                     color: 'var(--text-strong)',
                   }}
                 >
-                  {exam?.title || 'Prova n├úo encontrada'}
+                  {exam?.title || 'Prova não encontrada'}
                 </div>
 
                 <div
@@ -570,7 +570,7 @@ export default function ClassDetail() {
                     marginTop: 3,
                   }}
                 >
-                  {application.date || 'ÔÇö'} ┬À {application.quantity} provas
+                  {application.date || '—'} · {application.quantity} provas
                   {' '}geradas
                 </div>
               </div>
