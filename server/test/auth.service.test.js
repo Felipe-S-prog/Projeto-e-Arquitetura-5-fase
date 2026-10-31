@@ -1,3 +1,4 @@
+
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { AppError } from '../src/errors/AppError.js';
@@ -15,29 +16,74 @@ const config = {
 };
 
 function makeRepository(initialUser = null) {
-  let user = initialUser ? { ...initialUser } : null;
+  let user = initialUser
+    ? { ...initialUser, versao_sessao: Number(initialUser.versao_sessao ?? 0) }
+    : null;
+
   const savedRefreshTokens = [];
   let nextRefreshId = 1;
+
   return {
     savedRefreshTokens,
-    async hasBootstrapAdministrator() { return user?.papel === 'ADMINISTRADOR' && user?.status !== 'ANONIMIZADO'; },
+
+    get currentUser() {
+      return user;
+    },
+
+    async hasBootstrapAdministrator() {
+      return user?.papel === 'ADMINISTRADOR' && user?.status !== 'ANONIMIZADO';
+    },
+
     async createBootstrapAdministrator(data) {
       if (await this.hasBootstrapAdministrator()) return null;
-      user = { id: 1, nome: data.name, email: data.email, senha_hash: data.passwordHash, papel: 'ADMINISTRADOR', status: 'ATIVO' };
+
+      user = {
+        id: 1,
+        nome: data.name,
+        email: data.email,
+        senha_hash: data.passwordHash,
+        papel: 'ADMINISTRADOR',
+        status: 'ATIVO',
+        versao_sessao: 0,
+      };
+
       return user;
     },
-    async findUserByEmail(email) { return user?.email === email ? user : null; },
+
+    async findUserByEmail(email) {
+      return user?.email === email ? user : null;
+    },
+
     async activateInvitation({ userId, passwordHash }) {
-      if (!user || user.id !== userId || !['CONVIDADO', 'ATIVO'].includes(user.status) || user.senha_hash) return null;
+      if (
+        !user ||
+        user.id !== userId ||
+        !['CONVIDADO', 'ATIVO'].includes(user.status) ||
+        user.senha_hash
+      ) {
+        return null;
+      }
+
       user = { ...user, senha_hash: passwordHash, status: 'ATIVO' };
+
       return user;
     },
+
     async createRefreshToken(token) {
-      savedRefreshTokens.push({ ...token, id: nextRefreshId++, revoked: false });
+      savedRefreshTokens.push({
+        ...token,
+        id: nextRefreshId++,
+        revoked: false,
+      });
     },
+
     async findRefreshTokenByHash(hash) {
-      const saved = savedRefreshTokens.find((token) => token.tokenHash === hash && !token.revoked);
+      const saved = savedRefreshTokens.find(
+        (token) => token.tokenHash === hash && !token.revoked,
+      );
+
       if (!saved || !user || user.status !== 'ATIVO') return null;
+
       return {
         refresh_token_id: saved.id,
         usuario_id: user.id,
@@ -46,19 +92,57 @@ function makeRepository(initialUser = null) {
         email: user.email,
         papel: user.papel,
         status: user.status,
+        versao_sessao: user.versao_sessao,
       };
     },
+
     async rotateRefreshToken({ oldTokenId, tokenHash, device, expiresInDays }) {
-      const oldToken = savedRefreshTokens.find((token) => token.id === oldTokenId && !token.revoked);
+      const oldToken = savedRefreshTokens.find(
+        (token) => token.id === oldTokenId && !token.revoked,
+      );
+
       if (!oldToken) return false;
+
       oldToken.revoked = true;
-      savedRefreshTokens.push({ userId: user.id, tokenHash, device, expiresInDays, id: nextRefreshId++, revoked: false });
+
+      savedRefreshTokens.push({
+        userId: user.id,
+        tokenHash,
+        device,
+        expiresInDays,
+        id: nextRefreshId++,
+        revoked: false,
+      });
+
       return true;
     },
+
     async revokeRefreshToken({ tokenHash }) {
-      const token = savedRefreshTokens.find((item) => item.tokenHash === tokenHash && !item.revoked);
+      const token = savedRefreshTokens.find(
+        (item) => item.tokenHash === tokenHash && !item.revoked,
+      );
+
       if (!token) return false;
+
       token.revoked = true;
+
+      return true;
+    },
+
+    async revokeAllSessions(userId) {
+      if (!user || Number(user.id) !== Number(userId)) return false;
+
+      user = {
+        ...user,
+        versao_sessao: Number(user.versao_sessao ?? 0) + 1,
+      };
+
+      savedRefreshTokens.forEach((token) => {
+        if (Number(token.userId) === Number(userId)) {
+          token.revoked = true;
+        }
+      });
+
       return true;
     },
   };
@@ -73,11 +157,22 @@ test('ativar um convite grava senha hash e emite JWT e refresh token', async () 
     papel: 'PROFESSOR',
     status: 'CONVIDADO',
   });
+
   const service = createAuthService(repo, config);
-  const session = await service.register({ email: 'PROFESSORA@CATOLICASC.EDU.BR', password: 'minha-senha-forte', device: 'teste' });
+
+  const session = await service.register({
+    email: 'PROFESSORA@CATOLICASC.EDU.BR',
+    password: 'minha-senha-forte',
+    device: 'teste',
+  });
+
   assert.equal(session.user.id, 7);
   assert.equal(session.user.role, 'PROFESSOR');
-  assert.equal(verifyAccessToken(session.accessToken, config.auth.jwtSecret).sub, '7');
+
+  const payload = verifyAccessToken(session.accessToken, config.auth.jwtSecret);
+
+  assert.equal(payload.sub, '7');
+  assert.equal(payload.sv, 0);
   assert.equal(typeof session.refreshToken, 'string');
   assert.notEqual(repo.savedRefreshTokens[0].tokenHash, session.refreshToken);
 });
@@ -91,8 +186,14 @@ test('conta antiga ativa sem senha pode definir a primeira senha e entrar', asyn
     papel: 'PROFESSOR',
     status: 'ATIVO',
   });
+
   const service = createAuthService(repo, config);
-  const session = await service.register({ email: 'professor.antigo@catolicasc.edu.br', password: 'minha-senha-forte' });
+
+  const session = await service.register({
+    email: 'professor.antigo@catolicasc.edu.br',
+    password: 'minha-senha-forte',
+  });
+
   assert.equal(session.user.id, 10);
   assert.equal(session.user.role, 'PROFESSOR');
 });
@@ -106,12 +207,87 @@ test('refresh token é rotacionado e o token anterior deixa de ser reutilizável
     papel: 'PROFESSOR',
     status: 'CONVIDADO',
   });
+
   const service = createAuthService(repo, config);
-  const initial = await service.register({ email: 'professora@catolicasc.edu.br', password: 'minha-senha-forte' });
-  const refreshed = await service.refresh({ refreshToken: initial.refreshToken });
+
+  const initial = await service.register({
+    email: 'professora@catolicasc.edu.br',
+    password: 'minha-senha-forte',
+  });
+
+  const refreshed = await service.refresh({
+    refreshToken: initial.refreshToken,
+  });
+
   assert.notEqual(refreshed.refreshToken, initial.refreshToken);
+
+  const payload = verifyAccessToken(refreshed.accessToken, config.auth.jwtSecret);
+  assert.equal(payload.sv, 0);
+
   await assert.rejects(
     service.refresh({ refreshToken: initial.refreshToken }),
+    (error) => error instanceof AppError && error.statusCode === 401,
+  );
+});
+
+test('logout geral incrementa a versão e revoga todas as sessões do usuário', async () => {
+  const repo = makeRepository({
+    id: 7,
+    nome: 'Professora Teste',
+    email: 'professora@catolicasc.edu.br',
+    senha_hash: 'hash',
+    papel: 'PROFESSOR',
+    status: 'ATIVO',
+  });
+
+  const service = createAuthService(repo, config);
+
+  await repo.createRefreshToken({
+    userId: 7,
+    tokenHash: 'hash-sessao-1',
+    device: 'computador',
+    expiresInDays: 30,
+  });
+
+  await repo.createRefreshToken({
+    userId: 7,
+    tokenHash: 'hash-sessao-2',
+    device: 'celular',
+    expiresInDays: 30,
+  });
+
+  repo.savedRefreshTokens.push({
+    userId: 8,
+    tokenHash: 'hash-outro-usuario',
+    revoked: false,
+  });
+
+  assert.equal(repo.currentUser.versao_sessao, 0);
+
+  await service.logoutAll(7);
+
+  assert.equal(repo.currentUser.versao_sessao, 1);
+
+  const ownTokens = repo.savedRefreshTokens.filter(
+    (token) => token.userId === 7,
+  );
+
+  assert.equal(ownTokens.length, 2);
+  assert.ok(ownTokens.every((token) => token.revoked));
+
+  const otherUserToken = repo.savedRefreshTokens.find(
+    (token) => token.userId === 8,
+  );
+
+  assert.equal(otherUserToken.revoked, false);
+});
+
+test('logout geral rejeita usuário inexistente', async () => {
+  const repo = makeRepository();
+  const service = createAuthService(repo, config);
+
+  await assert.rejects(
+    service.logoutAll(999),
     (error) => error instanceof AppError && error.statusCode === 401,
   );
 });
@@ -125,9 +301,14 @@ test('ativação recusa e-mail fora do domínio permitido para o papel', async (
     papel: 'PROFESSOR',
     status: 'CONVIDADO',
   });
+
   const service = createAuthService(repo, config);
+
   await assert.rejects(
-    service.register({ email: 'pessoa@gmail.com', password: 'minha-senha-forte' }),
+    service.register({
+      email: 'pessoa@gmail.com',
+      password: 'minha-senha-forte',
+    }),
     (error) => error instanceof AppError && error.statusCode === 400,
   );
 });
@@ -137,13 +318,16 @@ test('login recusa uma conta convidada que ainda não definiu senha', async () =
     id: 8,
     nome: 'Pessoa Teste',
     email: 'pessoa@catolicasc.edu.br',
-    senha_hash: null,
-    papel: 'PROFESSOR',
     status: 'CONVIDADO',
   });
+
   const service = createAuthService(repo, config);
+
   await assert.rejects(
-    service.login({ email: 'pessoa@catolicasc.edu.br', password: 'minha-senha-forte' }),
+    service.login({
+      email: 'pessoa@catolicasc.edu.br',
+      password: 'minha-senha-forte',
+    }),
     (error) => error instanceof AppError && error.statusCode === 401,
   );
 });

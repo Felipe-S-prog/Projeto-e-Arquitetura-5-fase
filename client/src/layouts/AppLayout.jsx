@@ -71,16 +71,16 @@ function getInitials(name) {
 }
 
 export default function AppLayout() {
-  const { logout, user } = useAuth();
+  const { logout, logoutAllDevices, user } = useAuth();
   const navigate = useNavigate();
   const profileRef = useRef(null);
   const [profileOpen, setProfileOpen] = useState(false);
 
   const displayName = String(
     user?.name ||
-      user?.nome ||
-      user?.email?.split('@')[0] ||
-      'Usuário',
+    user?.nome ||
+    user?.email?.split('@')[0] ||
+    'Usuário',
   );
 
   const role = user?.role || user?.papel;
@@ -127,6 +127,26 @@ export default function AppLayout() {
       await logout();
     } catch {
       // A sessão local também deve ser encerrada se a API estiver indisponível.
+    }
+
+    navigate('/login', { replace: true });
+  };
+
+  const handleLogoutAllDevices = async () => {
+    const confirmed = window.confirm(
+      'Tem certeza? Isso encerrará suas sessões em todos os dispositivos.',
+    );
+
+    if (!confirmed) return;
+
+    setProfileOpen(false);
+
+    try {
+      await logoutAllDevices();
+    } catch {
+      window.alert(
+        'Não foi possível confirmar o encerramento das outras sessões. Sua sessão atual foi encerrada.',
+      );
     }
 
     navigate('/login', { replace: true });
@@ -271,6 +291,15 @@ export default function AppLayout() {
                   onClick={handleLogout}
                 >
                   Sair da conta
+                </button>
+
+                <button
+                  type="button"
+                  className="profile-logout"
+                  role="menuitem"
+                  onClick={handleLogoutAllDevices}
+                >
+                  Sair de todos os dispositivos
                 </button>
               </div>
             )}
