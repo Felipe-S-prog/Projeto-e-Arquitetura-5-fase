@@ -19,14 +19,16 @@ export default function ClassDetail() {
     classApplications,
     getExamById,
     archiveClass,
+    regenerateInviteCode,
     enrollStudent,
     classesLoading,
     classesError,
   } = useData();
 
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [archiving, setArchiving] = useState(false);
+  const [regeneratingCode, setRegeneratingCode] = useState(false);
+  const [success, setSuccess] = useState('');
   const [enrolling, setEnrolling] = useState(false);
   const [studentName, setStudentName] = useState('');
   const [studentEmail, setStudentEmail] = useState('');
@@ -46,19 +48,18 @@ export default function ClassDetail() {
   }
 
   const apps = classApplications(cls.id);
-  const students = cls.students || [];
+  const students = cls.students ?? [];
   const isArchived = cls.status === 'Arquivada';
 
   const handleArchive = async () => {
     if (
-      isArchived ||
+      cls.status === 'Arquivada' ||
       !window.confirm('Arquivar esta turma?')
     ) {
       return;
     }
 
     setError('');
-    setSuccess('');
 
     try {
       setArchiving(true);
@@ -101,6 +102,43 @@ export default function ClassDetail() {
       setError(err.message || 'Não foi possível matricular o aluno.');
     } finally {
       setEnrolling(false);
+    }
+  };
+
+  const handleRegenerateCode = async () => {
+    if (
+      !window.confirm(
+        'Regenerar o código? O código anterior deixará de funcionar.',
+      )
+    ) {
+      return;
+    }
+
+    setError('');
+
+    try {
+      setRegeneratingCode(true);
+      await regenerateInviteCode(cls.id);
+    } catch (err) {
+      setError(
+        err.message || 'Não foi possível regenerar o código de convite.',
+      );
+    } finally {
+      setRegeneratingCode(false);
+    }
+  };
+
+  const joinUrl = `${window.location.origin}/turmas/ingresso`;
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(joinUrl);
+      setError('');
+      window.alert('Link de ingresso copiado!');
+    } catch {
+      setError(
+        'Não foi possível copiar automaticamente. Copie o link exibido manualmente.',
+      );
     }
   };
 
@@ -153,14 +191,14 @@ export default function ClassDetail() {
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <SecondaryButton
-            disabled={isArchived}
+            disabled={cls.status === 'Arquivada'}
             onClick={() => navigate(`/turmas/${cls.id}/editar`)}
           >
             Editar turma
           </SecondaryButton>
 
           <DangerButton
-            disabled={isArchived || archiving}
+            disabled={cls.status === 'Arquivada' || archiving}
             onClick={handleArchive}
           >
             {archiving ? 'Arquivando...' : 'Arquivar'}
@@ -182,38 +220,138 @@ export default function ClassDetail() {
       )}
 
       {success && (
-        <div
-          role="status"
-          style={{
-            color: '#067647',
-            marginBottom: 16,
-            fontSize: 14,
-          }}
-        >
+        <div role="status" style={{ color: '#067647', marginBottom: 16, fontSize: 14 }}>
           {success}
         </div>
       )}
 
       <section
-        aria-labelledby="students-heading"
+        aria-labelledby="invite-title"
         style={{
           padding: 20,
+          marginBottom: 28,
           background: 'white',
           border: '1px solid var(--border)',
           borderRadius: 14,
-          marginBottom: 28,
         }}
       >
         <h2
-          id="students-heading"
+          id="invite-title"
           style={{
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: 800,
-            color: 'var(--ink)',
-            margin: '0 0 8px',
+            marginTop: 0,
+            marginBottom: 12,
           }}
         >
-          Alunos da turma
+          Código de convite
+        </h2>
+
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
+          <code
+            style={{
+              fontSize: 24,
+              fontWeight: 800,
+              letterSpacing: '0.12em',
+              color: 'var(--ink)',
+            }}
+          >
+            {cls.codigoConvite || 'Não disponível'}
+          </code>
+
+          <SecondaryButton
+            disabled={
+              cls.status === 'Arquivada' ||
+              regeneratingCode ||
+              !regenerateInviteCode
+            }
+            onClick={handleRegenerateCode}
+          >
+            {regeneratingCode ? 'Regenerando...' : 'Regenerar código'}
+          </SecondaryButton>
+        </div>
+
+        <p
+          style={{
+            fontSize: 13,
+            color: 'var(--muted)',
+            lineHeight: 1.5,
+          }}
+        >
+          Compartilhe o código com os alunos. Ao regenerá-lo, o código
+          anterior deixa de funcionar.
+        </p>
+
+        <div style={{ marginTop: 18 }}>
+          <label
+            htmlFor="invite-link"
+            style={{
+              display: 'block',
+              fontSize: 13,
+              fontWeight: 700,
+              marginBottom: 8,
+            }}
+          >
+            Link para o aluno entrar na turma
+          </label>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: 10,
+              alignItems: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
+            <input
+              id="invite-link"
+              readOnly
+              value={joinUrl}
+              onFocus={(event) => event.target.select()}
+              style={{
+                flex: '1 1 260px',
+                minWidth: 0,
+                padding: 10,
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                font: 'inherit',
+              }}
+            />
+
+            <SecondaryButton onClick={handleCopyLink}>
+              Copiar link
+            </SecondaryButton>
+          </div>
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="students-title"
+        style={{
+          padding: 20,
+          marginBottom: 28,
+          background: 'white',
+          border: '1px solid var(--border)',
+          borderRadius: 14,
+        }}
+      >
+        <h2
+          id="students-title"
+          style={{
+            fontSize: 17,
+            fontWeight: 800,
+            marginTop: 0,
+            marginBottom: 16,
+          }}
+        >
+          Alunos matriculados ({students.length})
         </h2>
 
         <p
@@ -329,62 +467,49 @@ export default function ClassDetail() {
           </form>
         )}
 
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: '0.06em',
-            color: 'var(--faint)',
-            marginBottom: 12,
-          }}
-        >
-          ALUNOS MATRICULADOS ({students.length})
-        </div>
-
         {students.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {students.map((student) => (
               <div
                 key={student.id}
                 style={{
-                  padding: '14px 16px',
+                  padding: 14,
                   border: '1px solid var(--border)',
                   borderRadius: 10,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 12,
-                  flexWrap: 'wrap',
                 }}
               >
-                <div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: 'var(--text-strong)',
-                    }}
-                  >
-                    {student.name || 'Nome não informado'}
-                  </div>
+                <div style={{ fontWeight: 700, color: 'var(--ink)' }}>
+                  {student.name}
+                </div>
 
+                <div
+                  style={{
+                    marginTop: 4,
+                    fontSize: 13,
+                    color: 'var(--muted)',
+                  }}
+                >
+                  {student.email}
+                </div>
+
+                {student.numeroMatricula && (
                   <div
                     style={{
+                      marginTop: 4,
                       fontSize: 13,
                       color: 'var(--muted)',
-                      marginTop: 4,
                     }}
                   >
-                    {student.email}
+                    Matrícula: {student.numeroMatricula}
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>
         ) : (
-          <EmptyState>
+          <p style={{ color: 'var(--muted)', fontSize: 14 }}>
             Nenhum aluno matriculado nesta turma ainda.
-          </EmptyState>
+          </p>
         )}
       </section>
 
@@ -407,7 +532,15 @@ export default function ClassDetail() {
           return (
             <div
               key={application.id}
+              role="button"
+              tabIndex={0}
               onClick={() => navigate(`/aplicacoes/${application.id}`)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  navigate(`/aplicacoes/${application.id}`);
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -438,14 +571,20 @@ export default function ClassDetail() {
                   }}
                 >
                   {application.date || '—'} · {application.quantity} provas
-                  geradas
+                  {' '}geradas
                 </div>
               </div>
 
               <Badge status={application.status} />
 
-              <span style={{ fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
-                Abrir →
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                Abrir ÔåÆ
               </span>
             </div>
           );

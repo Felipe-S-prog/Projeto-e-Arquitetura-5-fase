@@ -1,3 +1,4 @@
+
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { AppError } from '../errors/AppError.js';
 
@@ -10,23 +11,31 @@ function signature(value, secret) {
 export function signAccessToken(user, secret, expiresInSeconds = 900) {
   const now = Math.floor(Date.now() / 1000);
   const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+
   const payload = base64url(JSON.stringify({
     sub: String(user.id),
     role: user.papel,
     email: user.email,
+    sv: Number(user.versao_sessao ?? 0),
     iat: now,
     exp: now + expiresInSeconds,
     iss: 'sgp-api',
   }));
+
   const content = `${header}.${payload}`;
   return `${content}.${signature(content, secret)}`;
 }
 
 export function verifyAccessToken(token, secret) {
-  if (typeof token !== 'string') throw AppError.unauthorized('Token de acesso inválido.');
+  if (typeof token !== 'string') {
+    throw AppError.unauthorized('Token de acesso inválido.');
+  }
 
   const parts = token.split('.');
-  if (parts.length !== 3) throw AppError.unauthorized('Token de acesso inválido.');
+
+  if (parts.length !== 3) {
+    throw AppError.unauthorized('Token de acesso inválido.');
+  }
 
   const [headerPart, payloadPart, signaturePart] = parts;
   const content = `${headerPart}.${payloadPart}`;
@@ -39,6 +48,7 @@ export function verifyAccessToken(token, secret) {
 
   let header;
   let payload;
+
   try {
     header = JSON.parse(Buffer.from(headerPart, 'base64url').toString('utf8'));
     payload = JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf8'));
@@ -49,12 +59,22 @@ export function verifyAccessToken(token, secret) {
   if (header.alg !== 'HS256' || payload.iss !== 'sgp-api') {
     throw AppError.unauthorized('Token de acesso inválido.');
   }
+
   if (!Number.isInteger(Number(payload.sub)) || Number(payload.sub) <= 0) {
     throw AppError.unauthorized('Token de acesso inválido.');
   }
+
   if (!['ADMINISTRADOR', 'PROFESSOR'].includes(payload.role)) {
     throw AppError.unauthorized('Token de acesso inválido.');
   }
+
+  if (
+    payload.sv !== undefined &&
+    (!Number.isInteger(payload.sv) || payload.sv < 0)
+  ) {
+    throw AppError.unauthorized('Token de acesso inválido.');
+  }
+
   if (!Number.isInteger(payload.exp) || payload.exp <= Math.floor(Date.now() / 1000)) {
     throw AppError.unauthorized('Token de acesso expirado.');
   }

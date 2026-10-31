@@ -76,7 +76,7 @@ Dentro do escopo do projeto:
 - Cadastro de professores feito por um administrador; login de professores e administradores (alunos não fazem login).
 - Cada professor só acessa suas próprias turmas, questões e provas — isolamento de dados é entre contas de professor, não entre alunos.
 - Banco de questões por professor, objetivas e discursivas.
-- Criação de turmas e matrícula de alunos como registro (nome/e-mail informados pelo professor), sem gerar conta de acesso para o aluno.
+- Criação de turmas e matrícula de alunos como registro (nome/e-mail informados pelo professor ou pelo próprio aluno com o código de convite da turma), sem gerar conta de acesso para o aluno.
 - Criação de provas reutilizáveis (banco de questões da prova) e aplicação dessas provas a uma ou mais turmas.
 - Geração de um PDF único consolidado por aplicação, com quantidade configurável de versões, embaralhamento de questões e alternativas, e opção de prova com ou sem identificação do aluno.
 - Publicação de gabarito (por versão ou por aplicação) em um link público, sem exigir login do aluno.
@@ -388,6 +388,7 @@ O banco é criado pelas migrations de `server/database/migrations/`, aplicadas e
 | `001_criar_tabelas.sql` | As 14 tabelas do domínio: `usuario`, `refresh_token`, `turma`, `aluno`, `matricula`, `questao`, `tag`, `questao_tag`, `alternativa`, `prova`, `prova_questao`, `aplicacao`, `copia_prova` e `correcao` |
 | `002_configuracoes.sql` | `configuracoes`: nome da instituição e período padrão |
 | `003_correcao_respostas.sql` | `correcao_resposta`: resposta de cada questão em uma correção |
+| `004_versao_sessao.sql` | `usuario.versao_sessao`: invalida os tokens de acesso no logout de todos os dispositivos |
 
 ### 7.1 Estado da integração com o banco
 
@@ -396,10 +397,12 @@ Posição em 30/10/2026, entrega da N2.
 | Frente | Parte | Lê e grava no MySQL? | Observação |
 |---|---|---|---|
 | Autenticação | Login, JWT e refresh token (T07) | ✅ Sim | |
+| Autenticação | Logout de todos os dispositivos (T08) | ✅ Sim | |
+| Autenticação | Anonimização de conta (T09) | 🟡 Em andamento | Ainda não integrada à main |
 | Administração | Usuários e configurações (T10) | ✅ Sim | |
 | Turmas | Criar, editar e arquivar (T13) | ✅ Sim | |
-| Turmas | Matrícula de alunos (T15) | ✅ Sim | |
-| Turmas | Código de convite (T14) | 🟡 Em PR (#38) | Ainda não integrado à main |
+| Turmas | Matrícula pelo professor (T15) | ⚠️ Com defeito | A rota `POST /api/turmas/:id/matriculas` saiu da main no merge da T14; a tela ainda a chama e a matrícula manual falha |
+| Turmas | Código de convite e ingresso do aluno (T14) | ✅ Sim | O aluno informa nome, e-mail e código em `/turmas/ingresso`, sem criar conta |
 | Questões | Listar, criar, editar e excluir (T11) | ✅ Sim | Só objetivas pela tela. A lista ainda mistura as questões de exemplo de `client/src/data/questions.json` (T35) |
 | Questões | Upload de imagem (T12) | ✅ Sim | Arquivos em `server/uploads/questoes`; o banco guarda o caminho |
 | Provas | Criar, listar, editar e arquivar (T17) | ✅ Sim | |
@@ -670,7 +673,9 @@ A API utiliza o prefixo `/api`. Estes são os endpoints que já estão na main.
 | POST | `/api/auth/register` | Ativa um convite existente e define a senha inicial. |
 | POST | `/api/auth/login` | Autentica o usuário e retorna a sessão com JWT e refresh token. |
 | POST | `/api/auth/refresh` | Renova a sessão e revoga o refresh token anterior. |
+| GET | `/api/auth/session` | Retorna o usuário da sessão atual. |
 | POST | `/api/auth/logout` | Revoga o refresh token da sessão atual. |
+| POST | `/api/auth/logout-all` | Encerra a sessão em todos os dispositivos. |
 
 **Administração**
 
@@ -687,7 +692,8 @@ A API utiliza o prefixo `/api`. Estes são os endpoints que já estão na main.
 | GET, POST | `/api/turmas` | Lista e cria turmas. |
 | PUT | `/api/turmas/:id` | Edita uma turma. |
 | PATCH | `/api/turmas/:id/arquivar` | Arquiva uma turma. |
-| POST | `/api/turmas/:id/matriculas` | Matricula um aluno na turma. |
+| POST | `/api/turmas/:id/codigo-convite/regenerar` | Gera um novo código de convite; o anterior deixa de valer. |
+| POST | `/api/turmas/ingresso` | Matricula o aluno pelo código de convite (pública). |
 | GET, POST | `/api/questoes` | Lista e cria questões. |
 | PUT, DELETE | `/api/questoes/:id` | Edita e exclui (soft-delete) uma questão. |
 | POST | `/api/questoes/upload-imagem` | Envia a imagem de uma questão. |

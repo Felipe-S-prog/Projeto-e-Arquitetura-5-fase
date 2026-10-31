@@ -14,6 +14,7 @@ Professores e administradores (RF01). O aluno não tem conta no sistema.
 | senha_hash | VARCHAR(255) (aceita nulo) | Hash bcrypt da senha (RNF02); fica nulo enquanto o usuário está Convidado |
 | papel | ENUM('ADMINISTRADOR','PROFESSOR') | Perfil de acesso |
 | status | ENUM('CONVIDADO','ATIVO','ANONIMIZADO') | Situação da conta; ANONIMIZADO mantém o histórico (LGPD) |
+| versao_sessao | INT UNSIGNED | Versão da sessão; ao mudar, invalida os tokens de acesso já emitidos (RNF03) |
 | criado_em | DATETIME | Data e hora de criação do cadastro |
 
 ### refresh_token
