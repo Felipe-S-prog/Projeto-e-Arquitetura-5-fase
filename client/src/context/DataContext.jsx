@@ -397,18 +397,6 @@ const DataProvider = ({ children }) => {
       throw new Error('Preencha o nome, a disciplina e o período.');
     }
 
-    const duplicate = classes.some(
-      (item) =>
-        item.name.trim().toLowerCase() === name.toLowerCase() &&
-        item.subject.trim().toLowerCase() === subject.toLowerCase() &&
-        item.period.trim().toLowerCase() === period.toLowerCase(),
-    );
-
-    if (duplicate) {
-      throw new Error(
-        'Já existe uma turma com esse nome, disciplina e período.',
-      );
-    }
 
     try {
       const createdClass = await adminApiRequest('/turmas', {
@@ -429,7 +417,7 @@ const DataProvider = ({ children }) => {
       setClassesError(error.message);
       throw error;
     }
-  }, [classes]);
+  }, []);
 
   // Atualiza uma turma existente no MySQL.
 
@@ -446,19 +434,6 @@ const DataProvider = ({ children }) => {
       throw new Error('Preencha o nome, a disciplina e o período.');
     }
 
-    const duplicate = classes.some(
-      (item) =>
-        item.id !== classId &&
-        item.name.trim().toLowerCase() === name.toLowerCase() &&
-        item.subject.trim().toLowerCase() === subject.toLowerCase() &&
-        item.period.trim().toLowerCase() === period.toLowerCase(),
-    );
-
-    if (duplicate) {
-      throw new Error(
-        'Já existe outra turma com esse nome, disciplina e período.',
-      );
-    }
 
     try {
       // Envia os campos no formato JSON esperado pela API.
@@ -535,6 +510,14 @@ const DataProvider = ({ children }) => {
       setClassesError(error.message);
       throw error;
     }
+  }, []);
+
+  const deleteClass = useCallback(async (id) => {
+    const result = await adminApiRequest(`/turmas/${id}`, { method: 'DELETE' });
+    setClasses((previous) => result.archived
+      ? previous.map((item) => item.id === Number(id) ? { ...item, status: 'Arquivada' } : item)
+      : previous.filter((item) => item.id !== Number(id)));
+    return result;
   }, []);
 
   // Arquiva a turma no MySQL.
@@ -973,6 +956,7 @@ const DataProvider = ({ children }) => {
       addClass,
       updateClass,
       archiveClass,
+      deleteClass,
       regenerateInviteCode,
       enrollStudent,
       addExam,
@@ -1019,6 +1003,7 @@ const DataProvider = ({ children }) => {
       addClass,
       updateClass,
       archiveClass,
+      deleteClass,
       regenerateInviteCode,
       enrollStudent,
       addExam,
