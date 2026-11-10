@@ -19,6 +19,7 @@ export default function ClassDetail() {
     classApplications,
     getExamById,
     archiveClass,
+    deleteClass,
     regenerateInviteCode,
     enrollStudent,
     classesLoading,
@@ -27,6 +28,7 @@ export default function ClassDetail() {
 
   const [error, setError] = useState('');
   const [archiving, setArchiving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [regeneratingCode, setRegeneratingCode] = useState(false);
   const [success, setSuccess] = useState('');
   const [enrolling, setEnrolling] = useState(false);
@@ -51,10 +53,23 @@ export default function ClassDetail() {
   const students = cls.students ?? [];
   const isArchived = cls.status === 'Arquivada';
 
+  const handleDelete = async () => {
+    if (!window.confirm('Excluir esta turma? Matrículas serão removidas, mas os cadastros dos alunos serão mantidos. Se houver aplicações vinculadas, a turma será arquivada para preservar cópias e notas.')) return;
+    setError('');
+    setDeleting(true);
+    try {
+      const result = await deleteClass(cls.id);
+      if (result.archived) setSuccess(result.message);
+      else navigate('/turmas');
+    } catch (err) {
+      setError(err.message || 'Não foi possível excluir a turma.');
+    } finally { setDeleting(false); }
+  };
+
   const handleArchive = async () => {
     if (
       cls.status === 'Arquivada' ||
-      !window.confirm('Arquivar esta turma?')
+      !window.confirm('Arquivar esta turma? Alunos, aplicações e notas serão preservados. Você continuará podendo editar os dados da turma.')
     ) {
       return;
     }
@@ -168,6 +183,7 @@ export default function ClassDetail() {
               fontWeight: 800,
               color: 'var(--ink)',
               letterSpacing: '-0.01em',
+              overflowWrap: 'anywhere',
             }}
           >
             {cls.name}
@@ -191,7 +207,6 @@ export default function ClassDetail() {
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <SecondaryButton
-            disabled={cls.status === 'Arquivada'}
             onClick={() => navigate(`/turmas/${cls.id}/editar`)}
           >
             Editar turma
@@ -202,6 +217,9 @@ export default function ClassDetail() {
             onClick={handleArchive}
           >
             {archiving ? 'Arquivando...' : 'Arquivar'}
+          </DangerButton>
+          <DangerButton disabled={deleting || archiving} onClick={handleDelete}>
+            {deleting ? 'Excluindo...' : 'Excluir turma'}
           </DangerButton>
         </div>
       </div>
@@ -478,7 +496,7 @@ export default function ClassDetail() {
                   borderRadius: 10,
                 }}
               >
-                <div style={{ fontWeight: 700, color: 'var(--ink)' }}>
+                <div style={{ fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>
                   {student.name}
                 </div>
 
@@ -487,6 +505,7 @@ export default function ClassDetail() {
                     marginTop: 4,
                     fontSize: 13,
                     color: 'var(--muted)',
+                    overflowWrap: 'anywhere',
                   }}
                 >
                   {student.email}
@@ -545,6 +564,7 @@ export default function ClassDetail() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 20,
+                flexWrap: 'wrap',
                 padding: '18px 20px',
                 background: 'white',
                 border: '1px solid var(--border)',
@@ -552,7 +572,7 @@ export default function ClassDetail() {
                 cursor: 'pointer',
               }}
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ flex: '1 1 220px', minWidth: 0, overflowWrap: 'anywhere' }}>
                 <div
                   style={{
                     fontSize: 15,
@@ -584,7 +604,7 @@ export default function ClassDetail() {
                   flexShrink: 0,
                 }}
               >
-                Abrir ÔåÆ
+                Abrir →
               </span>
             </div>
           );

@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { AppError } from '../errors/AppError.js';
+import { professorContext } from '../middlewares/professorContext.js';
+import { normalizeTags } from '../utils/tags.js';
 
 export function createQuestoesRoutes({ pool }) {
   const router = Router();
+  router.use(professorContext);
 
   function validarId(value, campo = 'ID') {
     const id = Number(value);
@@ -50,7 +53,7 @@ export function createQuestoesRoutes({ pool }) {
     return {
       enunciado,
       imagemUrl,
-      tags: [...new Set(tags.map((tag) => tag.trim()))],
+      tags: normalizeTags(tags),
       alternativas: alternativas.map((item) => ({
         texto: item.texto.trim(),
         correta: item.correta === true,
@@ -76,7 +79,7 @@ export function createQuestoesRoutes({ pool }) {
       );
 
       await connection.execute(
-        'INSERT INTO questao_tag (questao_id, tag_id) VALUES (?, ?)',
+        'INSERT IGNORE INTO questao_tag (questao_id, tag_id) VALUES (?, ?)',
         [questaoId, rows[0].id],
       );
     }
@@ -118,7 +121,7 @@ export function createQuestoesRoutes({ pool }) {
     return {
       id: row.id,
       excerpt: row.enunciado,
-      tags: tagRows.map((tag) => tag.nome),
+      tags: normalizeTags(tagRows.map((tag) => tag.nome)),
       imageUrl: row.imagem_url,
       alternatives: alternativaRows.map((alternativa) => ({
         text: alternativa.texto,
@@ -129,7 +132,7 @@ export function createQuestoesRoutes({ pool }) {
 
   router.get('/', async (req, res, next) => {
     try {
-      const professorId = validarId(req.query.professor_id, 'ID do professor');
+      const professorId = req.professorId;
 
       const [rows] = await pool.execute(
         `SELECT id, enunciado, imagem_url
@@ -154,7 +157,7 @@ export function createQuestoesRoutes({ pool }) {
     let connection;
 
     try {
-      const professorId = validarId(req.body?.professor_id, 'ID do professor');
+      const professorId = req.professorId;
       const questao = validarQuestao(req.body);
 
       connection = await pool.getConnection();
@@ -195,7 +198,7 @@ export function createQuestoesRoutes({ pool }) {
 
     try {
       const id = validarId(req.params.id, 'ID da questão');
-      const professorId = validarId(req.body?.professor_id, 'ID do professor');
+      const professorId = req.professorId;
       const questao = validarQuestao(req.body);
 
       connection = await pool.getConnection();
@@ -246,7 +249,7 @@ export function createQuestoesRoutes({ pool }) {
   router.delete('/:id', async (req, res, next) => {
     try {
       const id = validarId(req.params.id, 'ID da questão');
-      const professorId = validarId(req.query.professor_id, 'ID do professor');
+      const professorId = req.professorId;
 
       const [result] = await pool.execute(
         `UPDATE questao
