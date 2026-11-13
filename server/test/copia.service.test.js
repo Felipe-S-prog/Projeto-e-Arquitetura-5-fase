@@ -114,10 +114,31 @@ test('gerar: aplicação já Aplicada fica com as cópias impressas (409)', asyn
   await rejeita(createCopiaService(fakeRepository()).gerar(2, 1), 409);
 });
 
-test('gerar: aplicação com correção lançada não pode ser regerada (409)', async () => {
+test('gerar: aplicação com correção lançada não pode ser regerada (409) e as cópias ficam intactas (T58)', async () => {
   const repo = fakeRepository();
+  const service = createCopiaService(repo);
+  const antes = await service.gerar(1, 1);
   repo.correcoes.add(1);
-  await rejeita(createCopiaService(repo).gerar(1, 1), 409);
+
+  await assert.rejects(service.gerar(1, 1), (err) => {
+    assert.ok(err instanceof AppError);
+    assert.equal(err.statusCode, 409);
+    assert.deepEqual(err.details, { motivo: 'CORRECAO_LANCADA' });
+    assert.match(err.message, /apagaria as notas/);
+    return true;
+  });
+  const depois = await service.listarDaAplicacao(1, 1);
+  assert.deepEqual(depois.map((c) => c.code), antes.map((c) => c.code));
+});
+
+test('gerar: sem correção lançada, a aplicação Pendente pode ser regerada (T58)', async () => {
+  const repo = fakeRepository();
+  const service = createCopiaService(repo);
+  repo.correcoes.add(3); // correção em outra aplicação não bloqueia esta
+  const antes = await service.gerar(1, 1);
+  const depois = await service.gerar(1, 1);
+  assert.equal(depois.length, antes.length);
+  assert.ok(depois.every((c) => !antes.some((a) => a.code === c.code)));
 });
 
 test('gerar: prova sem questões é recusada (409)', async () => {
