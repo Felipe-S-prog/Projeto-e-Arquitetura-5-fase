@@ -5,7 +5,9 @@ import { toAplicacao } from '../models/aplicacao.model.js';
 
 const SELECT_APLICACAO = `
   SELECT a.id, a.turma_id, a.prova_id, a.status, a.quantidade, a.data_aplicacao,
-         a.embaralhar_questoes, a.embaralhar_alternativas, a.vincular_alunos
+         a.embaralhar_questoes, a.embaralhar_alternativas, a.vincular_alunos,
+         (SELECT COUNT(*) FROM correcao c JOIN copia_prova cp ON cp.id = c.copia_prova_id
+           WHERE cp.aplicacao_id = a.id) AS total_correcoes
     FROM aplicacao a
     JOIN prova p ON p.id = a.prova_id`;
 
