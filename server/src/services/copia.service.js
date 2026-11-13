@@ -16,13 +16,33 @@ function parseId(valor, mensagem) {
 // - gerar de novo troca todas as cópias, e nunca se a aplicação já tem correção lançada;
 // - vinculada à turma (T24): uma cópia nominal por aluno matriculado, em ordem alfabética,
 //   com o nome no rótulo e o aluno gravado na cópia (a correção já sabe de quem é a nota);
-// - publicar o gabarito libera a consulta pública de uma cópia ou de todas, e não tem volta.
+// - publicar o gabarito libera a consulta pública de uma cópia (versão) ou de todas (aplicação), RF08;
+// - despublicar (T59) tira do ar do mesmo jeito: a consulta pública volta a responder 403, e uma nova
+//   publicação grava uma nova data.
 export function createCopiaService(repository, { gerar = gerarCopias } = {}) {
   async function buscarAplicacao(idBruto, professorId) {
     const id = parseId(idBruto, 'Aplicação inválida.');
     const aplicacao = await repository.findAplicacao(id, professorId);
     if (!aplicacao) throw AppError.notFound('Aplicação não encontrada.');
     return aplicacao;
+  }
+
+  // Aplicação e código da cópia (nulo = todas) para publicar ou despublicar o gabarito.
+  async function alvoDoGabarito(aplicacaoId, codigoBruto, professorId, acao) {
+    const aplicacao = await buscarAplicacao(aplicacaoId, professorId);
+
+    let codigo = null;
+    if (codigoBruto !== undefined && codigoBruto !== null) {
+      codigo = String(codigoBruto).trim().toUpperCase();
+      if (!CODIGO_PATTERN.test(codigo)) throw AppError.badRequest('Código de prova inválido.');
+    }
+
+    const copias = await repository.listByAplicacao(aplicacao.id, professorId);
+    if (copias.length === 0) throw AppError.conflict(`Gere as cópias da prova antes de ${acao} o gabarito.`);
+    if (codigo && !copias.some((c) => c.code === codigo)) {
+      throw AppError.notFound('Cópia não encontrada nesta aplicação.');
+    }
+    return { aplicacao, codigo };
   }
 
   return {
@@ -70,21 +90,14 @@ export function createCopiaService(repository, { gerar = gerarCopias } = {}) {
 
     // body.code publica uma cópia só; sem code, publica todas as cópias da aplicação.
     async publicarGabarito(aplicacaoId, body, professorId) {
-      const aplicacao = await buscarAplicacao(aplicacaoId, professorId);
-
-      let codigo = null;
-      if (body?.code !== undefined && body?.code !== null) {
-        codigo = String(body.code).trim().toUpperCase();
-        if (!CODIGO_PATTERN.test(codigo)) throw AppError.badRequest('Código de prova inválido.');
-      }
-
-      const copias = await repository.listByAplicacao(aplicacao.id, professorId);
-      if (copias.length === 0) throw AppError.conflict('Gere as cópias da prova antes de publicar o gabarito.');
-      if (codigo && !copias.some((c) => c.code === codigo)) {
-        throw AppError.notFound('Cópia não encontrada nesta aplicação.');
-      }
-
+      const { aplicacao, codigo } = await alvoDoGabarito(aplicacaoId, body?.code, professorId, 'publicar');
       await repository.publicarGabarito(aplicacao.id, codigo);
+      return repository.listByAplicacao(aplicacao.id, professorId);
+    },
+
+    async despublicarGabarito(aplicacaoId, codigoBruto, professorId) {
+      const { aplicacao, codigo } = await alvoDoGabarito(aplicacaoId, codigoBruto, professorId, 'despublicar');
+      await repository.despublicarGabarito(aplicacao.id, codigo);
       return repository.listByAplicacao(aplicacao.id, professorId);
     },
   };

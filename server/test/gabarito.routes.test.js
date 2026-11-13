@@ -51,3 +51,8 @@ test('GET /api/gabarito/:codigo: não publicado 403, inexistente 404', async () 
 test('as rotas de cópias do professor continuam exigindo token (401)', async () => {
   assert.equal((await fetch(`${url}/api/copias`)).status, 401);
 });
+
+test('despublicar o gabarito (T59) exige o professor: sem token é 401', async () => {
+  assert.equal((await fetch(`${url}/api/aplicacoes/1/copias/gabarito`, { method: 'DELETE' })).status, 401);
+  assert.equal((await fetch(`${url}/api/aplicacoes/1/copias/gabarito/ABC234`, { method: 'DELETE' })).status, 401);
+});
