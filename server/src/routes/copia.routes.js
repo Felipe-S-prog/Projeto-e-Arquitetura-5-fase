@@ -27,5 +27,7 @@ export function createCopiasDaAplicacaoRoutes({ pool }) {
   router.get('/', controller.listarDaAplicacao); // GET /api/aplicacoes/:id/copias
   router.post('/', controller.gerar); // POST /api/aplicacoes/:id/copias -> gera (ou regera) as cópias, só Pendente
   router.post('/gabarito', controller.publicarGabarito); // POST /api/aplicacoes/:id/copias/gabarito -> publica uma ({ code }) ou todas
+  router.delete('/gabarito', controller.despublicarGabarito); // DELETE /api/aplicacoes/:id/copias/gabarito -> despublica todas (T59)
+  router.delete('/gabarito/:code', controller.despublicarGabarito); // DELETE .../gabarito/:code -> despublica uma cópia (T59)
   return router;
 }

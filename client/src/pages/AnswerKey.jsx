@@ -7,7 +7,7 @@ import AnswerKeyExportModal from '../components/AnswerKeyExportModal';
 
 export default function AnswerKey() {
   const { id } = useParams();
-  const { getApplicationById, getExamById, getClassById, publishAnswerKey } = useData();
+  const { getApplicationById, getExamById, getClassById, publishAnswerKey, unpublishAnswerKey } = useData();
   const [showExportModal, setShowExportModal] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState('');
@@ -41,6 +41,23 @@ export default function AnswerKey() {
     }
   };
 
+  // Tira do ar (T59): a consulta pública volta a dizer que o gabarito não foi publicado.
+  const unpublish = async (code) => {
+    const alvo = code === 'all' ? 'de todas as provas' : `da prova ${code}`;
+    if (!window.confirm(`Tirar do ar o gabarito ${alvo}? A consulta pelo código deixa de funcionar até você publicar de novo.`)) {
+      return;
+    }
+    setPublishing(true);
+    setError('');
+    try {
+      await unpublishAnswerKey(app.id, code);
+    } catch (err) {
+      setError(err.message || 'Não foi possível despublicar o gabarito.');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
   const app = getApplicationById(id);
   if (!app) return <div>Aplicação não encontrada.</div>;
   const exam = getExamById(app.examId);
@@ -51,15 +68,15 @@ export default function AnswerKey() {
   return (
     <div>
       <Breadcrumb items={[{ label: exam?.title, to: `/aplicacoes/${app.id}` }, { label: 'Gabarito' }]} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 16 }}>
-        <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 16 }}>
+        <div style={{ flex: '1 1 320px' }}>
           <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Gabarito</div>
           <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 5, maxWidth: 480 }}>
             Cada pessoa acessa a página pública de gabarito e digita o próprio código. Ela vê só as respostas certas —
             nunca a nota.
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           <SecondaryButton
             onClick={() => {
               setExportError('');
@@ -69,6 +86,11 @@ export default function AnswerKey() {
           >
             Exportar gabarito em PDF
           </SecondaryButton>
+          {publishedCount > 0 && (
+            <SecondaryButton onClick={() => unpublish('all')} disabled={publishing}>
+              Despublicar todos
+            </SecondaryButton>
+          )}
           <PrimaryButton
             onClick={() => publish('all')}
             disabled={copies.length === 0 || publishing || publishedCount === copies.length}
@@ -105,18 +127,18 @@ export default function AnswerKey() {
                 <div style={{ fontSize: 12.5, color: 'var(--muted-2)', marginTop: 2 }}>Código: {copy.code}</div>
               </div>
               <Badge status={copy.answerKeyPublished ? 'Publicado' : 'Não publicado'} />
-              {!copy.answerKeyPublished && (
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (!publishing) publish(copy.code);
-                  }}
-                  style={{ fontSize: 13, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}
-                >
-                  Publicar
-                </a>
-              )}
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (publishing) return;
+                  if (copy.answerKeyPublished) unpublish(copy.code);
+                  else publish(copy.code);
+                }}
+                style={{ fontSize: 13, fontWeight: 700, textDecoration: 'none', flexShrink: 0, width: 82, textAlign: 'right' }}
+              >
+                {copy.answerKeyPublished ? 'Despublicar' : 'Publicar'}
+              </a>
             </div>
           ))}
         </div>

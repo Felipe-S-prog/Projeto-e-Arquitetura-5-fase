@@ -65,6 +65,9 @@ function fakeRepository() {
     async publicarGabarito(aplicacaoId, codigo) {
       for (const c of copias) if (c.aplicacaoId === aplicacaoId && (!codigo || c.codigo === codigo)) c.publicado = true;
     },
+    async despublicarGabarito(aplicacaoId, codigo) {
+      for (const c of copias) if (c.aplicacaoId === aplicacaoId && (!codigo || c.codigo === codigo)) c.publicado = false;
+    },
   };
 }
 
@@ -162,4 +165,27 @@ test('publicarGabarito: sem cópias (409), código de outra aplicação (404) ou
   await rejeita(service.publicarGabarito(1, { code: 'ANTIGA' }, 1), 404);
   await rejeita(service.publicarGabarito(1, { code: 'ab' }, 1), 400);
   await rejeita(service.publicarGabarito(9, {}, 1), 404);
+});
+
+test('despublicarGabarito (T59): uma cópia pelo código ou todas', async () => {
+  const repo = fakeRepository();
+  const service = createCopiaService(repo);
+  const [primeira, segunda] = await service.gerar(1, 1);
+  await service.publicarGabarito(1, {}, 1);
+
+  const depoisDeUma = await service.despublicarGabarito(1, primeira.code.toLowerCase(), 1);
+  assert.deepEqual(depoisDeUma.filter((c) => !c.answerKeyPublished).map((c) => c.code), [primeira.code]);
+  assert.ok(depoisDeUma.find((c) => c.code === segunda.code).answerKeyPublished);
+
+  const depoisDeTodas = await service.despublicarGabarito(1, undefined, 1);
+  assert.ok(depoisDeTodas.every((c) => !c.answerKeyPublished));
+});
+
+test('despublicarGabarito (T59): sem cópias (409), código de outra aplicação (404), inválido (400) e outro professor (404)', async () => {
+  const service = createCopiaService(fakeRepository());
+  await rejeita(service.despublicarGabarito(1, undefined, 1), 409);
+  await service.gerar(1, 1);
+  await rejeita(service.despublicarGabarito(1, 'ANTIGA', 1), 404);
+  await rejeita(service.despublicarGabarito(1, 'ab', 1), 400);
+  await rejeita(service.despublicarGabarito(9, undefined, 1), 404);
 });
