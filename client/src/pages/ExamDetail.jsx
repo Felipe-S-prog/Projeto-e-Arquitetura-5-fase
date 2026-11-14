@@ -24,7 +24,13 @@ export default function ExamDetail() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <SecondaryButton onClick={(e) => e.preventDefault()}>Editar</SecondaryButton>
+          <SecondaryButton
+  disabled={exam.status !== 'Rascunho'}
+  title={exam.status !== 'Rascunho' ? 'Só provas em Rascunho podem ser editadas' : ''}
+  onClick={() => navigate(`/provas/${exam.id}/editar`)}
+>
+  Editar
+</SecondaryButton>
           <PrimaryButton onClick={() => navigate(`/aplicacoes/nova?examId=${exam.id}`)}>Criar aplicação</PrimaryButton>
         </div>
       </div>
