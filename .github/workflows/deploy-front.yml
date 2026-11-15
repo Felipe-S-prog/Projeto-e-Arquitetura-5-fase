@@ -1,0 +1,51 @@
+name: Publicar front no Cloudflare Pages
+
+# Publica o front (pasta client) no Cloudflare Pages, projeto sgp-front,
+# sempre que algo do front for para a main. Também pode ser rodado na mão
+# pela aba Actions (botão "Run workflow").
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'client/**'
+      - '.github/workflows/deploy-front.yml'
+  workflow_dispatch:
+
+# Só uma publicação por vez; se chegar outra, espera a atual terminar.
+concurrency:
+  group: deploy-front
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Instalar o Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: client
+        run: npm ci
+
+      - name: Gerar o build com a URL da API publicada
+        working-directory: client
+        env:
+          VITE_API_URL: https://sgp-api-97te.onrender.com/api
+        run: npm run build
+
+      - name: Publicar no Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy client/dist --project-name=sgp-front --branch=main
