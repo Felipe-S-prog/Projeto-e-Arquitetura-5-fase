@@ -653,6 +653,26 @@ const DataProvider = ({ children }) => {
     return saved;
   }, []);
 
+  // Edita a prova na API (só em Rascunho) e atualiza a lista com a prova salva.
+  const updateExam = useCallback(async (id, exam) => {
+    const updated = await adminApiRequest(`/provas/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        title: exam.title,
+        description: exam.description,
+        questions: exam.questions,
+      }),
+    });
+
+    const saved = normalizeExam(updated);
+
+    setExams((previous) =>
+      previous.map((item) => (item.id === saved.id ? saved : item)),
+    );
+
+    return saved;
+  }, []);
+
   // Atualiza o status da prova na lista (a API muda Rascunho -> Pronta na 1ª aplicação).
   const syncExamStatus = useCallback((examId, status) => {
     if (!status) return;
@@ -976,6 +996,7 @@ const DataProvider = ({ children }) => {
       regenerateInviteCode,
       enrollStudent,
       addExam,
+      updateExam,
       createApplication,
       updateApplication,
       confirmApplicationDownload,
@@ -1022,6 +1043,7 @@ const DataProvider = ({ children }) => {
       regenerateInviteCode,
       enrollStudent,
       addExam,
+      updateExam,
       createApplication,
       updateApplication,
       confirmApplicationDownload,

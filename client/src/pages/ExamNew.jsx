@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { Breadcrumb, FormField, TextInput, TextArea, PrimaryButton, SecondaryButton } from '../components/ui';
 
 export default function ExamNew() {
-  const { questions, addExam } = useData();
+  const { id } = useParams();
+  const isEditing = Boolean(id);
+  const { questions, addExam, updateExam, getExamById, examsLoading } = useData();
   const navigate = useNavigate();
 
   const [title, setTitle] = useState('');
@@ -12,6 +14,22 @@ export default function ExamNew() {
   const [selected, setSelected] = useState({});
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const exam = isEditing ? getExamById(id) : null;
+  const [loaded, setLoaded] = useState(false);
+
+  // No modo edição, preenche o formulário uma única vez com os dados da prova.
+  useEffect(() => {
+    if (!exam || loaded) return;
+    setTitle(exam.title);
+    setDescription(exam.description);
+    setSelected(
+      Object.fromEntries(
+        exam.questions.map((item) => [item.questionId, { checked: true, score: item.score }]),
+      ),
+    );
+    setLoaded(true);
+  }, [exam, loaded]);
 
    const toggle = (id) => { setSelected((prev) => { const cur = prev[id] || { checked: false, score: 5 }; const willCheck = !cur.checked; if (willCheck && selectedCount >= 20) { return prev; } return { ...prev, [id]: { ...cur, checked: willCheck } }; }); };
 
@@ -32,12 +50,19 @@ export default function ExamNew() {
     setSaving(true);
 
     try {
-      await addExam({
+      const data = {
         title,
         description,
-        questions: selectedEntries.map(([id, v]) => ({ questionId: Number(id), score: v.score || 0 })),
-      });
-      navigate('/provas');
+        questions: selectedEntries.map(([questionId, v]) => ({ questionId: Number(questionId), score: v.score || 0 })),
+      };
+
+      if (isEditing) {
+        await updateExam(Number(id), data);
+        navigate(`/provas/${id}`);
+      } else {
+        await addExam(data);
+        navigate('/provas');
+      }
     } catch (err) {
       setError(err.message || 'Não foi possível salvar a prova.');
     } finally {
@@ -45,11 +70,40 @@ export default function ExamNew() {
     }
   };
 
+  if (isEditing && examsLoading) return <div>Carregando prova...</div>;
+  if (isEditing && !exam) return <div>Prova não encontrada.</div>;
+  if (isEditing && exam.status !== 'Rascunho') {
+    return (
+      <div>
+        <Breadcrumb
+          items={[
+            { label: 'Provas', to: '/provas' },
+            { label: exam.title, to: `/provas/${exam.id}` },
+            { label: 'Editar' },
+          ]}
+        />
+        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', marginBottom: 12 }}>Editar prova</div>
+        <div role="alert" style={{ color: '#b42318', fontSize: 14, marginBottom: 16 }}>
+          Esta prova está com o status {exam.status} e não pode mais ser editada. Só provas em Rascunho, sem aplicação, podem ser editadas.
+        </div>
+        <SecondaryButton type="button" onClick={() => navigate(`/provas/${exam.id}`)}>
+          Voltar para a prova
+        </SecondaryButton>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <Breadcrumb items={[{ label: 'Provas', to: '/provas' }, { label: 'Criar prova' }]} />
+      <Breadcrumb
+        items={
+          isEditing
+            ? [{ label: 'Provas', to: '/provas' }, { label: exam.title, to: `/provas/${exam.id}` }, { label: 'Editar' }]
+            : [{ label: 'Provas', to: '/provas' }, { label: 'Criar prova' }]
+        }
+      />
       <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', marginBottom: 22, letterSpacing: '-0.01em' }}>
-        Criar prova
+        {isEditing ? 'Editar prova' : 'Criar prova'}
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -148,9 +202,9 @@ export default function ExamNew() {
               </div>
             )}
             <PrimaryButton type="submit" style={{ width: '100%', marginTop: 20 }} disabled={selectedCount === 0 || saving}>
-              {saving ? 'Salvando...' : 'Salvar prova'}
+              {saving ? 'Salvando...' : isEditing ? 'Salvar alterações' : 'Salvar prova'}
             </PrimaryButton>
-            <SecondaryButton type="button" style={{ width: '100%', marginTop: 8 }} disabled={saving} onClick={() => navigate('/provas')}>
+            <SecondaryButton type="button" style={{ width: '100%', marginTop: 8 }} disabled={saving} onClick={() => navigate(isEditing ? `/provas/${id}` : '/provas')}>
               Cancelar
             </SecondaryButton>
           </div>
