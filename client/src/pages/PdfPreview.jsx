@@ -66,7 +66,7 @@ export default function PdfPreview() {
 
   return (
     <div>
-      <Breadcrumb items={[{ label: exam?.title, to: `/aplicacoes/${app.id}` }, { label: 'Pré-visualização' }]} />
+      <Breadcrumb items={[{ label: 'Aplicações', to: '/aplicacoes' }, { label: exam?.title, to: `/aplicacoes/${app.id}` }, { label: 'Pré-visualização' }]} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 16 }}>
         <div>
           <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
