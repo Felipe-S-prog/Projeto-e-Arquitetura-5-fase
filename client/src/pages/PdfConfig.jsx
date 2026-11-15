@@ -99,7 +99,7 @@ export default function PdfConfig() {
 
   return (
     <div>
-      <Breadcrumb items={[{ label: exam?.title, to: `/aplicacoes/${app.id}` }, { label: 'Configurar geração' }]} />
+      <Breadcrumb items={[{ label: 'Aplicações', to: '/aplicacoes' }, { label: exam?.title, to: `/aplicacoes/${app.id}` }, { label: 'Configurar geração' }]} />
       <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', marginBottom: 24, letterSpacing: '-0.01em' }}>
         Configurar geração
       </div>

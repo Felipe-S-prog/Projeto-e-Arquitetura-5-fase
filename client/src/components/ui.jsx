@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { statusColors } from '../utils/status';
 
 export function Badge({ status, children }) {
@@ -127,20 +127,54 @@ export function EmptyState({ children }) {
 }
 
 export function Breadcrumb({ items }) {
+  const navigate = useNavigate();
+  // O botão Voltar leva ao último nível clicável do caminho.
+  const backTo = [...items].reverse().find((item) => item.to)?.to;
+
   return (
-    <div style={{ fontSize: 13, marginBottom: 10, color: 'var(--muted)' }}>
-      {items.map((item, i) => (
-        <span key={i}>
-          {item.to ? (
-            <Link to={item.to} style={{ textDecoration: 'none' }}>
-              {item.label}
-            </Link>
-          ) : (
-            item.label
-          )}
-          {i < items.length - 1 && ' / '}
-        </span>
-      ))}
+    <div
+      style={{
+        fontSize: 13,
+        marginBottom: 10,
+        color: 'var(--muted)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        flexWrap: 'wrap',
+      }}
+    >
+      {backTo && (
+        <button
+          type="button"
+          onClick={() => navigate(backTo)}
+          style={{
+            padding: '4px 10px',
+            border: '1px solid var(--border-strong)',
+            borderRadius: 8,
+            background: 'white',
+            color: 'oklch(30% 0.02 250)',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          ← Voltar
+        </button>
+      )}
+      <div>
+        {items.map((item, i) => (
+          <span key={i}>
+            {item.to ? (
+              <Link to={item.to} style={{ textDecoration: 'none' }}>
+                {item.label}
+              </Link>
+            ) : (
+              item.label
+            )}
+            {i < items.length - 1 && ' / '}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
