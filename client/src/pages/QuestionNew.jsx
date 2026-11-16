@@ -1,4 +1,5 @@
 
+import { normalizeTags, suggestTags } from '../utils/tags';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
@@ -41,6 +42,13 @@ export default function QuestionNew() {
   const [saving, setSaving] = useState(false);
   const [alternatives, setAlternatives] = useState(['', '', '', '']);
   const [correctAlt, setCorrectAlt] = useState(0);
+
+  const tagSuggestions = suggestTags(questions.flatMap((question) => question.tags ?? []), tags);
+  const addTagSuggestion = (tag) => {
+    const parts = tags.split(',');
+    parts.pop();
+    setTags(normalizeTags([...parts, tag]).join(', ') + ', ');
+  };
 
   // Cria uma pré-visualização temporária do arquivo selecionado.
   useEffect(() => {
@@ -192,10 +200,7 @@ export default function QuestionNew() {
 
       const question = {
         excerpt: excerpt.trim(),
-        tags: tags
-          .split(',')
-          .map((tag) => tag.trim())
-          .filter(Boolean),
+        tags: normalizeTags(tags.split(',')),
         imageUrl: finalImageUrl,
         alternatives: alternatives.map((text, index) => ({
           text: text.trim(),
@@ -248,6 +253,7 @@ export default function QuestionNew() {
         {editId ? 'Editar questão' : 'Criar questão'}
       </div>
 
+      {editId && <p role="note">Esta questão pode estar vinculada a provas. Alterar enunciado, alternativas ou gabarito afeta a questão reutilizada nessas provas; confira as aplicações antes de salvar.</p>}
       <form onSubmit={handleSubmit}>
         <div
           style={{
@@ -275,12 +281,18 @@ export default function QuestionNew() {
               />
             </FormField>
 
-            <FormField label="Tags">
+            <FormField label="Tags" hint="Separe por vírgulas ou selecione uma sugestão. Acentos, maiúsculas e espaços são unificados.">
               <TextInput
                 placeholder="Ex.: Matemática, Álgebra"
                 value={tags}
                 onChange={(event) => setTags(event.target.value)}
+                aria-label="Tags da questão"
               />
+              <div aria-label="Sugestões de tags" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                {tagSuggestions.map((tag) => (
+                  <SecondaryButton key={tag} type="button" onClick={() => addTagSuggestion(tag)}>{tag}</SecondaryButton>
+                ))}
+              </div>
             </FormField>
 
             <FormField
