@@ -515,7 +515,7 @@ export default function QuestionNew() {
                     color: 'var(--muted)',
                   }}
                 >
-                eta  Remover última
+                Remover última
                 </a>
               </div>
 
