@@ -2,6 +2,10 @@
 // (middleware professorContext); as regras ficam no service.
 export function createCorrecaoController(correcaoService) {
   return {
+    async listarAplicacao(req, res) {
+      res.json(await correcaoService.listarAplicacao(req.params.id, req.professorId));
+    },
+
     async buscarCopia(req, res) {
       res.json(await correcaoService.buscarCopiaParaCorrecao(req.params.codigo, req.professorId));
     },
