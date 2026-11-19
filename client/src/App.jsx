@@ -107,6 +107,7 @@ function AppRoutes() {
         <Route path="provas" element={<ExamsList />} />
         <Route path="provas/nova" element={<ExamNew />} />
         <Route path="provas/:id" element={<ExamDetail />} />
+        <Route path="provas/:id/editar" element={<ExamNew />} />
         <Route path="aplicacoes" element={<ApplicationsList />} />
         <Route path="aplicacoes/nova" element={<ApplicationNew />} />
         <Route path="aplicacoes/:id" element={<ApplicationDetail />} />

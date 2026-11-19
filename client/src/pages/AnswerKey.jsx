@@ -67,7 +67,7 @@ export default function AnswerKey() {
 
   return (
     <div>
-      <Breadcrumb items={[{ label: exam?.title, to: `/aplicacoes/${app.id}` }, { label: 'Gabarito' }]} />
+      <Breadcrumb items={[{ label: 'Aplicações', to: '/aplicacoes' }, { label: exam?.title, to: `/aplicacoes/${app.id}` }, { label: 'Gabarito' }]} />
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 16 }}>
         <div style={{ flex: '1 1 320px' }}>
           <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Gabarito</div>
