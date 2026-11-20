@@ -34,7 +34,10 @@ Regras:
 - **Vinculada à turma** (`linkToRoster`, T24): sai uma cópia **nominal** por aluno matriculado na turma (T15), em
   ordem alfabética, com o nome no rótulo e o aluno gravado em `copia_prova.aluno_id`. A quantidade da aplicação não
   vale nesse caso. Turma sem alunos matriculados: `409`. A correção (T30) já sabe de quem é a nota de cada cópia.
-- Publicar o gabarito não tem volta e nunca revela nota; quem já estava publicado mantém a data.
+- Publicar o gabarito nunca revela nota; quem já estava publicado mantém a data. Pode ser por versão (uma cópia)
+  ou por aplicação (todas as cópias), RF08.
+- Despublicar (T59) tira o gabarito do ar do mesmo jeito: a consulta pública volta a responder `403` e a data de
+  publicação é apagada. Publicar de novo grava uma nova data.
 
 ## Endpoints
 
@@ -44,6 +47,8 @@ Regras:
 | `GET` | `/aplicacoes/:id/copias` | Cópias de uma aplicação. |
 | `POST` | `/aplicacoes/:id/copias` | Gera (ou regera) as cópias da aplicação. Responde `201` com a lista. |
 | `POST` | `/aplicacoes/:id/copias/gabarito` | Publica o gabarito. Corpo `{ "code": "ABC234" }` publica uma cópia; corpo vazio publica todas. |
+| `DELETE` | `/aplicacoes/:id/copias/gabarito` | Despublica o gabarito de todas as cópias da aplicação (T59). Responde com a lista. |
+| `DELETE` | `/aplicacoes/:id/copias/gabarito/:code` | Despublica o gabarito de uma cópia (T59). Código de outra aplicação: `404`. |
 
 Cada cópia volta neste formato (o mesmo que as telas já usavam):
 
@@ -123,7 +128,8 @@ professor enviar às pessoas (ex.: pelo Teams), e devolve como download
 
 Gabarito público (T26): `routes/gabarito.routes.js` → `controllers/gabarito.controller.js` →
 `services/gabarito.service.js` (inclui `resolverGabarito`) → `repositories/gabarito.repository.js`. Testes em
-`server/test/gabarito.service.test.js` e `server/test/gabarito.routes.test.js`.
+`server/test/gabarito.service.test.js` e `server/test/gabarito.routes.test.js`. O fluxo publicar → consultar →
+despublicar com várias versões (T59) está em `server/test/gabarito.publicacao.test.js`.
 
 PDF (T25): `routes/pdf.routes.js` → `controllers/pdf.controller.js` → `services/pdf.service.js` →
 `repositories/pdf.repository.js`. O montador (T22) fica em `server/src/pdf/` (`buildConsolidatedPdf.js`,

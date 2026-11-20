@@ -805,6 +805,25 @@ const DataProvider = ({ children }) => {
     },
     [replaceApplicationCopies],
   );
+
+  // Tira o gabarito do ar (T59): de uma cópia pelo código ou de todas ('all').
+  const unpublishAnswerKey = useCallback(
+    async (applicationId, code) => {
+      const path = `/aplicacoes/${Number(applicationId)}/copias/gabarito`;
+      const copies = await adminApiRequest(
+        code === 'all' ? path : `${path}/${encodeURIComponent(code)}`,
+        { method: 'DELETE' },
+      );
+
+      if (!Array.isArray(copies)) {
+        throw new Error('A API retornou uma lista de cópias inválida.');
+      }
+
+      replaceApplicationCopies(applicationId, copies);
+      return copies;
+    },
+    [replaceApplicationCopies],
+  );
   const findCopyByCode = useCallback(
     (code) => {
       const normalized = (code || '').trim().toUpperCase();
@@ -1003,6 +1022,7 @@ const DataProvider = ({ children }) => {
       confirmApplicationDownload,
       generateApplicationCopies,
       publishAnswerKey,
+      unpublishAnswerKey,
       findCopyByCode,
       classStudents,
       addAdminUser,
@@ -1050,6 +1070,7 @@ const DataProvider = ({ children }) => {
       confirmApplicationDownload,
       generateApplicationCopies,
       publishAnswerKey,
+      unpublishAnswerKey,
       findCopyByCode,
       classStudents,
       addAdminUser,
