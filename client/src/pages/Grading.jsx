@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import QrReader from '../components/QrReader';
 import { Badge, Breadcrumb, FormField, PageHeader, PrimaryButton, SecondaryButton, Select, TextInput } from '../components/ui';
 import { apiRequest } from '../services/api';
 import { useApiGet } from '../services/useApiGet';
 import { formatDate, formatPercent, formatScore, GRADING_TYPE_LABEL, scoreColor } from '../utils/grades';
+import { loadSheetPhoto, readAnswers, SheetReadError } from '../utils/sheetReader';
 
 const cardStyle = {
   background: 'white',
@@ -83,6 +84,57 @@ function Bubble({ letter, label, selected, onClick }) {
     >
       {letter}
     </button>
+  );
+}
+
+// Botão que abre a câmera do celular (ou o seletor de arquivos no computador) para a foto da folha.
+function SheetPhotoButton({ onFile, busy, primary, children }) {
+  const inputRef = useRef(null);
+  const Button = primary ? PrimaryButton : SecondaryButton;
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        aria-label="Foto da folha de resposta"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (file) onFile(file);
+        }}
+        style={{ display: 'none' }}
+      />
+      <Button type="button" onClick={() => inputRef.current?.click()} disabled={busy}>
+        {busy ? 'Lendo a folha...' : children}
+      </Button>
+    </>
+  );
+}
+
+const SITUATION_TEXT = { MARCADA: 'marcadas', EM_BRANCO: 'em branco', DUPLA: 'com marcação dupla' };
+
+function SheetReadingSummary({ reading }) {
+  const count = (situacao) => reading.respostas.filter((r) => r.situacao === situacao).length;
+  const doubtful = reading.respostas.filter((r) => r.duvidosa).length;
+  const parts = ['MARCADA', 'EM_BRANCO', 'DUPLA'].filter((k) => count(k) > 0).map((k) => `${count(k)} ${SITUATION_TEXT[k]}`);
+  return (
+    <div
+      style={{
+        padding: '12px 16px',
+        borderRadius: 10,
+        marginBottom: 16,
+        fontSize: 13.5,
+        background: doubtful ? 'var(--amber-bg)' : 'var(--green-bg)',
+        color: doubtful ? 'var(--amber-text)' : 'var(--green-text)',
+      }}
+    >
+      <strong>Folha lida pela foto:</strong> {parts.join(', ')}.{' '}
+      {doubtful
+        ? `Confira ${doubtful === 1 ? 'a questão destacada' : `as ${doubtful} questões destacadas`} e clique em Corrigir prova.`
+        : 'Confira e clique em Corrigir prova.'}
+    </div>
   );
 }
 
@@ -264,6 +316,10 @@ export default function Grading() {
   const [editing, setEditing] = useState(true);
   const [submitError, setSubmitError] = useState('');
   const [saving, setSaving] = useState(false);
+  // Leitura automática da folha (T63/T64): resultado por questão para destacar o que conferir.
+  const [sheetReading, setSheetReading] = useState(null);
+  const [readingSheet, setReadingSheet] = useState(false);
+  const [sheetError, setSheetError] = useState('');
 
   const loadCopy = async (code) => {
     const normalized = code.trim().toUpperCase();
@@ -281,9 +337,13 @@ export default function Grading() {
       setStudentId(data.correcao?.aluno && !data.copia.aluno ? String(data.correcao.aluno.id) : '');
       setSubmitError('');
       setTypedCode('');
+      setSheetReading(null);
+      setSheetError('');
+      return data;
     } catch (error) {
       setCopy(null);
       setLookupError(error.status === 404 ? `Nenhuma prova sua tem o código ${normalized}.` : error.message);
+      return null;
     } finally {
       setLoadingCode(null);
     }
@@ -323,7 +383,40 @@ export default function Grading() {
 
   const backToList = () => navigate(`/correcao/aplicacoes/${applicationId}`);
 
+  // Aplica a leitura da foto no formulário: marcadas viram a resposta, em branco e dupla ficam sem
+  // resposta (dupla é anulada) e as duvidosas aparecem destacadas para o professor conferir.
+  const applyReading = (reading) => {
+    setAnswers(Object.fromEntries(reading.respostas.map((r) => [r.questaoId, r.letra])));
+    setSheetReading(reading);
+    setMode('answers');
+    setEditing(true);
+  };
+
+  const readPhoto = async (file) => {
+    setReadingSheet(true);
+    setSheetError('');
+    setLookupError('');
+    try {
+      const { imageData, qr } = await loadSheetPhoto(file);
+      if (!qr) throw new SheetReadError('Não encontrei o QR Code do SGP na foto. Fotografe a folha inteira, nítida e sem reflexo sobre o QR.');
+      let target = copy;
+      if (!target || target.copia.codigo !== qr.code) {
+        if (target && !window.confirm(`A foto é da prova ${qr.code}, não da prova ${target.copia.codigo}. Abrir a prova ${qr.code}?`)) return;
+        target = await loadCopy(qr.code);
+        if (!target) return;
+      }
+      if (!target.folha) throw new SheetReadError('Esta prova não pode ser lida pela foto. Marque as respostas na tela.');
+      applyReading(readAnswers(imageData, qr, target.folha));
+    } catch (error) {
+      setSheetError(error instanceof SheetReadError ? error.message : 'Não foi possível ler a foto. Tente outra foto ou marque as respostas na tela.');
+    } finally {
+      setReadingSheet(false);
+    }
+  };
+
   const reset = () => {
+    setSheetReading(null);
+    setSheetError('');
     setCopy(null);
     setGrading(null);
     setAnswers({});
@@ -354,6 +447,7 @@ export default function Grading() {
     try {
       setGrading(await request);
       setEditing(false);
+      setSheetReading(null);
     } catch (error) {
       if (error.code === 'CONFLICT' && error.details?.correcaoId && !replace) {
         const previous = `${formatScore(error.details.nota)} (${GRADING_TYPE_LABEL[error.details.tipo].toLowerCase()})`;
@@ -406,7 +500,17 @@ export default function Grading() {
       {!copy && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, alignItems: 'start' }}>
           <div style={{ ...cardStyle, marginBottom: 0 }}>
-            <SectionTitle hint="Use a foto da folha ou a câmera.">Ler QR Code</SectionTitle>
+            <SectionTitle hint="Tire uma foto da folha preenchida: o sistema identifica a prova e lê as marcações.">Ler folha pela foto</SectionTitle>
+            <div style={{ fontSize: 13.5, color: 'var(--muted-2)', marginBottom: 14 }}>
+              Folha inteira na foto, sem reflexo e sem cortar os quadrados pretos dos cantos.
+            </div>
+            <SheetPhotoButton onFile={readPhoto} busy={readingSheet} primary>
+              Enviar foto da folha
+            </SheetPhotoButton>
+            {sheetError && <ErrorText>{sheetError}</ErrorText>}
+          </div>
+          <div style={{ ...cardStyle, marginBottom: 0 }}>
+            <SectionTitle hint="Só identifica a prova; as respostas você marca na tela.">Ler QR Code</SectionTitle>
             <QrReader onCode={loadCopy} />
           </div>
           <div style={{ ...cardStyle, marginBottom: 0 }}>
@@ -477,8 +581,20 @@ export default function Grading() {
             <div style={cardStyle}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
                 <SectionTitle>{grading ? 'Corrigir novamente' : 'Corrigir prova'}</SectionTitle>
-                <Pills options={MODES} value={mode} onChange={setMode} />
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {copy.folha && mode === 'answers' && (
+                    <SheetPhotoButton onFile={readPhoto} busy={readingSheet}>
+                      Ler folha pela foto
+                    </SheetPhotoButton>
+                  )}
+                  <Pills options={MODES} value={mode} onChange={setMode} />
+                </div>
               </div>
+              {sheetError && (
+                <div style={{ marginTop: -8, marginBottom: 14 }}>
+                  <ErrorText>{sheetError}</ErrorText>
+                </div>
+              )}
 
               <div style={{ maxWidth: 420, marginBottom: 22 }}>
                 {anonymous ? (
@@ -505,53 +621,71 @@ export default function Grading() {
 
               {mode === 'answers' ? (
                 <>
+                  {sheetReading && <SheetReadingSummary reading={sheetReading} />}
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {copy.questoes.map((q) => (
-                      <div
-                        key={q.questaoId}
-                        style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '14px 0', borderTop: '1px solid var(--border-light)', flexWrap: 'wrap' }}
-                      >
-                        <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-strong)' }}>
-                            Questão {q.numero}{' '}
-                            <span style={{ fontWeight: 500, color: 'var(--muted-3)', fontSize: 12.5 }}>
-                              · {formatScore(q.pontuacao)} pt{q.pontuacao === 1 ? '' : 's'}
-                              {q.tipo === 'DISCURSIVA' ? ' · discursiva' : ''}
-                            </span>
+                    {copy.questoes.map((q) => {
+                      const read = sheetReading?.respostas.find((r) => r.questaoId === q.questaoId);
+                      return (
+                        <div
+                          key={q.questaoId}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 18,
+                            padding: read?.duvidosa ? '14px 10px' : '14px 0',
+                            borderTop: '1px solid var(--border-light)',
+                            flexWrap: 'wrap',
+                            background: read?.duvidosa ? 'var(--amber-bg)' : undefined,
+                            borderRadius: read?.duvidosa ? 8 : undefined,
+                          }}
+                        >
+                          <div style={{ flex: '1 1 260px', minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-strong)' }}>
+                              Questão {q.numero}{' '}
+                              <span style={{ fontWeight: 500, color: 'var(--muted-3)', fontSize: 12.5 }}>
+                                · {formatScore(q.pontuacao)} pt{q.pontuacao === 1 ? '' : 's'}
+                                {q.tipo === 'DISCURSIVA' ? ' · discursiva' : ''}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 13, color: 'var(--muted-2)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {q.enunciado}
+                            </div>
+                            {read && (read.duvidosa || read.situacao !== 'MARCADA') && (
+                              <div style={{ fontSize: 12.5, fontWeight: 600, marginTop: 4, color: read.duvidosa ? 'var(--amber-text)' : 'var(--muted-3)' }}>
+                                {read.duvidosa ? `Confira: ${read.motivo}` : 'Em branco na folha'}
+                              </div>
+                            )}
                           </div>
-                          <div style={{ fontSize: 13, color: 'var(--muted-2)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {q.enunciado}
-                          </div>
-                        </div>
-                        {q.tipo === 'OBJETIVA' ? (
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            {q.alternativas.map((a) => (
-                              <Bubble
-                                key={a.letra}
-                                letter={a.letra}
-                                label={`Questão ${q.numero}, alternativa ${a.letra}`}
-                                selected={answers[q.questaoId] === a.letra}
-                                onClick={() => setAnswer(q.questaoId, answers[q.questaoId] === a.letra ? null : a.letra)}
+                          {q.tipo === 'OBJETIVA' ? (
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              {q.alternativas.map((a) => (
+                                <Bubble
+                                  key={a.letra}
+                                  letter={a.letra}
+                                  label={`Questão ${q.numero}, alternativa ${a.letra}`}
+                                  selected={answers[q.questaoId] === a.letra}
+                                  onClick={() => setAnswer(q.questaoId, answers[q.questaoId] === a.letra ? null : a.letra)}
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <TextInput
+                                type="number"
+                                min={0}
+                                max={q.pontuacao}
+                                step={0.25}
+                                value={answers[q.questaoId] ?? ''}
+                                onChange={(e) => setAnswer(q.questaoId, e.target.value)}
+                                aria-label={`Pontos da questão ${q.numero}`}
+                                style={{ width: 96 }}
                               />
-                            ))}
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <TextInput
-                              type="number"
-                              min={0}
-                              max={q.pontuacao}
-                              step={0.25}
-                              value={answers[q.questaoId] ?? ''}
-                              onChange={(e) => setAnswer(q.questaoId, e.target.value)}
-                              aria-label={`Pontos da questão ${q.numero}`}
-                              style={{ width: 96 }}
-                            />
-                            <span style={{ fontSize: 13, color: 'var(--muted-2)' }}>de {formatScore(q.pontuacao)}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                              <span style={{ fontSize: 13, color: 'var(--muted-2)' }}>de {formatScore(q.pontuacao)}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--muted-2)', margin: '6px 0 18px' }}>
                     {markedCount} de {objectiveQuestions.length} objetivas marcadas. Questões sem marcação contam como em branco (zero).
