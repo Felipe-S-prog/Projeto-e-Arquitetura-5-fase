@@ -17,5 +17,9 @@ export function createCopiaController(copiaService) {
     async publicarGabarito(req, res) {
       res.json(await copiaService.publicarGabarito(req.params.aplicacaoId, req.body, req.professorId));
     },
+
+    async despublicarGabarito(req, res) {
+      res.json(await copiaService.despublicarGabarito(req.params.aplicacaoId, req.params.code, req.professorId));
+    },
   };
 }

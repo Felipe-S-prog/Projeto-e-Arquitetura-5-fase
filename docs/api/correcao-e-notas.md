@@ -154,6 +154,28 @@ marcação. A correção é gravada pela mesma rota `POST /correcoes`.
 Os testes (`cd client && npm test`) desenham a folha com a geometria real, aplicam rotação, perspectiva, luz
 desigual e ruído e conferem a leitura, inclusive de cabeça para baixo e com 25 questões.
 
+## Estatística das respostas por questão (T74)
+
+Em `GET /relatorios/aplicacoes/:id`, cada questão objetiva de `questoes` traz `distribuicao`: quantas pessoas marcaram cada alternativa. Questão discursiva vem com `distribuicao: null`.
+
+```json
+{
+  "respostas": 12,
+  "emBranco": { "quantidade": 1, "percentual": 8.33 },
+  "alternativas": [
+    { "letra": "A", "texto": "f'(1) = -2", "correta": false, "quantidade": 3, "percentual": 25 },
+    { "letra": "C", "texto": "f'(1) = 0", "correta": true, "quantidade": 8, "percentual": 66.67 }
+  ],
+  "maisMarcadas": ["C"]
+}
+```
+
+- Conta só as correções automáticas: o lançamento manual não grava a resposta de cada questão.
+- A letra gravada na correção é a da ordem impressa da cópia. Cada resposta volta para a alternativa original pela ordem da própria cópia, então as versões embaralhadas somam certo. As letras do resultado são as da ordem cadastrada da questão.
+- `emBranco` junta as questões em branco e as anuladas por marcação dupla, que a correção grava do mesmo jeito (sem letra).
+- `maisMarcadas` lista todas as alternativas empatadas no topo, e fica vazia quando ninguém marcou alternativa.
+- O cálculo fica em `services/relatorio.alternativas.js`, com testes em `server/test/relatorio.alternativas.test.js`.
+
 ## Exportação (CSV)
 
 Os relatórios em CSV abrem direto no Excel em português: separador `;`, vírgula decimal, acentos

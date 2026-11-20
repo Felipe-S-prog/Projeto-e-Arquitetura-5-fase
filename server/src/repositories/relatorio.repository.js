@@ -6,6 +6,7 @@ import {
   toNotaDoAluno,
   toTurmaResumo,
 } from '../models/relatorio.model.js';
+import { toOrdemEmbaralhamento } from '../models/correcao.model.js';
 import { toCamelCase } from '../utils/case.js';
 
 // Repository dos relatórios e do histórico de notas (T32 e T33).
@@ -193,6 +194,38 @@ export function createRelatorioRepository(pool) {
         [alunoId, professorId]
       );
       return rows.map(toItemDoHistorico);
+    },
+
+    // T74: alternativas das objetivas da prova, na ordem cadastrada.
+    async listAlternativasDaProva(provaId) {
+      const [rows] = await pool.query(
+        `SELECT a.questao_id, a.ordem, a.texto, a.correta
+           FROM prova_questao pq
+           JOIN alternativa a ON a.questao_id = pq.questao_id
+          WHERE pq.prova_id = ?
+          ORDER BY a.questao_id, a.ordem`,
+        [provaId]
+      );
+      return rows.map((row) => ({ questaoId: row.questao_id, ordem: row.ordem, texto: row.texto, correta: Boolean(row.correta) }));
+    },
+
+    // T74: letra marcada em cada objetiva das correções automáticas, com a ordem da cópia
+    // (a letra é a da ordem impressa; a ordem diz qual alternativa original ela é).
+    async listRespostasObjetivas(aplicacaoId) {
+      const [rows] = await pool.query(
+        `SELECT r.questao_id, r.letra_marcada, cp.ordem_embaralhamento
+           FROM correcao_resposta r
+           JOIN correcao c ON c.id = r.correcao_id
+           JOIN copia_prova cp ON cp.id = c.copia_prova_id
+           JOIN questao q ON q.id = r.questao_id
+          WHERE cp.aplicacao_id = ? AND q.tipo = 'OBJETIVA'`,
+        [aplicacaoId]
+      );
+      return rows.map((row) => ({
+        questaoId: row.questao_id,
+        letraMarcada: row.letra_marcada,
+        alternativesOrder: toOrdemEmbaralhamento(row.ordem_embaralhamento).alternativesOrder,
+      }));
     },
   };
 }

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import AnswerDistribution, { MostMarked } from '../components/AnswerDistribution';
 import { Badge, Breadcrumb, EmptyState, FormField, PageHeader, SecondaryButton, Select } from '../components/ui';
 import { apiDownload } from '../services/api';
 import { useApiGet } from '../services/useApiGet';
@@ -97,6 +98,7 @@ function applicationLabel(a) {
 function ApplicationReport({ applicationId, onSelect }) {
   const list = useApiGet('/relatorios/aplicacoes');
   const report = useApiGet(applicationId ? `/relatorios/aplicacoes/${applicationId}` : null);
+  const [openQuestion, setOpenQuestion] = useState(null); // T74: questão com as alternativas abertas
 
   if (list.loading) return <EmptyState>Carregando aplicações...</EmptyState>;
   if (list.error) return <ErrorState error={list.error} />;
@@ -202,26 +204,55 @@ function ApplicationReport({ applicationId, onSelect }) {
                     <th style={thStyle}>Nº</th>
                     <th style={thStyle}>Enunciado</th>
                     <th style={thStyle}>Taxa de acerto</th>
+                    <th style={thStyle}>Mais marcada</th>
                     <th style={{ ...thStyle, textAlign: 'right' }}>Em branco</th>
                     <th style={{ ...thStyle, textAlign: 'right' }}>Média de pontos</th>
+                    <th style={thStyle} />
                   </tr>
                 </thead>
                 <tbody>
                   {report.data.questoes.map((q) => (
-                    <tr key={q.questaoId}>
+                    <Fragment key={q.questaoId}>
+                    <tr>
                       <td style={{ ...tdStyle, fontWeight: 600 }}>{q.posicao}</td>
-                      <td style={{ ...tdStyle, maxWidth: 380 }}>
+                      <td style={{ ...tdStyle, maxWidth: 300 }}>
                         <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.enunciado}</div>
                         {q.tipo === 'DISCURSIVA' && <div style={{ fontSize: 12, color: 'var(--muted-3)' }}>Discursiva</div>}
                       </td>
                       <td style={tdStyle}>
                         <HitRateBar value={q.taxaAcerto} />
                       </td>
+                      <td style={tdStyle}>
+                        <MostMarked distribuicao={q.distribuicao} />
+                      </td>
                       <td style={{ ...tdStyle, textAlign: 'right' }}>{q.tipo === 'OBJETIVA' ? q.emBranco : '—'}</td>
                       <td style={{ ...tdStyle, textAlign: 'right' }}>
                         {formatScore(q.mediaPontos)} / {formatScore(q.pontuacao)}
                       </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        {q.distribuicao && (
+                          <button
+                            type="button"
+                            onClick={() => setOpenQuestion(openQuestion === q.questaoId ? null : q.questaoId)}
+                            aria-expanded={openQuestion === q.questaoId}
+                            style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, fontWeight: 600, color: 'var(--navy)', cursor: 'pointer' }}
+                          >
+                            {openQuestion === q.questaoId ? 'Fechar' : 'Alternativas'}
+                          </button>
+                        )}
+                      </td>
                     </tr>
+                    {openQuestion === q.questaoId && (
+                      <tr>
+                        <td colSpan={7} style={{ ...tdStyle, borderTop: 'none', paddingTop: 0, paddingBottom: 16 }}>
+                          {/* preso à esquerda: continua visível quando a tabela rola para o lado */}
+                          <div style={{ position: 'sticky', left: 8, width: 540, maxWidth: '100%' }}>
+                            <AnswerDistribution distribuicao={q.distribuicao} />
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

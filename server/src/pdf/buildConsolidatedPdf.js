@@ -277,7 +277,7 @@ function drawAnswerCard(ctx, page, geometry, code) {
 
   geometry.columns.forEach((col) => {
     drawCentered(page, col.letter, { cx: col.cx, y: geometry.lettersTopY + 8, size: 9, font: bold, color: GRAY });
-    drawCentered(page, col.letter, { cx: col.cx, y: geometry.lettersBottomY - 4, size: 9, font: bold, color: GRAY });
+    drawCentered(page, col.letter, { cx: col.cx, y: geometry.lettersBottomY - 2, size: 9, font: bold, color: GRAY });
   });
 
   geometry.rows.forEach((row) => {

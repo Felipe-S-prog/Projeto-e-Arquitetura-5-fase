@@ -31,6 +31,20 @@ function fakeRepository() {
         { questaoId: 200, posicao: 2, tipo: 'DISCURSIVA', pontuacao: 5, corrigidas: 0, acertos: 0, emBranco: 0, mediaPontos: null },
       ];
     },
+    async listAlternativasDaProva() {
+      return [
+        { questaoId: 100, ordem: 0, texto: 'Sim', correta: true },
+        { questaoId: 100, ordem: 1, texto: 'Não', correta: false },
+      ];
+    },
+    async listRespostasObjetivas() {
+      return [
+        { questaoId: 100, letraMarcada: 'A', alternativesOrder: { 100: [0, 1] } },
+        { questaoId: 100, letraMarcada: 'A', alternativesOrder: { 100: [1, 0] } },
+        { questaoId: 100, letraMarcada: 'B', alternativesOrder: { 100: [1, 0] } },
+        { questaoId: 100, letraMarcada: null, alternativesOrder: { 100: [0, 1] } },
+      ];
+    },
     async findTurma(id, professorId) {
       return id === 9 && professorId === 1 ? { id: 9, nome: 'Turma A' } : null;
     },
@@ -71,6 +85,18 @@ test('relatorioDaAplicacao: estatísticas só das corrigidas e taxa de acerto s�
   assert.equal(r.estatisticas.media, 6.75);
   assert.deepEqual(r.notas.map((n) => n.percentual), [80, 55, null]);
   assert.deepEqual(r.questoes.map((q) => q.taxaAcerto), [75, null]);
+});
+
+test('relatorioDaAplicacao (T74): cada objetiva traz quantas pessoas marcaram cada alternativa; discursiva não', async () => {
+  const r = await createRelatorioService(fakeRepository()).relatorioDaAplicacao(1, 1);
+  const [objetiva, discursiva] = r.questoes;
+  assert.deepEqual(
+    objetiva.distribuicao.alternativas.map((a) => [a.letra, a.quantidade, a.percentual, a.correta]),
+    [['A', 2, 50, true], ['B', 1, 25, false]],
+  );
+  assert.deepEqual(objetiva.distribuicao.emBranco, { quantidade: 1, percentual: 25 });
+  assert.deepEqual(objetiva.distribuicao.maisMarcadas, ['A']);
+  assert.equal(discursiva.distribuicao, null);
 });
 
 test('relatorioDaAplicacao: aplicação de outro professor é 404 e id inválido é 400', async () => {

@@ -83,8 +83,15 @@ export function createProvaRepository(pool) {
       return this.findById(provaId, professorId);
     },
 
+    // Só grava se a prova ainda está em Rascunho: a linha fica travada (FOR UPDATE) até o fim, então uma
+    // aplicação criada ao mesmo tempo espera, e a que chegou antes faz esta edição devolver null (T50).
     async update(provaId, professorId, { titulo, descricao, questoes }) {
-      await comTransacao(async (conn) => {
+      const editada = await comTransacao(async (conn) => {
+        const [[atual]] = await conn.query('SELECT status FROM prova WHERE id = ? AND professor_id = ? FOR UPDATE', [
+          provaId,
+          professorId,
+        ]);
+        if (atual?.status !== 'RASCUNHO') return false;
         await conn.query('UPDATE prova SET titulo = ?, descricao = ? WHERE id = ? AND professor_id = ?', [
           titulo,
           descricao,
@@ -93,8 +100,9 @@ export function createProvaRepository(pool) {
         ]);
         await conn.query('DELETE FROM prova_questao WHERE prova_id = ?', [provaId]);
         await insertQuestoes(conn, provaId, questoes);
+        return true;
       });
-      return this.findById(provaId, professorId);
+      return editada ? this.findById(provaId, professorId) : null;
     },
 
     async updateStatus(provaId, professorId, status) {
