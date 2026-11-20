@@ -11,9 +11,11 @@ function parseId(valor, mensagem) {
 
 // Service das Cópias da Prova (T23). Regras de negócio:
 // - a cópia pertence à aplicação, que é do professor dono da prova (RNF04);
-// - as cópias só são geradas (ou regeradas) enquanto a aplicação está Pendente: depois do download
-//   do PDF elas ficam fixas, porque os códigos já foram impressos;
-// - gerar de novo troca todas as cópias, e nunca se a aplicação já tem correção lançada;
+// - as cópias só são geradas (ou regeradas) enquanto a aplicação está Pendente: depois de marcada
+//   como Aplicada elas ficam fixas, porque os códigos já foram impressos;
+// - gerar de novo troca todas as cópias, e nunca se a aplicação já tem correção lançada (T58):
+//   trocar as cópias apagaria as notas. Lançar correção não exige a aplicação Aplicada, então
+//   esta regra vale também para a aplicação ainda Pendente;
 // - vinculada à turma (T24): uma cópia nominal por aluno matriculado, em ordem alfabética,
 //   com o nome no rótulo e o aluno gravado na cópia (a correção já sabe de quem é a nota);
 // - publicar o gabarito libera a consulta pública de uma cópia ou de todas, e não tem volta.
@@ -41,7 +43,10 @@ export function createCopiaService(repository, { gerar = gerarCopias } = {}) {
         throw AppError.conflict('As cópias desta aplicação já foram impressas e não podem ser geradas de novo.');
       }
       if ((await repository.countCorrecoes(aplicacao.id)) > 0) {
-        throw AppError.conflict('Esta aplicação já tem correções lançadas; gerar de novo apagaria as notas.');
+        throw AppError.conflict(
+          'Esta aplicação já tem correções lançadas. Gerar as provas de novo apagaria as notas, então as provas atuais continuam valendo.',
+          { motivo: 'CORRECAO_LANCADA' },
+        );
       }
 
       const questoes = await repository.listQuestoesDaProva(aplicacao.provaId);

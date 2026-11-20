@@ -55,6 +55,8 @@ export default function PdfConfig() {
   const { getApplicationById, getExamById, updateApplication, classStudents, generateApplicationCopies, applicationsError } = useData();
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState('');
+  // O servidor recusou por correção lançada depois que a tela carregou (T58).
+  const [gradedNow, setGradedNow] = useState(false);
 
   // updateApplication já mostra o erro (applicationsError) e desfaz a mudança; aqui só evitamos erro solto.
   const saveConfig = (patch) => updateApplication(Number(id), patch).catch(() => {});
@@ -64,8 +66,11 @@ export default function PdfConfig() {
   const exam = getExamById(app.examId);
   const students = classStudents(app.classId);
   const hasPublishedAnswerKey = (app.copies || []).some((c) => c.answerKeyPublished);
-  // Depois do download as cópias já foram impressas: o servidor não deixa gerar de novo (T23).
-  const locked = app.status !== 'Pendente';
+  // Depois de Aplicada as cópias já foram impressas (T23), e com correção lançada gerar de novo
+  // apagaria as notas (T58): nos dois casos o servidor não deixa gerar de novo.
+  const applied = app.status !== 'Pendente';
+  const graded = app.gradedCount > 0 || gradedNow;
+  const locked = applied || graded;
 
   const toggleLinkToRoster = () => {
     const next = !app.linkToRoster;
@@ -92,7 +97,11 @@ export default function PdfConfig() {
       await generateApplicationCopies(app.id);
       navigate(`/aplicacoes/${app.id}/pdf/preview`);
     } catch (err) {
-      setGenerateError(err.message || 'Não foi possível gerar as provas.');
+      if (err.details?.motivo === 'CORRECAO_LANCADA') {
+        setGradedNow(true);
+      } else {
+        setGenerateError(err.message || 'Não foi possível gerar as provas.');
+      }
       setGenerating(false);
     }
   };
@@ -159,9 +168,15 @@ export default function PdfConfig() {
             : 'Um QR Code identifica a versão em cada folha; nome e matrícula são preenchidos manualmente pela pessoa.'}
         </div>
 
-        {locked && (
+        {applied && (
           <div style={{ marginTop: 16, fontSize: 13.5, color: 'var(--muted)' }}>
-            Esta aplicação já foi baixada: as {app.copies?.length || app.quantity} provas impressas ficam com os mesmos códigos.
+            Esta aplicação já foi aplicada: as {app.copies?.length || app.quantity} provas impressas ficam com os mesmos códigos.
+          </div>
+        )}
+        {!applied && graded && (
+          <div style={{ marginTop: 16, fontSize: 13.5, color: 'var(--muted)' }}>
+            Esta aplicação já tem correções lançadas. Gerar as provas de novo apagaria as notas, então as{' '}
+            {app.copies?.length || app.quantity} provas atuais continuam valendo e podem ser vistas e baixadas.
           </div>
         )}
 

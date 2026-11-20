@@ -87,6 +87,7 @@ function normalizeApplication(application, copies = []) {
     shuffleQuestions: Boolean(application.shuffleQuestions),
     shuffleAlternatives: Boolean(application.shuffleAlternatives),
     linkToRoster: Boolean(application.linkToRoster),
+    gradedCount: Number(application.gradedCount ?? 0),
     copies,
   };
 }
