@@ -14,11 +14,8 @@ Classes de domínio do **Sistema de Geração de Provas (SGP)**, alinhadas ao mo
 
 | Classe | Atributos | Operações | Tabela no DER |
 |---|---|---|---|
-| **Usuario** | `id: Int`, `nome: String`, `email: String`, `senhaHash: String`, `papel: Papel`, `status: StatusUsuario`, `versaoSessao: Int`, `criadoEm: DateTime` | `anonimizar()` | `usuario` (coluna `papel`) |
-| **Administrador** | — (herda de Usuario) | `cadastrarProfessor()` | `usuario` (papel = ADMINISTRADOR) |
-| **Configuracao** | `id: Int`, `nomeInstituicao: String`, `periodoPadrao: String`, `atualizadoEm: DateTime` | — | `configuracoes` |
+| **Professor** | `id: Int`, `nome: String`, `email: String`, `senhaHash: String`, `status: StatusConta`, `versaoSessao: Int`, `criadoEm: DateTime` | `criarTurma()`, `criarQuestao()`, `montarProva()`, `anonimizarConta()` | `usuario` |
 | **RefreshToken** | `id: Int`, `tokenHash: String`, `dispositivo: String`, `expiraEm: DateTime`, `revogadoEm: DateTime` | `revogar()` | `refresh_token` |
-| **Professor** | — (herda de Usuario) | `criarQuestao()`, `montarProva()`, `criarTurma()` | `usuario` (papel = PROFESSOR) |
 | **Turma** | `id: Int`, `nome: String`, `disciplina: String`, `periodo: String`, `status: StatusTurma`, `codigoConvite: String` | `arquivar()`, `gerarCodigoConvite()` | `turma` |
 | **Prova** | `id: Int`, `titulo: String`, `descricao: String`, `status: StatusProva`, `criadaEm: DateTime` | `arquivar()` | `prova` |
 | **Questao** | `id: Int`, `tipo: TipoQuestao`, `enunciado: String`, `imagemUrl: String`, `excluidaEm: DateTime` | `excluir()` | `questao` |
@@ -38,8 +35,7 @@ Classes em amarelo no diagrama são **classes de associação**: guardam dados d
 
 | Enumeração | Valores |
 |---|---|
-| `Papel` | ADMINISTRADOR, PROFESSOR |
-| `StatusUsuario` | CONVIDADO, ATIVO, ANONIMIZADO |
+| `StatusConta` | ATIVO, ANONIMIZADO |
 | `StatusTurma` | ATIVA, ARQUIVADA |
 | `TipoQuestao` | OBJETIVA, DISCURSIVA |
 | `StatusProva` | RASCUNHO, PRONTA, ARQUIVADA |
@@ -50,10 +46,7 @@ Classes em amarelo no diagrama são **classes de associação**: guardam dados d
 
 | Relacionamento | Tipo | Multiplicidade |
 |---|---|---|
-| Professor → Usuario | Generalização | — |
-| Administrador → Usuario | Generalização | — |
-| Administrador → Configuracao (*gerencia*) | Associação | 1 → 1 |
-| Usuario → RefreshToken (*possui*) | Associação | 1 → 0..* |
+| Professor → RefreshToken (*possui*) | Associação | 1 → 0..* |
 | Professor → Turma (*leciona*) | Associação | 1 → 0..* |
 | Professor → Prova (*monta*) | Associação | 1 → 0..* |
 | Professor → Questao (*cria*) | Associação | 1 → 0..* |
@@ -73,14 +66,13 @@ Classes em amarelo no diagrama são **classes de associação**: guardam dados d
 
 ## Decisões de modelagem
 
-- **Usuario, Professor e Administrador:** o DER tem uma única tabela `usuario`, diferenciada pela coluna `papel`. No diagrama isso vira uma generalização: Professor e Administrador herdam os dados de Usuario, e só o Professor tem turmas, questões e provas.
-- **O aluno não é usuário:** Aluno é só um registro (nome, e-mail e matrícula) informado pelo professor; não tem senha nem login, por isso não herda de Usuario.
+- **Só o professor usa o sistema (N3, T77/T78):** o professor cria a própria conta, sem convite e sem administrador. A tabela `usuario` guarda só professores (a coluna `papel` aceita apenas `PROFESSOR`), por isso a classe Professor corresponde direto a ela. A tela de configurações gerais saiu junto com o administrador.
+- **O aluno não é usuário:** Aluno é só um registro (nome, e-mail e matrícula) informado pelo professor; não tem senha nem login no sistema.
 - **Composição:** Alternativa só existe dentro da sua Questao (no máximo 5; nenhuma nas discursivas) e CopiaDaProva só existe dentro da sua Aplicacao. Apagar o todo apaga as partes (`ON DELETE CASCADE` no DER).
 - **Prova contém de 1 a 20 questões**, com posição e pontuação próprias em cada prova (classe de associação ProvaQuestao); a mesma questão pode estar em várias provas.
 - **Uma correção por cópia** (0..1). A nota pertence a um aluno: o da cópia nominal ou, nas provas sem identificação, o aluno escolhido pelo professor no lançamento manual.
 - **Respostas da correção:** a correção pelas respostas guarda uma RespostaCorrecao por questão (letra marcada, acerto e pontos). O lançamento manual guarda só a nota.
-- **Configuração única:** Configuracao tem um único registro com os dados gerais do sistema, mantido pelo Administrador.
-- **versaoSessao:** ao mudar, invalida os tokens de acesso já emitidos para o usuário.
+- **versaoSessao:** ao mudar, invalida os tokens de acesso já emitidos para o professor. Anonimizar a conta troca nome e e-mail e mantém as notas e correções (LGPD).
 - **Status como enumerações**, com os mesmos valores dos `ENUM` do banco.
 
 ## Visualização em Mermaid
@@ -89,19 +81,18 @@ Representação textual dos relacionamentos, renderizada pelo GitHub. O layout o
 
 ```mermaid
 classDiagram
-    class Usuario {
+    class Professor {
         -Int id
         -String nome
         -String email
         -String senhaHash
-        -Papel papel
-        -StatusUsuario status
+        -StatusConta status
         -Int versaoSessao
         -DateTime criadoEm
-        +anonimizar()
-    }
-    class Administrador {
-        +cadastrarProfessor()
+        +criarTurma()
+        +criarQuestao()
+        +montarProva()
+        +anonimizarConta()
     }
     class RefreshToken {
         -Int id
@@ -110,11 +101,6 @@ classDiagram
         -DateTime expiraEm
         -DateTime revogadoEm
         +revogar()
-    }
-    class Professor {
-        +criarQuestao()
-        +montarProva()
-        +criarTurma()
     }
     class Turma {
         -Int id
@@ -186,18 +172,6 @@ classDiagram
         -DateTime gabaritoPublicadoEm
         +publicarGabarito()
     }
-    class Configuracao {
-        -Int id
-        -String nomeInstituicao
-        -String periodoPadrao
-        -DateTime atualizadoEm
-    }
-    class RespostaCorrecao {
-        -Int numero
-        -String letraMarcada
-        -Boolean correta
-        -Decimal pontos
-    }
     class Correcao {
         -Int id
         -Decimal nota
@@ -205,9 +179,13 @@ classDiagram
         -DateTime corrigidaEm
         +calcularNota()
     }
-    Usuario <|-- Professor
-    Usuario <|-- Administrador
-    Usuario "1" --> "0..*" RefreshToken : possui
+    class RespostaCorrecao {
+        -Int numero
+        -String letraMarcada
+        -Boolean correta
+        -Decimal pontos
+    }
+    Professor "1" --> "0..*" RefreshToken : possui
     Professor "1" --> "0..*" Turma : leciona
     Professor "1" --> "0..*" Prova : monta
     Professor "1" --> "0..*" Questao : cria
@@ -220,11 +198,10 @@ classDiagram
     Aplicacao "1" *-- "0..*" CopiaDaProva : gera
     CopiaDaProva "0..*" --> "0..1" Aluno : identifica
     CopiaDaProva "1" --> "0..1" Correcao : recebe
-    Correcao "0..*" --> "0..1" Aluno : nota de
-    Correcao "0..*" --> "1" Professor : corrigida por
-    Administrador "1" --> "1" Configuracao : gerencia
     Correcao "1" *-- "0..20" RespostaCorrecao : registra
     RespostaCorrecao "0..*" --> "1" Questao : refere-se a
+    Correcao "0..*" --> "0..1" Aluno : nota de
+    Correcao "0..*" --> "1" Professor : corrigida por
     Prova .. ProvaQuestao
     ProvaQuestao .. Questao
     Turma .. Matricula
