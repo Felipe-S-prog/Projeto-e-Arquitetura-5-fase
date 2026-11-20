@@ -1,4 +1,3 @@
-
 import { Router } from 'express';
 import { createAuthController } from '../controllers/auth.controller.js';
 import { createAuthRepository } from '../repositories/auth.repository.js';
@@ -10,8 +9,6 @@ export function createAuthRoutes({ pool, config }) {
   const service = createAuthService(repository, config);
   const controller = createAuthController(service);
 
-  router.get('/bootstrap-status', controller.bootstrapStatus);
-  router.post('/bootstrap-admin', controller.bootstrapAdministrator);
   router.post('/register', controller.register);
   router.post('/login', controller.login);
   router.post('/refresh', controller.refresh);

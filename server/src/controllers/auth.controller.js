@@ -1,22 +1,5 @@
-
 export function createAuthController(service) {
   return {
-    bootstrapStatus: async (req, res, next) => {
-      try {
-        res.json(await service.bootstrapStatus());
-      } catch (error) {
-        next(error);
-      }
-    },
-
-    bootstrapAdministrator: async (req, res, next) => {
-      try {
-        res.status(201).json(await service.bootstrapAdministrator(req.body));
-      } catch (error) {
-        next(error);
-      }
-    },
-
     register: async (req, res, next) => {
       try {
         res.status(201).json(await service.register(req.body));
