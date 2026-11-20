@@ -52,10 +52,11 @@ Regras:
 | DELETE | `/correcoes/:id` | Exclui a correção (a nota sai dos relatórios e do histórico) |
 | GET | `/relatorios/aplicacoes` | Aplicações do professor com total de cópias, corrigidas e média |
 | GET | `/relatorios/aplicacoes/:id` | Notas da aplicação, estatísticas e desempenho por questão |
-| GET | `/relatorios/aplicacoes/:id/csv` | Exportação das notas da aplicação (CSV para Excel) |
+| GET | `/relatorios/aplicacoes/:id/exportar?formato=xlsx` | Exportação das notas da aplicação: `xlsx`, `pdf` ou `csv` (T66). `/csv` continua valendo |
 | GET | `/relatorios/turmas` | Turmas do professor (para escolher o consolidado) |
 | GET | `/relatorios/turmas/:id` | Consolidado da turma: alunos × aplicações, média de cada aluno e da turma |
-| GET | `/relatorios/turmas/:id/csv` | Exportação do consolidado (CSV para Excel) |
+| GET | `/relatorios/turmas/:id/exportar?formato=xlsx` | Exportação do consolidado da turma: `xlsx`, `pdf` ou `csv`. `/csv` continua valendo |
+| GET | `/relatorios/exportar?formato=xlsx` | Consolidado do professor: notas de todas as turmas (`xlsx`, `pdf` ou `csv`) |
 | GET | `/alunos/:id/historico` | Histórico de notas e desempenho do aluno nas turmas do professor |
 
 ### POST `/correcoes`
@@ -129,11 +130,25 @@ Em `GET /relatorios/aplicacoes/:id`, cada questão objetiva de `questoes` traz `
 - `maisMarcadas` lista todas as alternativas empatadas no topo, e fica vazia quando ninguém marcou alternativa.
 - O cálculo fica em `services/relatorio.alternativas.js`, com testes em `server/test/relatorio.alternativas.test.js`.
 
-## Exportação (CSV)
+## Exportação: Excel, PDF e CSV (T66)
 
-Os relatórios em CSV abrem direto no Excel em português: separador `;`, vírgula decimal, acentos
-preservados (UTF-8 com BOM) e proteção contra fórmulas em células de texto. O nome do arquivo vem no
-cabeçalho `Content-Disposition` (liberado para o front pelo CORS).
+Os três formatos têm as mesmas colunas (`server/src/services/relatorio.exportacao.js`):
+
+| Relatório | Conteúdo |
+|---|---|
+| Por aplicação | Uma linha por aluno: matrícula, código, correção, nota, % e a **alternativa marcada em cada questão**. A letra é a da ordem cadastrada da questão (a mesma para todas as versões embaralhadas); no cabeçalho, entre parênteses, a correta. No Excel e no PDF, mais uma tabela com o percentual de cada alternativa, em branco e acerto por questão. |
+| Consolidado da turma | Uma linha por aluno e uma coluna por aplicação, com provas feitas, média em % e a média de cada aplicação. |
+| Todas as turmas | Consolidado do professor. Excel: uma aba com todas as notas (turma, aluno, prova, data, nota, correção) e uma aba por turma. PDF: uma tabela por turma. CSV: a lista com todas as notas. |
+
+- **Excel (.xlsx)**: gerado sem biblioteca externa (`server/src/utils/xlsx.js`); cabeçalho em negrito, linha
+  congelada, filtro e números como número.
+- **PDF**: A4 deitado, com resumo no topo, cabeçalho repetido a cada página e numeração (`server/src/pdf/buildReportPdf.js`).
+- **CSV**: abre direto no Excel em português (separador `;`, vírgula decimal, UTF-8 com BOM) e protege contra
+  fórmulas em células de texto. Leva só a primeira tabela, porque CSV não tem abas.
+
+Formato desconhecido responde `400`. O nome do arquivo vem no cabeçalho `Content-Disposition` (liberado para o
+front pelo CORS). Na tela **Relatórios**, cada relatório tem os botões Excel, PDF e CSV, e a aba **Todas as
+turmas** baixa o consolidado do professor.
 
 ## Banco de dados
 
