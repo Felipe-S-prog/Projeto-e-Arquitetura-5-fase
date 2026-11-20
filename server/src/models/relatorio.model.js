@@ -81,3 +81,18 @@ export function toItemDoHistorico(dbRow) {
     turma: { id: row.turmaId, nome: row.turmaNome },
   };
 }
+
+export function toNotaDoProfessor(dbRow) {
+  const row = toCamelCase(dbRow);
+  return {
+    turma: row.turmaNome,
+    periodo: row.periodo,
+    aluno: row.alunoNome ?? null,
+    matricula: row.alunoMatricula ?? null,
+    prova: row.provaTitulo,
+    dataAplicacao: toDateOnly(row.dataAplicacao),
+    nota: Number(row.nota),
+    notaMaxima: Number(row.notaMaxima),
+    tipo: row.tipo,
+  };
+}
