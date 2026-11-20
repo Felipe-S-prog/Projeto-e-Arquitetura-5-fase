@@ -179,3 +179,20 @@ npm test            # testes automáticos da correção e dos relatórios, sem M
 
 No front (`client`, `npm run dev`): menu **Correção** → digite `DEMA33` (nominal) ou `DEMB22` (anônima).
 Depois veja **Relatórios** e clique no nome de um aluno para abrir o histórico.
+
+### Casos de borda de ponta a ponta (T65)
+
+`server/test/correcao.e2e.test.js` passa por login, rotas, regras e MySQL: questões em branco, marcação dupla
+anulada, recorreção sem confirmação, letra inexistente, cópia anônima (com e sem aluno), aluno fora da turma,
+nota acima do máximo e negativa, nota duplicada na mesma aplicação, isolamento entre professores e exclusão.
+
+Ele só roda com um banco de teste, que é **apagado e recriado** a cada execução (o nome precisa terminar em
+`_test` ou `_e2e`). Sem essas variáveis, o `npm test` pula esses casos.
+
+```bash
+cd server
+TEST_DB_USER=root TEST_DB_PASSWORD=sua_senha TEST_DB_NAME=sgp_e2e npm test
+```
+
+`TEST_DB_HOST` e `TEST_DB_PORT` são opcionais (padrão `127.0.0.1:3306`). A leitura da folha pela foto tem os
+testes dela no front: `cd client && npm test`.
