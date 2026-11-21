@@ -26,7 +26,7 @@ Seguindo as etapas essenciais de estruturação do inventário:
 | Classificação | Público, Interno, Confidencial ou Restrito (ver abaixo) |
 | C / I / D | Impacto se houver perda de confidencialidade, integridade ou disponibilidade: Alta, Média ou Baixa |
 
-Níveis de classificação usados (detalhados no documento de classificação da informação):
+Níveis de classificação usados (detalhados na [classificação da informação](classificacao-informacao.md)):
 
 | Nível | Quem pode ver | Exemplo no SGP |
 |---|---|---|
