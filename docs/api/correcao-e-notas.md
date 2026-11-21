@@ -45,7 +45,8 @@ Regras:
 
 | Método | Rota | Descrição |
 |---|---|---|
-| GET | `/correcoes/copias/:codigo` | Cópia lida no QR, pronta para corrigir (questões impressas, alunos da turma se for anônima e a correção existente) |
+| GET | `/correcoes/aplicacoes/:id` | Alunos da aplicação com o estado da correção: corrigida, pendente ou sem folha (T90) |
+| GET | `/correcoes/copias/:codigo` | Cópia lida no QR, pronta para corrigir (questões impressas, geometria da folha, alunos da turma se for anônima e a correção existente) |
 | POST | `/correcoes` | Correção automática pelas respostas marcadas |
 | POST | `/correcoes/manual` | Lançamento manual da nota |
 | GET | `/correcoes/:id` | Correção com as respostas e o gabarito da cópia |
@@ -107,6 +108,52 @@ precisa dos pontos (de 0 até a pontuação da questão). Resposta `201`:
 | Código de cópia que não é do professor, correção/aplicação/turma/aluno inexistente | 404 | `NOT_FOUND` |
 | Cópia já corrigida sem `substituir`, aluno já tem nota na aplicação, cópia inconsistente com a prova | 409 | `CONFLICT` |
 
+## Correção pela lista de alunos (T90)
+
+Na tela **Correção**, o professor escolhe a aplicação e vê uma linha por aluno:
+
+- **Corrigida**: a cópia já tem nota (automática ou manual).
+- **Pendente**: a cópia foi gerada e ainda não foi corrigida. Inclui as provas sem identificação.
+- **Sem folha**: aluno matriculado que não tem cópia nem nota nesta aplicação (por exemplo, em aplicação
+  sem identificação, até a folha dele ser associada).
+
+Da lista ele abre cada prova; depois de corrigir, "Próxima pendente" abre a seguinte. O card **Correções**
+no detalhe da aplicação leva para essa lista.
+
+## Leitura da folha pela foto (T63 e T64)
+
+A rota `GET /correcoes/copias/:codigo` devolve em `folha` a geometria da folha de resposta daquela cópia,
+calculada por `server/src/pdf/sheetLayout.js` (o mesmo arquivo que desenha a folha no PDF):
+
+```json
+{
+  "pagina": { "largura": 595.28, "altura": 841.89 },
+  "qr": { "x": 66, "y": 294, "tamanho": 140 },
+  "tamanhoMarcador": 20,
+  "marcadores": [{ "x": 300, "y": 304 }, { "x": 516, "y": 304 }, { "x": 516, "y": 529 }, { "x": 300, "y": 529 }],
+  "questoes": [{ "numero": 1, "questaoId": 12, "opcoes": [{ "letra": "A", "x": 364, "y": 340, "raio": 5.5 }] }]
+}
+```
+
+Unidades em pt, origem no canto superior esquerdo. `folha` vem nulo quando a prova não pode ser lida pela foto
+(questão sem alternativas).
+
+A leitura acontece no navegador (`client/src/utils/sheetReader.js`), seguindo `docs/folha-de-resposta.md`:
+
+1. O QR Code dá o código da cópia e a posição da folha (usa só 3 cantos do QR).
+2. Os 4 quadrados pretos dos cantos são procurados perto da posição prevista; com eles sai a homografia.
+3. Mede-se o miolo de cada bolinha no canal vermelho, comparado com o papel em volta.
+4. Por linha: em branco se a mais escura tiver menos de 0,12; marcadas as que tiverem pelo menos metade da
+   escuridão da mais escura; mais de uma é marcação dupla (anulada).
+5. Folha com menos de 1000 px de largura na foto é recusada com pedido de nova foto.
+
+O resultado preenche a tela de correção e **nada é gravado sem o professor confirmar**. Ficam destacadas para
+conferência: marcação dupla, marcação fraca, uma segunda bolinha quase marcada e questão em branco com sinal de
+marcação. A correção é gravada pela mesma rota `POST /correcoes`.
+
+Os testes (`cd client && npm test`) desenham a folha com a geometria real, aplicam rotação, perspectiva, luz
+desigual e ruído e conferem a leitura, inclusive de cabeça para baixo e com 25 questões.
+
 ## Estatística das respostas por questão (T74)
 
 Em `GET /relatorios/aplicacoes/:id`, cada questão objetiva de `questoes` traz `distribuicao`: quantas pessoas marcaram cada alternativa. Questão discursiva vem com `distribuicao: null`.
@@ -154,3 +201,20 @@ npm test            # testes automáticos da correção e dos relatórios, sem M
 
 No front (`client`, `npm run dev`): menu **Correção** → digite `DEMA33` (nominal) ou `DEMB22` (anônima).
 Depois veja **Relatórios** e clique no nome de um aluno para abrir o histórico.
+
+### Casos de borda de ponta a ponta (T65)
+
+`server/test/correcao.e2e.test.js` passa por login, rotas, regras e MySQL: questões em branco, marcação dupla
+anulada, recorreção sem confirmação, letra inexistente, cópia anônima (com e sem aluno), aluno fora da turma,
+nota acima do máximo e negativa, nota duplicada na mesma aplicação, isolamento entre professores e exclusão.
+
+Ele só roda com um banco de teste, que é **apagado e recriado** a cada execução (o nome precisa terminar em
+`_test` ou `_e2e`). Sem essas variáveis, o `npm test` pula esses casos.
+
+```bash
+cd server
+TEST_DB_USER=root TEST_DB_PASSWORD=sua_senha TEST_DB_NAME=sgp_e2e npm test
+```
+
+`TEST_DB_HOST` e `TEST_DB_PORT` são opcionais (padrão `127.0.0.1:3306`). A leitura da folha pela foto tem os
+testes dela no front: `cd client && npm test`.
