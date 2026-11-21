@@ -10,7 +10,6 @@ import { createAdminRoutes } from './admin.routes.js';
 import { createSettingsRoutes } from './settings.routes.js';
 import { createProvaRoutes } from './prova.routes.js';
 import { createTurmasRoutes } from './turmas.routes.js';
-import { createIngressoTurmaRoutes } from './ingressoTurma.routes.js';
 import { createQuestoesRoutes } from './questoes.routes.js';
 import { createUploadImagemRoutes } from './upload-imagem.routes.js';
 
@@ -28,7 +27,6 @@ export function createRoutes({ pool }) {
   router.use('/alunos', createAlunoHistoricoRoutes({ pool }));
   router.use('/admin', createAdminRoutes({ pool }));
   router.use('/settings', createSettingsRoutes({ pool }));
-  router.use('/turmas/ingresso', createIngressoTurmaRoutes({ pool }));
   router.use('/turmas', createTurmasRoutes({ pool }));
   router.use('/questoes', createUploadImagemRoutes());
   router.use('/questoes', createQuestoesRoutes({ pool }));
