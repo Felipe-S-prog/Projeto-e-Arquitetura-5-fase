@@ -328,7 +328,7 @@ export function createTurmasRoutes({ pool }) {
       const [result] = await pool.execute(
         `UPDATE turma
          SET nome = ?, disciplina = ?, periodo = ?
-         WHERE id = ? AND professor_id = ? AND status = 'ATIVA'`,
+         WHERE id = ? AND professor_id = ?`,
         [nome.trim(), disciplina.trim(), periodo.trim(), id, req.professorId],
       );
 
@@ -339,7 +339,7 @@ export function createTurmasRoutes({ pool }) {
         );
 
         if (!rows.length) throw AppError.notFound('Turma não encontrada.');
-        throw AppError.badRequest('Turmas arquivadas não podem ser editadas.');
+
       }
 
       const [rows] = await pool.execute(
@@ -391,6 +391,43 @@ export function createTurmasRoutes({ pool }) {
       res.json(await mapTurma(rows[0]));
     } catch (error) {
       next(error);
+    }
+  });
+
+
+  // Turmas com aplicações são arquivadas; o histórico nunca é apagado.
+  router.delete('/:id', async (req, res, next) => {
+    let connection;
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id) || id <= 0) throw AppError.badRequest('ID de turma inválido.');
+      connection = await pool.getConnection();
+      await connection.beginTransaction();
+      const [turmas] = await connection.execute(
+        'SELECT id FROM turma WHERE id = ? AND professor_id = ? FOR UPDATE',
+        [id, req.professorId],
+      );
+      if (!turmas.length) throw AppError.notFound('Turma não encontrada.');
+      const [aplicacoes] = await connection.execute(
+        'SELECT id FROM aplicacao WHERE turma_id = ? LIMIT 1', [id],
+      );
+      if (aplicacoes.length) {
+        await connection.execute("UPDATE turma SET status = 'ARQUIVADA' WHERE id = ? AND professor_id = ?", [id, req.professorId]);
+      } else {
+        await connection.execute('DELETE FROM turma WHERE id = ? AND professor_id = ?', [id, req.professorId]);
+      }
+      await connection.commit();
+      res.json({
+        archived: aplicacoes.length > 0,
+        message: aplicacoes.length
+          ? 'Turma arquivada para preservar aplicações, cópias e notas.'
+          : 'Turma excluída. Os cadastros dos alunos foram preservados.',
+      });
+    } catch (error) {
+      if (connection) await connection.rollback();
+      next(error);
+    } finally {
+      connection?.release();
     }
   });
 
