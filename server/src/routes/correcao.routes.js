@@ -10,6 +10,7 @@ export function createCorrecaoRoutes({ pool }) {
 
   const router = Router();
   router.use(professorContext);
+  router.get('/aplicacoes/:id', controller.listarAplicacao); // GET /api/correcoes/aplicacoes/:id -> alunos da aplicação com o estado da correção (T90)
   router.get('/copias/:codigo', controller.buscarCopia); // GET /api/correcoes/copias/:codigo -> cópia lida no QR, pronta para corrigir
   router.post('/', controller.corrigir); // POST /api/correcoes -> correção automática pelas respostas
   router.post('/manual', controller.lancarManual); // POST /api/correcoes/manual -> lançamento manual da nota

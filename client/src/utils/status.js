@@ -12,6 +12,7 @@ const STATUS_COLORS = {
   Publicado: ['var(--green-bg)', 'var(--green-text)'],
   'Não publicado': ['var(--neutral-bg)', 'var(--neutral-text)'],
   Corrigida: ['var(--green-bg)', 'var(--green-text)'],
+  'Sem folha': ['var(--amber-bg)', 'var(--amber-text)'],
   Automática: ['var(--navy-chip-bg)', 'var(--navy)'],
   Manual: ['var(--amber-bg)', 'var(--amber-text)'],
 };
