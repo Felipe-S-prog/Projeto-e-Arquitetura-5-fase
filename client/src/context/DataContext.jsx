@@ -398,18 +398,6 @@ const DataProvider = ({ children }) => {
       throw new Error('Preencha o nome, a disciplina e o período.');
     }
 
-    const duplicate = classes.some(
-      (item) =>
-        item.name.trim().toLowerCase() === name.toLowerCase() &&
-        item.subject.trim().toLowerCase() === subject.toLowerCase() &&
-        item.period.trim().toLowerCase() === period.toLowerCase(),
-    );
-
-    if (duplicate) {
-      throw new Error(
-        'Já existe uma turma com esse nome, disciplina e período.',
-      );
-    }
 
     try {
       const createdClass = await adminApiRequest('/turmas', {
@@ -430,7 +418,7 @@ const DataProvider = ({ children }) => {
       setClassesError(error.message);
       throw error;
     }
-  }, [classes]);
+  }, []);
 
   // Atualiza uma turma existente no MySQL.
 
@@ -447,19 +435,6 @@ const DataProvider = ({ children }) => {
       throw new Error('Preencha o nome, a disciplina e o período.');
     }
 
-    const duplicate = classes.some(
-      (item) =>
-        item.id !== classId &&
-        item.name.trim().toLowerCase() === name.toLowerCase() &&
-        item.subject.trim().toLowerCase() === subject.toLowerCase() &&
-        item.period.trim().toLowerCase() === period.toLowerCase(),
-    );
-
-    if (duplicate) {
-      throw new Error(
-        'Já existe outra turma com esse nome, disciplina e período.',
-      );
-    }
 
     try {
       // Envia os campos no formato JSON esperado pela API.
@@ -514,28 +489,25 @@ const DataProvider = ({ children }) => {
     }
   }, [classes]);
 
-   const regenerateInviteCode = useCallback(async (id) => {
-    setClassesError('');
+  const removeStudent = useCallback(async (classId, studentId) => {
+    const result = await adminApiRequest(`/turmas/${classId}/matriculas/${studentId}`, { method: 'DELETE' });
+    setClasses((previous) => previous.map((item) => item.id === Number(classId)
+      ? { ...item, students: item.students.filter((student) => student.id !== Number(studentId)) } : item));
+    return result;
+  }, []);
+  const importStudents = useCallback(async (classId, csv) => {
+    const result = await adminApiRequest(`/turmas/${classId}/matriculas/importar`, { method: 'POST', body: JSON.stringify({ csv }) });
+    setClasses((previous) => previous.map((item) => item.id === Number(classId)
+      ? { ...item, students: [...item.students.filter((student) => !result.imported.some((added) => added.id === student.id)), ...result.imported] } : item));
+    return result;
+  }, []);
 
-    try {
-      const updatedClass = await adminApiRequest(
-        `/turmas/${id}/codigo-convite/regenerar`,
-        { method: 'POST' },
-      );
-
-      const normalized = normalizeClass(updatedClass);
-
-      setClasses((previous) =>
-        previous.map((item) =>
-          item.id === Number(id) ? normalized : item,
-        ),
-      );
-
-      return normalized;
-    } catch (error) {
-      setClassesError(error.message);
-      throw error;
-    }
+  const deleteClass = useCallback(async (id) => {
+    const result = await adminApiRequest(`/turmas/${id}`, { method: 'DELETE' });
+    setClasses((previous) => result.archived
+      ? previous.map((item) => item.id === Number(id) ? { ...item, status: 'Arquivada' } : item)
+      : previous.filter((item) => item.id !== Number(id)));
+    return result;
   }, []);
 
   // Arquiva a turma no MySQL.
@@ -1013,8 +985,10 @@ const DataProvider = ({ children }) => {
       addClass,
       updateClass,
       archiveClass,
-      regenerateInviteCode,
+      deleteClass,
       enrollStudent,
+      removeStudent,
+      importStudents,
       addExam,
       updateExam,
       createApplication,
@@ -1061,8 +1035,10 @@ const DataProvider = ({ children }) => {
       addClass,
       updateClass,
       archiveClass,
-      regenerateInviteCode,
+      deleteClass,
       enrollStudent,
+      removeStudent,
+      importStudents,
       addExam,
       updateExam,
       createApplication,

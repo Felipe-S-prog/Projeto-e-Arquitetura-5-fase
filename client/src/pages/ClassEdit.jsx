@@ -49,17 +49,6 @@ if (!cls) {
   return <p>Turma não encontrada.</p>;
 }
 
-  if (cls.status === 'Arquivada') {
-    return (
-      <div>
-        <p>Turmas arquivadas não podem ser editadas.</p>
-        <SecondaryButton onClick={() => navigate(`/turmas/${cls.id}`)}>
-          Voltar para a turma
-        </SecondaryButton>
-      </div>
-    );
-  }
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
@@ -96,6 +85,7 @@ if (!cls) {
         Editar turma
       </div>
 
+      <p role="note">Alterações no nome, disciplina e período também aparecem nas aplicações vinculadas. Alunos e notas serão preservados.</p>
       <form onSubmit={handleSubmit}>
         <div
           style={{

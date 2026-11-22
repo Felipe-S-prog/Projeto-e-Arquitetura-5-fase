@@ -20,7 +20,6 @@ import PdfPreview from './pages/PdfPreview';
 import PdfTest from './pages/PdfTest';
 import AnswerKey from './pages/AnswerKey';
 import PublicAnswerKey from './pages/PublicAnswerKey';
-import StudentJoinClass from './pages/StudentJoinClass';
 import QrReaderTest from './pages/QrReaderTest';
 import Admin from './pages/Admin';
 import Grading from './pages/Grading';
@@ -77,7 +76,6 @@ function AppRoutes() {
 
       {/* Rotas públicas: não exigem login. */}
       <Route path="/gabarito" element={<PublicAnswerKey />} />
-      <Route path="/turmas/ingresso" element={<StudentJoinClass />} />
 
       <Route
         path="/admin"
