@@ -379,7 +379,19 @@ Na aba **Consolidado da turma**, escolha a turma. A tabela cruza os **alunos** c
 
 ![Consolidado da turma: alunos por aplicação e médias](manual/img/14-relatorio-turma.png)
 
-**Exportar CSV (Excel)**, nas duas abas, baixa a tabela para abrir no Excel.
+### Todas as turmas
+
+A aba **Todas as turmas** não mostra tabela na tela: serve para baixar de uma vez as notas de todas as suas turmas.
+
+![Exportação das notas de todas as turmas](manual/img/24-relatorio-todas.png)
+
+### Exportar
+
+Nas três abas, os botões ao lado de **Exportar** baixam o relatório que está na tela:
+
+- **Excel**: planilha pronta para abrir no Excel. Em *Todas as turmas*, vem com uma aba com todas as notas e uma aba por turma;
+- **PDF**: para imprimir ou enviar;
+- **CSV**: a lista simples, para importar em outro sistema.
 
 ### Histórico do aluno
 
