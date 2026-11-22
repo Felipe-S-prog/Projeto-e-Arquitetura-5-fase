@@ -1,11 +1,20 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { Breadcrumb, Badge } from '../components/ui';
 import { ExamSheetIcon, StackedSheetsIcon, CorrectionIcon, ReportBarsIcon } from '../components/icons';
 
+function StageCard({ to, style, children }) {
+  if (!to) return <div style={style}>{children}</div>;
+
+  return (
+    <Link to={to} style={{ ...style, color: 'inherit', textDecoration: 'none' }}>
+      {children}
+    </Link>
+  );
+}
+
 export default function ApplicationDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { getApplicationById, getExamById, getClassById } = useData();
 
   const app = getApplicationById(id);
@@ -44,9 +53,9 @@ export default function ApplicationDetail() {
       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--faint)', marginBottom: 14 }}>
         FLUXO DA APLICAÇÃO
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-        <div
-          onClick={() => navigate(hasPdf ? `/aplicacoes/${app.id}/pdf/preview` : `/aplicacoes/${app.id}/pdf`)}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: 14 }}>
+        <StageCard
+          to={hasPdf ? `/aplicacoes/${app.id}/pdf/preview` : `/aplicacoes/${app.id}/pdf`}
           style={{
             background: 'white',
             border: `1.5px solid ${hasPdf ? 'var(--green-bg)' : 'var(--navy)'}`,
@@ -77,10 +86,10 @@ export default function ApplicationDetail() {
             {hasPdf ? `PDF consolidado disponível · ${app.quantity} provas.` : 'Configure embaralhamento e gere as provas.'}
           </div>
           <div style={{ fontSize: 13, fontWeight: 700 }}>{hasPdf ? 'Ver provas' : 'Configurar e gerar'} →</div>
-        </div>
+        </StageCard>
 
-        <div
-          onClick={hasPdf ? () => navigate(`/aplicacoes/${app.id}/gabarito`) : undefined}
+        <StageCard
+          to={hasPdf ? `/aplicacoes/${app.id}/gabarito` : undefined}
           style={{
             background: 'white',
             border: '1.5px solid var(--border)',
@@ -114,10 +123,10 @@ export default function ApplicationDetail() {
               : 'Disponível após gerar as provas.'}
           </div>
           {hasPdf && <div style={{ fontSize: 13, fontWeight: 700 }}>Publicar gabarito →</div>}
-        </div>
+        </StageCard>
 
-        <div
-          onClick={hasPdf ? () => navigate(`/correcao/aplicacoes/${app.id}`) : undefined}
+        <StageCard
+          to={hasPdf ? `/correcao/aplicacoes/${app.id}` : undefined}
           style={{
             background: 'white',
             border: '1px solid var(--border)',
@@ -149,10 +158,10 @@ export default function ApplicationDetail() {
             {hasPdf ? 'Corrija pela lista de alunos desta aplicação.' : 'Disponível após gerar as provas.'}
           </div>
           {hasPdf && <div style={{ fontSize: 13, fontWeight: 700 }}>Abrir correção →</div>}
-        </div>
+        </StageCard>
 
-        <div
-          onClick={hasPdf ? () => navigate(`/relatorios?aplicacao=${app.id}`) : undefined}
+        <StageCard
+          to={hasPdf ? `/relatorios?aplicacao=${app.id}` : undefined}
           style={{
             background: 'white',
             border: '1px solid var(--border)',
@@ -184,7 +193,7 @@ export default function ApplicationDetail() {
             {hasPdf ? 'Notas, estatísticas e exportação.' : 'Disponível após gerar as provas.'}
           </div>
           {hasPdf && <div style={{ fontSize: 13, fontWeight: 700 }}>Ver relatório →</div>}
-        </div>
+        </StageCard>
       </div>
     </div>
   );
