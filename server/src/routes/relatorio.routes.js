@@ -16,10 +16,13 @@ export function createRelatorioRoutes({ pool }) {
   router.use(professorContext);
   router.get('/aplicacoes', controller.listarAplicacoes); // GET /api/relatorios/aplicacoes -> aplicações com resumo das notas
   router.get('/aplicacoes/:id', controller.aplicacao); // GET /api/relatorios/aplicacoes/:id -> notas, estatísticas e acerto por questão
-  router.get('/aplicacoes/:id/csv', controller.aplicacaoCsv); // GET /api/relatorios/aplicacoes/:id/csv -> exportação (Excel)
+  router.get('/aplicacoes/:id/exportar', controller.exportarAplicacao); // GET /api/relatorios/aplicacoes/:id/exportar?formato=csv|xlsx|pdf
+  router.get('/aplicacoes/:id/csv', controller.exportarAplicacao); // GET /api/relatorios/aplicacoes/:id/csv -> mesmo que ?formato=csv
   router.get('/turmas', controller.listarTurmas); // GET /api/relatorios/turmas -> turmas do professor
   router.get('/turmas/:id', controller.turma); // GET /api/relatorios/turmas/:id -> consolidado: alunos x aplicações
-  router.get('/turmas/:id/csv', controller.turmaCsv); // GET /api/relatorios/turmas/:id/csv -> exportação (Excel)
+  router.get('/turmas/:id/exportar', controller.exportarTurma); // GET /api/relatorios/turmas/:id/exportar?formato=csv|xlsx|pdf
+  router.get('/turmas/:id/csv', controller.exportarTurma); // GET /api/relatorios/turmas/:id/csv -> mesmo que ?formato=csv
+  router.get('/exportar', controller.exportarConsolidado); // GET /api/relatorios/exportar?formato=csv|xlsx|pdf -> todas as turmas
   return router;
 }
 
