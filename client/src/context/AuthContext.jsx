@@ -1,4 +1,3 @@
-
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { apiRequest } from '../services/api';
 import { clearAuthSession, getRefreshToken, saveAuthSession } from '../services/authStorage';
@@ -18,13 +17,11 @@ export function AuthProvider({ children }) {
     const handleAuthExpired = () => setUser(null);
 
     window.addEventListener('sgp:auth-expired', handleAuthExpired);
-
     const refreshToken = getRefreshToken();
 
     if (!refreshToken) {
       clearAuthSession();
       setIsLoading(false);
-
       return () => {
         cancelled = true;
         window.removeEventListener('sgp:auth-expired', handleAuthExpired);
@@ -37,7 +34,6 @@ export function AuthProvider({ children }) {
     })
       .then((session) => {
         if (cancelled) return;
-
         saveAuthSession(session);
         setUser(session.user);
       })
@@ -58,15 +54,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-
+    if (!user) return undefined;
     let checking = false;
 
     const checkSession = async () => {
       if (checking) return;
-
       checking = true;
-
       try {
         await apiRequest('/auth/session');
       } catch (error) {
@@ -80,7 +73,6 @@ export function AuthProvider({ children }) {
     };
 
     const interval = window.setInterval(checkSession, 5000);
-
     return () => window.clearInterval(interval);
   }, [user]);
 
@@ -89,29 +81,16 @@ export function AuthProvider({ children }) {
       method: 'POST',
       body: { email, password, device: deviceName() },
     });
-
     saveAuthSession(session);
     setUser(session.user);
     return session.user;
   }, []);
 
-  const register = useCallback(async (email, password) => {
+  const register = useCallback(async ({ name, email, password }) => {
     const session = await apiRequest('/auth/register', {
-      method: 'POST',
-      body: { email, password, device: deviceName() },
-    });
-
-    saveAuthSession(session);
-    setUser(session.user);
-    return session.user;
-  }, []);
-
-  const bootstrapAdministrator = useCallback(async ({ name, email, password }) => {
-    const session = await apiRequest('/auth/bootstrap-admin', {
       method: 'POST',
       body: { name, email, password, device: deviceName() },
     });
-
     saveAuthSession(session);
     setUser(session.user);
     return session.user;
@@ -119,17 +98,14 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     let refreshToken = getRefreshToken();
-
     try {
       if (refreshToken) {
         const session = await apiRequest('/auth/refresh', {
           method: 'POST',
           body: { refreshToken, device: deviceName() },
         });
-
         saveAuthSession(session);
         refreshToken = session.refreshToken;
-
         await apiRequest('/auth/logout', {
           method: 'POST',
           body: { refreshToken },
@@ -143,9 +119,7 @@ export function AuthProvider({ children }) {
 
   const logoutAllDevices = useCallback(async () => {
     try {
-      await apiRequest('/auth/logout-all', {
-        method: 'POST',
-      });
+      await apiRequest('/auth/logout-all', { method: 'POST' });
     } finally {
       clearAuthSession();
       setUser(null);
@@ -158,26 +132,15 @@ export function AuthProvider({ children }) {
     isAuthenticated: Boolean(user),
     login,
     register,
-    bootstrapAdministrator,
     logout,
     logoutAllDevices,
-  }), [
-    user,
-    isLoading,
-    login,
-    register,
-    bootstrapAdministrator,
-    logout,
-    logoutAllDevices,
-  ]);
+  }), [user, isLoading, login, register, logout, logoutAllDevices]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-
   return ctx;
 }
