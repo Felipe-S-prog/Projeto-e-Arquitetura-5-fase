@@ -1,5 +1,6 @@
 import { AppError } from '../errors/AppError.js';
 import { arredondar, calcularCorrecao, montarQuestoesImpressas, percentual, validarNotaManual } from './correcao.calculo.js';
+import { folhaDaCopia } from './correcao.folha.js';
 
 // Mesmo formato de código gerado pelo front (utils/answerKey.js e utils/qrPayload.js).
 const CODIGO_PATTERN = /^[A-Z0-9]{4,12}$/;
@@ -156,6 +157,7 @@ export function createCorrecaoService(repository) {
         aplicacao: copia.aplicacao,
         notaMaxima,
         questoes: questoesImpressas.map(({ letraCorreta, ...questao }) => questao), // o gabarito só aparece depois de corrigir
+        folha: folhaDaCopia(questoesImpressas), // geometria da folha impressa, para a leitura pela foto
         alunos,
         correcao: correcao ? await montarResultado(correcao, copia, questoesImpressas, notaMaxima) : null,
       };

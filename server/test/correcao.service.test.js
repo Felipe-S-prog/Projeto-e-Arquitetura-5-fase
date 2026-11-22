@@ -191,3 +191,20 @@ test('listarAplicacao: uma linha por cópia com o estado e "sem folha" para quem
   await rejeitaCom(service.listarAplicacao(50, 2), 404, 'não encontrada');
   await rejeitaCom(service.listarAplicacao('x', 1), 400, 'inválida');
 });
+
+test('buscarCopiaParaCorrecao: devolve a geometria da folha na ordem impressa, igual à do PDF', async () => {
+  const service = createCorrecaoService(fakeRepository());
+  const { folha, questoes } = await service.buscarCopiaParaCorrecao('ANA123', 1);
+  assert.equal(folha.marcadores.length, 4);
+  assert.deepEqual(folha.questoes.map((q) => [q.numero, q.questaoId, q.opcoes.map((o) => o.letra).join('')]), [
+    [1, 100, 'AB'],
+    [2, 200, 'AB'],
+  ]);
+  assert.deepEqual(questoes.map((q) => q.questaoId), [100, 200]);
+  // mesmos centros que o PDF desenha (pdf/sheetLayout.js)
+  const { getSheetGeometry, markerCenters } = await import('../src/pdf/sheetLayout.js');
+  const geometria = getSheetGeometry([2, 2]);
+  assert.deepEqual(folha.marcadores, markerCenters(geometria));
+  assert.equal(folha.questoes[1].opcoes[1].x, geometria.rows[1].options[1].cx);
+  assert.equal(folha.questoes[1].opcoes[1].y, geometria.rows[1].options[1].cy);
+});
