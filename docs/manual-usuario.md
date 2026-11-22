@@ -2,21 +2,19 @@
 
 Guia de uso do **SGP – Sistema de Geração de Provas** para o professor. Mostra, passo a passo, como montar uma prova, aplicá-la a uma turma, imprimir as provas, publicar o gabarito e acompanhar as notas.
 
-> **Versão parcial (N3 em andamento).** Os capítulos marcados com 🚧 dependem de telas que ainda vão mudar antes da entrega final (cadastro do professor, turmas e alunos, banco de questões e correção) e serão completados quando elas entrarem no sistema.
-
 Sistema publicado: <https://sgp-front-dc1.pages.dev>
 
 ## Sumário
 
 1. [Visão geral](#1-visão-geral)
-2. [Acesso ao sistema](#2-acesso-ao-sistema) 🚧
-3. [Banco de questões](#3-banco-de-questões) 🚧
-4. [Turmas e alunos](#4-turmas-e-alunos) 🚧
+2. [Acesso ao sistema](#2-acesso-ao-sistema)
+3. [Banco de questões](#3-banco-de-questões)
+4. [Turmas e alunos](#4-turmas-e-alunos)
 5. [Provas](#5-provas)
 6. [Aplicações](#6-aplicações)
 7. [Gerar e imprimir as provas](#7-gerar-e-imprimir-as-provas)
 8. [Gabarito](#8-gabarito)
-9. [Correção](#9-correção) 🚧
+9. [Correção](#9-correção)
 10. [Relatórios e histórico](#10-relatórios-e-histórico)
 11. [Problemas comuns](#11-problemas-comuns)
 
@@ -32,7 +30,7 @@ O caminho de uma prova no sistema é este:
 2. **Turmas** — cria a turma e matricula os alunos.
 3. **Provas** — monta uma prova escolhendo questões do banco. A prova é um modelo reutilizável.
 4. **Aplicações** — aplica a prova a uma turma. Cada aplicação gera as provas impressas (uma versão diferente por pessoa) e guarda as correções e as notas daquela vez.
-5. **Correção** — corrige cada prova lendo o QR Code da folha de resposta.
+5. **Correção** — corrige cada prova pela foto da folha de resposta, que o sistema lê sozinho.
 6. **Gabarito** — publica o gabarito para os alunos consultarem.
 7. **Relatórios** — acompanha as notas da aplicação, da turma e de cada aluno.
 
@@ -42,15 +40,107 @@ O menu lateral segue a mesma ordem: **Conteúdo** (Questões e Provas), **Opera�
 
 ## 2. Acesso ao sistema
 
-🚧 *A completar.* O cadastro do professor está mudando: o professor vai criar a própria conta na tela de entrada, sem convite e sem administrador (tarefas T77 e T78). Este capítulo será escrito com as telas novas.
+Cada professor tem a própria conta, criada por ele mesmo na tela de entrada. Não há convite nem administrador: quem cria a conta já entra como professor e vê só as próprias questões, turmas, provas e notas.
+
+### Criar a conta
+
+1. Abra o sistema e, embaixo do botão **Entrar**, clique em **Não tem uma conta? Criar conta**.
+2. Preencha o **Nome completo**, o **E-mail** e uma **Senha** de pelo menos 8 caracteres.
+3. Clique em **Criar conta e entrar**. O sistema já abre na tela de questões.
+
+![Criar conta: nome, e-mail e senha](manual/img/17-criar-conta.png)
+
+Cada e-mail só pode ter uma conta. Se aparecer *"Já existe uma conta cadastrada com esse e-mail"*, use **Já tem uma conta? Entrar**.
+
+### Entrar
+
+Na tela de entrada, informe o **E-mail** e a **Senha** e clique em **Entrar**. Se o e-mail ou a senha estiverem errados, o sistema mostra *"E-mail ou senha inválidos"*, sem dizer qual dos dois, para não ajudar quem tenta adivinhar uma conta.
+
+![Tela de entrada do professor](manual/img/16-entrar.png)
+
+A sessão continua aberta no navegador até você sair, mesmo fechando a aba.
+
+### Sair
+
+Clique no seu nome, no canto superior direito:
+
+- **Sair da conta** encerra a sessão neste navegador;
+- **Sair de todos os dispositivos** encerra a sessão em todos os computadores e celulares em que você entrou. Use se esqueceu a conta aberta num computador do laboratório.
 
 ## 3. Banco de questões
 
-🚧 *A completar.* A padronização das tags (por exemplo, "Matemática", "matematica" e "mat" virando uma só) e as sugestões de tags ao digitar ainda vão entrar no sistema (T79). Por enquanto, em resumo: em **Questões**, use **+ Criar questão**, escreva o enunciado, as alternativas (de 2 a 5), marque a correta e, se quiser, envie uma imagem.
+O banco de questões é a lista de questões objetivas do professor, usada para montar as provas. Cada professor vê só as próprias questões.
+
+### Criar uma questão
+
+1. No menu, abra **Questões** e clique em **+ Criar questão**.
+2. Escreva o **Enunciado**.
+3. Em **Tags**, digite os assuntos da questão separados por vírgula (por exemplo, *derivadas, trigonometria*). As tags servem para filtrar o banco depois.
+4. Se quiser, envie uma **Imagem** do computador ou informe o endereço (URL) de uma imagem: JPG, PNG, WEBP ou GIF, até 5 MB.
+5. Escreva as **Alternativas** (de 2 a 5; use **+ Adicionar alternativa** e **Remover última**) e marque a correta.
+6. Clique em **Salvar questão**.
+
+![Criar questão com sugestões de tags](manual/img/18-questao-tags.png)
+
+### Tags padronizadas
+
+Ao digitar uma tag, o sistema sugere as que você já usou: clique numa sugestão para acrescentá-la. Na imagem, depois de "Derivadas," aparecem as outras tags do banco.
+
+As tags são unificadas ao salvar: acentos, maiúsculas e espaços a mais não criam tags diferentes. "Matemática", "matematica" e " MATEMÁTICA " viram a mesma tag (*matematica*), e "mat" também vale como *matematica*. Assim o filtro do banco não se divide em várias versões do mesmo assunto.
+
+### Filtrar, editar e excluir
+
+- No topo da lista, clique numa **tag** para ver só as questões daquele assunto, ou em **Tags: todas** para ver todas.
+- **Editar** abre a questão no mesmo formulário.
+- **Excluir** tira a questão do banco. Provas que já usam a questão continuam com ela, para não mudar provas já montadas ou aplicadas.
+
+Para imprimir no PDF, prefira imagens PNG ou JPG (veja [Problemas comuns](#11-problemas-comuns)).
 
 ## 4. Turmas e alunos
 
-🚧 *A completar.* A matrícula de alunos está mudando: entram a importação da lista de alunos por arquivo e a remoção de aluno da turma (T47, T75 e T48). Este capítulo será escrito com as telas novas.
+A turma reúne os alunos que vão fazer as provas. O aluno não tem conta e não acessa o sistema: o cadastro dele (nome, e-mail e matrícula) serve para imprimir o nome na prova e guardar as notas.
+
+### Criar uma turma
+
+No menu, abra **Turmas**, clique em **+ Criar turma** e informe o **nome**, a **disciplina** e o **período** (por exemplo, *Cálculo I – Turma A*, *Cálculo I*, *2026/2*).
+
+### Matricular alunos
+
+Clique em **Abrir** na turma. Há duas formas de matricular:
+
+- **Um por um**: preencha **Nome do aluno** e **E-mail do aluno** e clique em **Matricular aluno**.
+- **Vários de uma vez, por CSV**: em **Importar alunos por CSV**, escolha o arquivo.
+
+![Turma com os alunos matriculados e a importação por CSV](manual/img/19-turma-alunos.png)
+
+### Importar a lista de alunos (CSV)
+
+O arquivo pode sair do Excel: monte a planilha com as colunas **nome**, **email** e, se quiser, **matricula**, e salve em **Arquivo › Salvar como › CSV UTF-8**. Exemplo:
+
+```text
+nome;email;matricula
+Helena Prado;helena.prado@exemplo.com;2026107
+Igor Teixeira;igor.teixeira@exemplo.com;2026108
+```
+
+- A primeira linha é o cabeçalho, com os nomes das colunas (a ordem não importa).
+- Vale vírgula ou ponto e vírgula como separador.
+- No máximo 500 alunos e 500 KB por arquivo.
+
+Ao terminar, o sistema mostra quantos alunos entraram e quais linhas foram recusadas, com o motivo. As linhas certas entram mesmo que outras sejam recusadas. Na imagem, de 4 linhas, 2 entraram; uma foi recusada pelo e-mail incompleto e outra porque a aluna já estava na turma.
+
+![Resultado da importação: 2 importados e 2 recusados](manual/img/20-importar-csv.png)
+
+Corrija as linhas recusadas no arquivo e importe de novo: quem já entrou aparece como "já matriculado" e não é duplicado.
+
+### Remover um aluno da turma
+
+Clique em **Remover aluno** e confirme. O aluno sai da turma, mas o cadastro, as provas já geradas e as notas dele continuam guardados: o histórico do aluno não se perde.
+
+### Arquivar ou excluir a turma
+
+- **Arquivar** tira a turma de uso no fim do semestre. Alunos, aplicações e notas ficam guardados, e a turma não aceita novas matrículas nem aparece na hora de criar aplicações.
+- **Excluir turma** remove as matrículas (os cadastros dos alunos ficam). Se a turma já tiver aplicações, ela é **arquivada** em vez de excluída, para não apagar provas e notas.
 
 ## 5. Provas
 
@@ -190,13 +280,70 @@ Se o gabarito ainda não foi publicado (ou foi despublicado), a página avisa: *
 
 ## 9. Correção
 
-🚧 *A completar — é o capítulo principal do manual.* A tela de correção está sendo refeita (T90 e T64): o professor vai escolher a aplicação, ver a lista de alunos com a situação de cada um (corrigido, pendente) e corrigir pela **foto da folha de resposta**, com a leitura automática das bolinhas e conferência antes de gravar. Este capítulo será escrito com essas telas.
+A correção é feita pela **foto da folha de resposta**: o sistema identifica a prova pelo QR Code, lê as bolinhas marcadas e calcula a nota. O professor confere antes de gravar.
 
-O que já vale hoje e continua valendo:
+### Escolher a aplicação
 
-- Cada prova tem **uma correção**. Corrigir de novo substitui a anterior.
-- Em provas **sem identificação**, escolha de quem é a folha ao corrigir: sem isso, a nota fica na aplicação, mas não entra no histórico do aluno.
-- Também é possível **lançar a nota à mão**, sem marcar as respostas. Nesse caso a correção não entra na estatística por questão dos relatórios.
+No menu, abra **Correção**. Em **Escolher a aplicação**, cada aplicação mostra quantas provas já foram corrigidas. Clique em **Abrir lista**.
+
+![Tela inicial da correção](manual/img/21-correcao-inicio.png)
+
+Os outros cartões servem para corrigir uma prova avulsa, sem passar pela lista:
+
+- **Ler folha pela foto**: envie a foto e o sistema abre a prova certa e já lê as respostas;
+- **Ler QR Code**: só identifica a prova pela foto ou pela câmera; as respostas você marca na tela;
+- **Digitar código**: abre a prova pelo código impresso ao lado do QR Code.
+
+### A lista de alunos
+
+A lista mostra cada aluno da aplicação, o código da prova dele, a situação e a nota:
+
+| Situação | O que significa |
+|---|---|
+| **Corrigida** | Já tem nota. Ao lado aparece se foi **Automática** (pelas respostas) ou **Manual** (nota lançada à mão). |
+| **Pendente** | Tem prova gerada e ainda não foi corrigida. |
+| **Sem folha** | O aluno está na turma, mas não tem prova gerada nesta aplicação (por exemplo, foi matriculado depois que as provas foram geradas). Para corrigir a prova dele, use uma prova sem identificação. |
+
+Os filtros no topo (**Pendentes**, **Corrigidas**, **Sem folha**) e a busca por nome, matrícula ou código ajudam em turmas grandes. **Corrigir a próxima pendente** abre direto a primeira prova que falta corrigir. Na imagem, Helena e Igor foram matriculados depois da geração das provas e aparecem como *Sem folha*.
+
+![Lista de correção da aplicação](manual/img/22-correcao-lista.png)
+
+### Corrigir pela foto da folha
+
+1. Na lista, clique em **Corrigir** no aluno (ou em **Corrigir a próxima pendente**).
+2. Clique em **Ler folha pela foto** e tire a foto da folha (no celular, a câmera abre direto) ou escolha a imagem.
+3. O sistema lê as bolinhas e preenche as respostas na tela. O aviso em verde resume a leitura (por exemplo, *4 marcadas, 1 em branco*).
+4. Confira as respostas. Para trocar uma, clique na letra certa; clicar de novo na letra marcada deixa a questão em branco.
+5. Clique em **Corrigir prova**. A nota aparece na hora, e **Próxima pendente** leva ao próximo aluno.
+
+![Respostas lidas pela foto, prontas para conferir](manual/img/23-correcao-foto.png)
+
+Quando a leitura fica em dúvida, o aviso fica amarelo e a questão aparece destacada com o motivo:
+
+- **Marcação fraca** ou **Marcação muito fraca ou rasurada**: a bolinha foi pouco preenchida;
+- **Outra alternativa também parece marcada**: há uma segunda bolinha quase tão escura;
+- **Mais de uma alternativa marcada (anulada)**: duas bolinhas preenchidas. A questão vale zero.
+
+Confira essas questões na folha de papel antes de gravar.
+
+Para a foto sair boa:
+
+- enquadre a **folha inteira**, com os **quatro quadrados pretos dos cantos** aparecendo;
+- evite reflexo e sombra sobre o QR Code e as bolinhas;
+- fotografe de cima, com a folha apoiada numa mesa.
+
+Se a foto for de outra prova, o sistema avisa e oferece abrir a prova certa. Se não conseguir ler, tire outra foto ou use **Marcar respostas**.
+
+### Outras formas de corrigir
+
+- **Marcar respostas**: você clica nas letras marcadas pelo aluno, olhando a folha. Questões sem marcação contam como em branco (zero).
+- **Lançar nota manual**: informa só a nota final, de 0 até a nota máxima, com até 2 casas decimais. Nesse caso a correção não entra no desempenho por questão dos relatórios.
+
+### Regras da correção
+
+- Cada prova tem **uma correção**. **Corrigir novamente** substitui a anterior, depois de confirmar.
+- **Excluir** a correção tira a nota dos relatórios e do histórico do aluno.
+- Em provas **sem identificação**, escolha em **Aluno** de quem é a folha. Sem isso, a nota fica na aplicação, mas não entra no histórico do aluno.
 
 ## 10. Relatórios e histórico
 
@@ -251,3 +398,7 @@ Clique no nome de um aluno (no relatório da aplicação ou no consolidado) para
 | O PDF não é gerado e aparece um aviso sobre alternativas. | A prova tem uma questão sem alternativas (discursiva). Por enquanto, o PDF aceita só questões objetivas. |
 | O aluno diz que não consegue ver o gabarito. | Confira se o gabarito daquela prova está **Publicado** e se o aluno digitou o código impresso abaixo do QR Code. |
 | Uma imagem de questão não apareceu no PDF. | O PDF aceita imagens PNG e JPG. Troque a imagem da questão por um desses formatos. |
+| Ao criar a conta, aparece "Já existe uma conta cadastrada com esse e-mail". | Você já tem conta: use **Já tem uma conta? Entrar**. |
+| A importação do CSV deu erro de cabeçalho ou recusou todas as linhas. | Confira se a primeira linha tem as colunas **nome** e **email** e se o arquivo foi salvo como **CSV UTF-8**. |
+| A foto da folha não é lida. | Fotografe de novo a folha inteira, nítida, sem reflexo e com os quatro quadrados pretos aparecendo. Se não der, use **Marcar respostas**. |
+| Um aluno aparece como **Sem folha** na correção. | Ele não tem prova gerada nesta aplicação (foi matriculado depois). Corrija a prova dele por uma prova sem identificação e escolha o aluno. |
