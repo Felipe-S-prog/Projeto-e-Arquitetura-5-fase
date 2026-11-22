@@ -84,13 +84,19 @@ export function createProvaService(repository) {
     },
 
     async atualizar(id, body, professorId) {
+      const naoEditavel = (status) =>
+        AppError.conflict(`Só é possível editar uma prova em Rascunho (esta está ${status}).`);
+
       const atual = await buscarDoProfessor(id, professorId);
-      if (atual.status !== 'Rascunho') {
-        throw AppError.conflict(`Só é possível editar uma prova em Rascunho (esta está ${atual.status}).`);
-      }
+      if (atual.status !== 'Rascunho') throw naoEditavel(atual.status);
       const dados = validarDados(body);
       await conferirQuestoes(dados.questoes, professorId);
-      return repository.update(atual.id, professorId, dados);
+
+      // null: a prova deixou de ser Rascunho entre a conferência acima e a gravação
+      // (ex.: uma aplicação criada ao mesmo tempo em outra aba).
+      const editada = await repository.update(atual.id, professorId, dados);
+      if (!editada) throw naoEditavel((await buscarDoProfessor(atual.id, professorId)).status);
+      return editada;
     },
 
     async arquivar(id, professorId) {

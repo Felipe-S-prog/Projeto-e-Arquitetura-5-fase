@@ -1,6 +1,7 @@
 import { AppError } from '../errors/AppError.js';
 import { toCsv } from '../utils/csv.js';
 import { arredondar, percentual } from './correcao.calculo.js';
+import { distribuicaoDasAlternativas } from './relatorio.alternativas.js';
 
 function parseId(valor, mensagem) {
   const id = Number(valor);
@@ -69,10 +70,13 @@ export function createRelatorioService(repository) {
 
   async function relatorioDaAplicacao(id, professorId) {
     const aplicacao = await carregarAplicacao(id, professorId);
-    const [linhas, questoes] = await Promise.all([
+    const [linhas, questoes, alternativas, respostas] = await Promise.all([
       repository.listNotasDaAplicacao(aplicacao.id),
       repository.listDesempenhoPorQuestao(aplicacao.id, aplicacao.prova.id),
+      repository.listAlternativasDaProva(aplicacao.prova.id),
+      repository.listRespostasObjetivas(aplicacao.id),
     ]);
+    const distribuicao = distribuicaoDasAlternativas(alternativas, respostas);
 
     const notas = linhas.map((linha) => ({
       ...linha,
@@ -93,6 +97,8 @@ export function createRelatorioService(repository) {
         ...q,
         taxaAcerto: q.tipo === 'OBJETIVA' && q.corrigidas > 0 ? percentual(q.acertos, q.corrigidas) : null,
         mediaPontos: q.mediaPontos === null ? null : arredondar(q.mediaPontos),
+        // T74: quantas pessoas marcaram cada alternativa (só objetivas; discursiva fica nula)
+        distribuicao: q.tipo === 'OBJETIVA' ? distribuicao.get(q.questaoId) ?? null : null,
       })),
     };
   }

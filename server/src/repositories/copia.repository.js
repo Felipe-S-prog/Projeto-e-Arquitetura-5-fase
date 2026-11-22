@@ -130,5 +130,16 @@ export function createCopiaRepository(pool) {
       );
       return res.affectedRows;
     },
+
+    // T59: codigo nulo despublica todas as cópias da aplicação; a data some junto.
+    async despublicarGabarito(aplicacaoId, codigo) {
+      const [res] = await pool.query(
+        `UPDATE copia_prova
+            SET gabarito_publicado = 0, gabarito_publicado_em = NULL
+          WHERE aplicacao_id = ? AND gabarito_publicado = 1 ${codigo ? 'AND codigo = ?' : ''}`,
+        codigo ? [aplicacaoId, codigo] : [aplicacaoId]
+      );
+      return res.affectedRows;
+    },
   };
 }
