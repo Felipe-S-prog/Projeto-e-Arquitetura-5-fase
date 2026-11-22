@@ -1,5 +1,7 @@
 # ADR-004: Autenticação com JWT, refresh token rotativo e cadastro por convite
 
+> **Atualização (ADR-006):** o cadastro por convite, o perfil de administrador, o bootstrap e a restrição de domínio de e-mail foram substituídos pelo [ADR-006](ADR-006-sistema-so-do-professor-com-cadastro-livre.md). Os demais itens desta decisão continuam valendo.
+
 ## Contexto
 Só professores e administradores usam o sistema; o aluno não tem conta (ADR-001). As contas precisam ser restritas à Católica SC, as senhas não podem ser guardadas em texto aberto (RNF02) e cada professor só pode enxergar os próprios dados (turmas, questões, provas, aplicações). Antes, o front mandava um `professor_id` fixo e o login era apenas um valor em memória.
 
