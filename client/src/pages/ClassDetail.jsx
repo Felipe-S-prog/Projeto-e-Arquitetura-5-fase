@@ -20,7 +20,8 @@ export default function ClassDetail() {
     getExamById,
     archiveClass,
     deleteClass,
-    regenerateInviteCode,
+    removeStudent,
+    importStudents,
     enrollStudent,
     classesLoading,
     classesError,
@@ -29,7 +30,9 @@ export default function ClassDetail() {
   const [error, setError] = useState('');
   const [archiving, setArchiving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [regeneratingCode, setRegeneratingCode] = useState(false);
+  const [removingId, setRemovingId] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
   const [success, setSuccess] = useState('');
   const [enrolling, setEnrolling] = useState(false);
   const [studentName, setStudentName] = useState('');
@@ -120,41 +123,23 @@ export default function ClassDetail() {
     }
   };
 
-  const handleRegenerateCode = async () => {
-    if (
-      !window.confirm(
-        'Regenerar o código? O código anterior deixará de funcionar.',
-      )
-    ) {
-      return;
-    }
-
-    setError('');
-
-    try {
-      setRegeneratingCode(true);
-      await regenerateInviteCode(cls.id);
-    } catch (err) {
-      setError(
-        err.message || 'Não foi possível regenerar o código de convite.',
-      );
-    } finally {
-      setRegeneratingCode(false);
-    }
+  const handleRemoveStudent = async (student) => {
+    if (!window.confirm(`Remover ${student.name} desta turma? Cadastro, cópias e notas serão preservados.`)) return;
+    setError(''); setSuccess(''); setRemovingId(student.id);
+    try { const result = await removeStudent(cls.id, student.id); setSuccess(result.message); }
+    catch (err) { setError(err.message); }
+    finally { setRemovingId(null); }
   };
-
-  const joinUrl = `${window.location.origin}/turmas/ingresso`;
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(joinUrl);
-      setError('');
-      window.alert('Link de ingresso copiado!');
-    } catch {
-      setError(
-        'Não foi possível copiar automaticamente. Copie o link exibido manualmente.',
-      );
-    }
+  const handleImport = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setError(''); setImportResult(null);
+    if (!/\.csv$/i.test(file.name) || file.size > 500000) { setError('Selecione um CSV UTF-8 de até 500 KB.'); return; }
+    setImporting(true);
+    try { setImportResult(await importStudents(cls.id, await file.text())); }
+    catch (err) { setError(err.message); }
+    finally { setImporting(false); }
   };
 
   return (
@@ -244,113 +229,6 @@ export default function ClassDetail() {
       )}
 
       <section
-        aria-labelledby="invite-title"
-        style={{
-          padding: 20,
-          marginBottom: 28,
-          background: 'white',
-          border: '1px solid var(--border)',
-          borderRadius: 14,
-        }}
-      >
-        <h2
-          id="invite-title"
-          style={{
-            fontSize: 17,
-            fontWeight: 800,
-            marginTop: 0,
-            marginBottom: 12,
-          }}
-        >
-          Código de convite
-        </h2>
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            flexWrap: 'wrap',
-          }}
-        >
-          <code
-            style={{
-              fontSize: 24,
-              fontWeight: 800,
-              letterSpacing: '0.12em',
-              color: 'var(--ink)',
-            }}
-          >
-            {cls.codigoConvite || 'Não disponível'}
-          </code>
-
-          <SecondaryButton
-            disabled={
-              cls.status === 'Arquivada' ||
-              regeneratingCode ||
-              !regenerateInviteCode
-            }
-            onClick={handleRegenerateCode}
-          >
-            {regeneratingCode ? 'Regenerando...' : 'Regenerar código'}
-          </SecondaryButton>
-        </div>
-
-        <p
-          style={{
-            fontSize: 13,
-            color: 'var(--muted)',
-            lineHeight: 1.5,
-          }}
-        >
-          Compartilhe o código com os alunos. Ao regenerá-lo, o código
-          anterior deixa de funcionar.
-        </p>
-
-        <div style={{ marginTop: 18 }}>
-          <label
-            htmlFor="invite-link"
-            style={{
-              display: 'block',
-              fontSize: 13,
-              fontWeight: 700,
-              marginBottom: 8,
-            }}
-          >
-            Link para o aluno entrar na turma
-          </label>
-
-          <div
-            style={{
-              display: 'flex',
-              gap: 10,
-              alignItems: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
-            <input
-              id="invite-link"
-              readOnly
-              value={joinUrl}
-              onFocus={(event) => event.target.select()}
-              style={{
-                flex: '1 1 260px',
-                minWidth: 0,
-                padding: 10,
-                border: '1px solid var(--border)',
-                borderRadius: 8,
-                font: 'inherit',
-              }}
-            />
-
-            <SecondaryButton onClick={handleCopyLink}>
-              Copiar link
-            </SecondaryButton>
-          </div>
-        </div>
-      </section>
-
-      <section
         aria-labelledby="students-title"
         style={{
           padding: 20,
@@ -382,6 +260,16 @@ export default function ClassDetail() {
           Matricule um aluno informando seu nome e e-mail.
         </p>
 
+        {!isArchived && <div style={{ marginBottom: 24 }}>
+          <label htmlFor="students-csv">Importar alunos por CSV</label>
+          <p>Exporte do Excel como CSV UTF-8. Colunas: nome, email e matrícula (opcional). Até 500 alunos. O aluno não precisa acessar o sistema.</p>
+          <input id="students-csv" type="file" accept=".csv,text/csv" disabled={importing || enrolling || removingId !== null} onChange={handleImport} />
+          {importing && <p role="status">Importando alunos...</p>}
+        </div>}
+        {importResult && <div role="status">
+          <p>{importResult.imported.length} importados; {importResult.rejected.length} recusados de {importResult.total} linhas.</p>
+          {importResult.rejected.length > 0 && <ul>{importResult.rejected.map((item) => <li key={item.line}>Linha {item.line}: {item.message}</li>)}</ul>}
+        </div>}
         {isArchived ? (
           <p style={{ fontSize: 14, color: 'var(--muted)' }}>
             Esta turma está arquivada e não aceita novas matrículas.
@@ -511,6 +399,9 @@ export default function ClassDetail() {
                   {student.email}
                 </div>
 
+                {!isArchived && <DangerButton disabled={removingId !== null || importing || enrolling} onClick={() => handleRemoveStudent(student)}>
+                  {removingId === student.id ? 'Removendo...' : 'Remover aluno'}
+                </DangerButton>}
                 {student.numeroMatricula && (
                   <div
                     style={{

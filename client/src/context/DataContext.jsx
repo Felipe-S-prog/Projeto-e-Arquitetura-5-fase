@@ -489,28 +489,17 @@ const DataProvider = ({ children }) => {
     }
   }, [classes]);
 
-   const regenerateInviteCode = useCallback(async (id) => {
-    setClassesError('');
-
-    try {
-      const updatedClass = await adminApiRequest(
-        `/turmas/${id}/codigo-convite/regenerar`,
-        { method: 'POST' },
-      );
-
-      const normalized = normalizeClass(updatedClass);
-
-      setClasses((previous) =>
-        previous.map((item) =>
-          item.id === Number(id) ? normalized : item,
-        ),
-      );
-
-      return normalized;
-    } catch (error) {
-      setClassesError(error.message);
-      throw error;
-    }
+  const removeStudent = useCallback(async (classId, studentId) => {
+    const result = await adminApiRequest(`/turmas/${classId}/matriculas/${studentId}`, { method: 'DELETE' });
+    setClasses((previous) => previous.map((item) => item.id === Number(classId)
+      ? { ...item, students: item.students.filter((student) => student.id !== Number(studentId)) } : item));
+    return result;
+  }, []);
+  const importStudents = useCallback(async (classId, csv) => {
+    const result = await adminApiRequest(`/turmas/${classId}/matriculas/importar`, { method: 'POST', body: JSON.stringify({ csv }) });
+    setClasses((previous) => previous.map((item) => item.id === Number(classId)
+      ? { ...item, students: [...item.students.filter((student) => !result.imported.some((added) => added.id === student.id)), ...result.imported] } : item));
+    return result;
   }, []);
 
   const deleteClass = useCallback(async (id) => {
@@ -997,8 +986,9 @@ const DataProvider = ({ children }) => {
       updateClass,
       archiveClass,
       deleteClass,
-      regenerateInviteCode,
       enrollStudent,
+      removeStudent,
+      importStudents,
       addExam,
       updateExam,
       createApplication,
@@ -1046,8 +1036,9 @@ const DataProvider = ({ children }) => {
       updateClass,
       archiveClass,
       deleteClass,
-      regenerateInviteCode,
       enrollStudent,
+      removeStudent,
+      importStudents,
       addExam,
       updateExam,
       createApplication,
