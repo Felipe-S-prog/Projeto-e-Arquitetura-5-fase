@@ -363,8 +363,9 @@ ADRs (Registros de Decisão Arquitetural) do projeto:
 - [ADR-001: Escopo reduzido em relação à especificação de referência do cliente](docs/adr/ADR-001-escopo-reduzido-sem-app-mobile-e-microsservicos.md)
 - [ADR-002: API em camadas (rota → controller → service → repository → model)](docs/adr/ADR-002-arquitetura-em-camadas.md)
 - [ADR-003: MySQL como banco e estrutura criada por migrations versionadas](docs/adr/ADR-003-mysql-com-migrations-versionadas.md)
-- [ADR-004: Autenticação com JWT, refresh token rotativo e cadastro por convite](docs/adr/ADR-004-autenticacao-jwt-com-refresh-token-e-cadastro-por-convite.md) — na N3, o cadastro por convite deu lugar ao cadastro livre de professores (T77/T78); JWT e refresh token rotativo continuam como decididos.
+- [ADR-004: Autenticação com JWT, refresh token rotativo e cadastro por convite](docs/adr/ADR-004-autenticacao-jwt-com-refresh-token-e-cadastro-por-convite.md) (parcialmente substituído pelo ADR-006: o cadastro por convite deu lugar ao cadastro livre; JWT e refresh token rotativo continuam)
 - [ADR-005: Ciclo de status da prova (Rascunho → Pronta → Arquivada)](docs/adr/ADR-005-ciclo-de-status-da-prova.md)
+- [ADR-006: Sistema só do professor, com cadastro livre e sem administrador](docs/adr/ADR-006-sistema-so-do-professor-com-cadastro-livre.md)
 
 ## 7. Modelo de Dados
 
