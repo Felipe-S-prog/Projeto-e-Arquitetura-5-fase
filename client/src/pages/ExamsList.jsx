@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { PageHeader, PrimaryButton, Badge, EmptyState } from '../components/ui';
 import { ExamSheetIcon } from '../components/icons';
@@ -52,20 +52,21 @@ export default function ExamsList() {
       {!examsLoading && !examsError && exams.length === 0 && (
         <EmptyState>Nenhuma prova criada. Clique em “Criar prova” para começar.</EmptyState>
       )}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 16 }}>
         {filtered.map((e) => {
           const questionsCount = e.questions.length;
           const dots = Array.from({ length: Math.min(5, questionsCount) });
           return (
-            <div
+            <Link
               key={e.id}
-              onClick={() => navigate(`/provas/${e.id}`)}
+              to={`/provas/${e.id}`}
               style={{
                 background: 'white',
                 border: '1px solid var(--border)',
                 borderRadius: 14,
                 padding: 20,
-                cursor: 'pointer',
+                color: 'inherit',
+                textDecoration: 'none',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 14,
@@ -89,7 +90,7 @@ export default function ExamsList() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 8, borderTop: '1px solid var(--border-light)' }}>
                 <span style={{ fontSize: 13, fontWeight: 700 }}>Abrir →</span>
               </div>
-            </div>
+            </Link>
           );
         })}
         {exams.length > 0 && filtered.length === 0 && (
