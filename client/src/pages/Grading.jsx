@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import QrReader from '../components/QrReader';
 import { Badge, Breadcrumb, FormField, PageHeader, PrimaryButton, SecondaryButton, Select, TextInput } from '../components/ui';
 import { apiRequest } from '../services/api';
+import { useApiGet } from '../services/useApiGet';
 import { formatDate, formatPercent, formatScore, GRADING_TYPE_LABEL, scoreColor } from '../utils/grades';
 
 const cardStyle = {
@@ -114,7 +115,7 @@ function CopyHeader({ copy }) {
   );
 }
 
-function GradingResult({ grading, onRegrade, onDelete, onNext }) {
+function GradingResult({ grading, onRegrade, onDelete, onNext, onNextPending, onBackToList }) {
   const automatic = grading.tipo === 'AUTOMATICA';
   return (
     <div style={cardStyle}>
@@ -167,7 +168,13 @@ function GradingResult({ grading, onRegrade, onDelete, onNext }) {
       )}
 
       <div style={{ display: 'flex', gap: 10, marginTop: 22, flexWrap: 'wrap' }}>
-        <PrimaryButton onClick={onNext}>Corrigir outra prova</PrimaryButton>
+        {onNextPending ? (
+          <PrimaryButton onClick={onNextPending}>Próxima pendente</PrimaryButton>
+        ) : (
+          <PrimaryButton onClick={onBackToList}>Voltar à lista</PrimaryButton>
+        )}
+        {onNextPending && <SecondaryButton onClick={onBackToList}>Voltar à lista</SecondaryButton>}
+        <SecondaryButton onClick={onNext}>Corrigir outra prova</SecondaryButton>
         <SecondaryButton onClick={onRegrade}>Corrigir novamente</SecondaryButton>
         <Link to={`/relatorios?aplicacao=${grading.aplicacao.id}`} style={{ alignSelf: 'center', fontSize: 14, fontWeight: 600, marginLeft: 6 }}>
           Ver notas da aplicação →
@@ -185,10 +192,64 @@ function GradingResult({ grading, onRegrade, onDelete, onNext }) {
   );
 }
 
+// Aplicações do professor para escolher qual corrigir (T90).
+function ApplicationPicker() {
+  const navigate = useNavigate();
+  const { data, error, loading } = useApiGet('/relatorios/aplicacoes');
+  const applied = (data ?? []).filter((a) => a.totalCopias > 0);
+
+  return (
+    <div style={cardStyle}>
+      <SectionTitle hint="Abra a lista de alunos de uma aplicação e corrija um por um.">Escolher a aplicação</SectionTitle>
+      {loading && <div style={{ fontSize: 13.5, color: 'var(--muted-2)' }}>Carregando aplicações...</div>}
+      {error && <ErrorText>{error.message}</ErrorText>}
+      {data && applied.length === 0 && (
+        <div style={{ fontSize: 13.5, color: 'var(--muted-2)' }}>Nenhuma aplicação com provas geradas ainda.</div>
+      )}
+      {applied.map((a) => {
+        const done = a.corrigidas === a.totalCopias;
+        return (
+          <button
+            key={a.id}
+            type="button"
+            onClick={() => navigate(`/correcao/aplicacoes/${a.id}`)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
+              width: '100%',
+              padding: '12px 4px',
+              background: 'none',
+              border: 'none',
+              borderTop: '1px solid var(--border-light)',
+              cursor: 'pointer',
+              textAlign: 'left',
+              fontFamily: 'inherit',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-strong)' }}>{a.prova.titulo}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--muted-2)', marginTop: 2 }}>
+                {a.turma.nome}
+                {a.dataAplicacao ? ` · ${formatDate(a.dataAplicacao)}` : ''}
+              </div>
+            </div>
+            <Badge status={done ? 'Corrigida' : 'Pendente'}>
+              {a.corrigidas} de {a.totalCopias} corrigidas
+            </Badge>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Abrir lista →</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // Tela de correção (T30 e T31): identifica a cópia pelo QR Code (ou código digitado),
 // recebe o que o aluno marcou e calcula a nota pela pontuação de cada questão.
 // Para provas sem identificação, permite associar a nota ao aluno certo ou lançá-la à mão.
 export default function Grading() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [typedCode, setTypedCode] = useState('');
   const [copy, setCopy] = useState(null);
@@ -236,6 +297,31 @@ export default function Grading() {
     setSearchParams({}, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [codeFromUrl]);
+
+  // Próxima cópia pendente da mesma aplicação, na ordem da lista (T90). O resultado guarda
+  // de qual cópia ele é, para não mostrar a "próxima" de uma cópia anterior.
+  const [pendingLookup, setPendingLookup] = useState({ code: null, next: null });
+  const applicationId = copy?.aplicacao.id;
+  const currentCode = copy?.copia.codigo;
+  useEffect(() => {
+    if (!applicationId || !grading) return undefined;
+    let cancelled = false;
+    apiRequest(`/correcoes/aplicacoes/${applicationId}`)
+      .then(({ linhas }) => {
+        if (cancelled) return;
+        const pending = linhas.filter((l) => l.estado === 'PENDENTE' && l.codigo !== currentCode);
+        const index = linhas.findIndex((l) => l.codigo === currentCode);
+        const next = (pending.find((l) => linhas.indexOf(l) > index) ?? pending[0])?.codigo ?? null;
+        setPendingLookup({ code: currentCode, next });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [applicationId, currentCode, grading]);
+  const nextPending = grading && pendingLookup.code === currentCode ? pendingLookup.next : null;
+
+  const backToList = () => navigate(`/correcao/aplicacoes/${applicationId}`);
 
   const reset = () => {
     setCopy(null);
@@ -302,8 +388,20 @@ export default function Grading() {
 
   return (
     <div>
-      <Breadcrumb items={[{ label: 'Correção' }]} />
-      <PageHeader title="Correção" description="Leia o QR Code da prova (ou digite o código impresso nela) e informe o que o aluno marcou." />
+      <Breadcrumb
+        items={
+          copy
+            ? [
+                { label: 'Correção', to: '/correcao' },
+                { label: `${copy.prova.titulo} · ${copy.turma.nome}`, to: `/correcao/aplicacoes/${copy.aplicacao.id}` },
+                { label: `Prova ${copy.copia.codigo}` },
+              ]
+            : [{ label: 'Correção' }]
+        }
+      />
+      <PageHeader title="Correção" description="Escolha a aplicação e corrija pela lista de alunos, ou leia o QR Code da folha." />
+
+      {!copy && <ApplicationPicker />}
 
       {!copy && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, alignItems: 'start' }}>
@@ -362,6 +460,8 @@ export default function Grading() {
               <GradingResult
                 grading={grading}
                 onNext={reset}
+                onNextPending={nextPending ? () => loadCopy(nextPending) : null}
+                onBackToList={backToList}
                 onDelete={deleteGrading}
                 onRegrade={() => {
                   setAnswers(answersFromGrading(grading));

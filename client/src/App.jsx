@@ -23,6 +23,7 @@ import PublicAnswerKey from './pages/PublicAnswerKey';
 import QrReaderTest from './pages/QrReaderTest';
 import Admin from './pages/Admin';
 import Grading from './pages/Grading';
+import GradingApplication from './pages/GradingApplication';
 import GradeReports from './pages/GradeReports';
 import StudentHistory from './pages/StudentHistory';
 import ClassEdit from './pages/ClassEdit';
@@ -124,6 +125,7 @@ function AppRoutes() {
         />
         <Route path="leitor-qr" element={<QrReaderTest />} />
         <Route path="correcao" element={<Grading />} />
+        <Route path="correcao/aplicacoes/:id" element={<GradingApplication />} />
         <Route path="relatorios" element={<GradeReports />} />
         <Route
           path="relatorios/alunos/:id"
