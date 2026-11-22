@@ -186,3 +186,28 @@ test('logout geral também aceita administrador autenticado', async () => {
   assert.equal(error, undefined);
   assert.equal(req.user.id, 3);
 });
+
+test('rota de autoatendimento exige autenticação', async () => {
+  const middleware = createApiAuthMiddleware({ pool: fakePool(null), config });
+  const { error } = await invokeMiddleware(middleware, { path: '/me/anonymize' });
+  assert.equal(error?.statusCode, 401);
+});
+
+test('rota de autoatendimento permite que o próprio usuário autenticado a acesse', async () => {
+  const user = makeUser({
+    id: 3,
+    nome: 'Admin',
+    email: 'admin@catolicasc.org.br',
+    papel: 'ADMINISTRADOR',
+  });
+  const token = signAccessToken(user, config.auth.jwtSecret);
+  const middleware = createApiAuthMiddleware({ pool: fakePool(user), config });
+
+  const { error, req } = await invokeMiddleware(middleware, {
+    path: '/me/anonymize',
+    token,
+  });
+
+  assert.equal(error, undefined);
+  assert.equal(req.user.id, 3);
+});

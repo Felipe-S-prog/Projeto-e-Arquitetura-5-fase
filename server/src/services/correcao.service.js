@@ -1,5 +1,6 @@
 import { AppError } from '../errors/AppError.js';
 import { arredondar, calcularCorrecao, montarQuestoesImpressas, percentual, validarNotaManual } from './correcao.calculo.js';
+import { folhaDaCopia } from './correcao.folha.js';
 
 // Mesmo formato de código gerado pelo front (utils/answerKey.js e utils/qrPayload.js).
 const CODIGO_PATTERN = /^[A-Z0-9]{4,12}$/;
@@ -107,6 +108,39 @@ export function createCorrecaoService(repository) {
   }
 
   return {
+    // T90: a aplicação vista pela correção. Uma linha por cópia (com o estado da correção)
+    // e uma linha "sem folha" para cada aluno matriculado que ainda não tem cópia nem nota.
+    async listarAplicacao(id, professorId) {
+      const aplicacao = await repository.findAplicacao(parseId(id, 'Aplicação inválida.'), professorId);
+      if (!aplicacao) throw AppError.notFound('Aplicação não encontrada.');
+      const [copias, matriculados] = await Promise.all([
+        repository.listCopiasDaAplicacao(aplicacao.id),
+        repository.listAlunosDaTurma(aplicacao.turma.id),
+      ]);
+
+      const linhas = copias.map((c) => ({
+        codigo: c.codigo,
+        rotulo: c.rotulo,
+        aluno: c.aluno,
+        estado: c.correcao ? 'CORRIGIDA' : 'PENDENTE',
+        correcao: c.correcao && { ...c.correcao, percentual: percentual(c.correcao.nota, aplicacao.notaMaxima) },
+      }));
+      const comLinha = new Set(linhas.filter((l) => l.aluno).map((l) => l.aluno.id));
+      for (const aluno of matriculados) {
+        if (comLinha.has(aluno.id)) continue;
+        linhas.push({ codigo: null, rotulo: aluno.nome, aluno: { id: aluno.id, nome: aluno.nome, matricula: aluno.matricula }, estado: 'SEM_FOLHA', correcao: null });
+      }
+      // Alunos em ordem alfabética; provas sem aluno identificado no fim, pela identificação impressa.
+      linhas.sort((a, b) => (!a.aluno - !b.aluno) || (a.aluno?.nome ?? a.rotulo).localeCompare(b.aluno?.nome ?? b.rotulo, 'pt-BR'));
+
+      const contar = (estado) => linhas.filter((l) => l.estado === estado).length;
+      return {
+        aplicacao,
+        resumo: { corrigidas: contar('CORRIGIDA'), pendentes: contar('PENDENTE'), semFolha: contar('SEM_FOLHA'), totalCopias: copias.length },
+        linhas,
+      };
+    },
+
     // Dados para a tela de correção: a cópia como foi impressa, os alunos da turma
     // (para identificar provas anônimas) e a correção já feita, se houver.
     async buscarCopiaParaCorrecao(codigo, professorId) {
@@ -123,6 +157,7 @@ export function createCorrecaoService(repository) {
         aplicacao: copia.aplicacao,
         notaMaxima,
         questoes: questoesImpressas.map(({ letraCorreta, ...questao }) => questao), // o gabarito só aparece depois de corrigir
+        folha: folhaDaCopia(questoesImpressas), // geometria da folha impressa, para a leitura pela foto
         alunos,
         correcao: correcao ? await montarResultado(correcao, copia, questoesImpressas, notaMaxima) : null,
       };

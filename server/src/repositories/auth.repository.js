@@ -1,4 +1,3 @@
-
 export function createAuthRepository(pool) {
   async function findUserById(id) {
     const [rows] = await pool.execute(
@@ -9,74 +8,58 @@ export function createAuthRepository(pool) {
     return rows[0] ?? null;
   }
 
+  async function findUserByEmail(email) {
+    const [rows] = await pool.execute(
+      `SELECT id, nome, email, senha_hash, papel, status, criado_em, versao_sessao
+       FROM usuario WHERE email = ? LIMIT 1`,
+      [email],
+    );
+    return rows[0] ?? null;
+  }
+
   return {
-    async findUserByEmail(email) {
-      const [rows] = await pool.execute(
-        `SELECT id, nome, email, senha_hash, papel, status, criado_em, versao_sessao
-         FROM usuario WHERE email = ? LIMIT 1`,
-        [email],
-      );
-      return rows[0] ?? null;
-    },
-
     findUserById,
+    findUserByEmail,
 
-    async hasBootstrapAdministrator() {
-      const [rows] = await pool.execute(
-        `SELECT COUNT(*) AS total FROM usuario
-         WHERE papel = 'ADMINISTRADOR' AND status <> 'ANONIMIZADO'`,
-      );
-      return Number(rows[0]?.total ?? 0) > 0;
-    },
+    async registerProfessor({ name, email, passwordHash }) {
+      const existingUser = await findUserByEmail(email);
 
-    async createBootstrapAdministrator({ name, email, passwordHash }) {
-      const connection = await pool.getConnection();
-      let lockAcquired = false;
+      // Compatibilidade com contas antigas criadas antes do cadastro livre:
+      // se o registro existe, mas ainda não tem senha, o próprio usuário conclui o cadastro.
+      if (existingUser) {
+        if (
+          existingUser.papel !== 'PROFESSOR' ||
+          existingUser.status !== 'ATIVO' ||
+          existingUser.senha_hash
+        ) {
+          return null;
+        }
+
+        const [result] = await pool.execute(
+          `UPDATE usuario
+           SET nome = ?, senha_hash = ?, status = 'ATIVO'
+           WHERE id = ? AND papel = 'PROFESSOR'
+             AND status = 'ATIVO' AND senha_hash IS NULL`,
+          [name, passwordHash, existingUser.id],
+        );
+
+        if (result.affectedRows !== 1) return null;
+        return findUserById(existingUser.id);
+      }
 
       try {
-        const [lockRows] = await connection.query(
-          "SELECT GET_LOCK('sgp_bootstrap_administrator', 5) AS acquired",
-        );
-
-        lockAcquired = Number(lockRows[0]?.acquired) === 1;
-
-        if (!lockAcquired) return null;
-
-        const [adminRows] = await connection.execute(
-          `SELECT COUNT(*) AS total FROM usuario
-           WHERE papel = 'ADMINISTRADOR' AND status <> 'ANONIMIZADO'`,
-        );
-
-        if (Number(adminRows[0]?.total ?? 0) > 0) return null;
-
-        const [result] = await connection.execute(
+        const [result] = await pool.execute(
           `INSERT INTO usuario (nome, email, senha_hash, papel, status)
-           VALUES (?, ?, ?, 'ADMINISTRADOR', 'ATIVO')`,
+           VALUES (?, ?, ?, 'PROFESSOR', 'ATIVO')`,
           [name, email, passwordHash],
         );
 
-        return findUserByIdWithConnection(connection, result.insertId);
-      } finally {
-        try {
-          if (lockAcquired) {
-            await connection.query("SELECT RELEASE_LOCK('sgp_bootstrap_administrator')");
-          }
-        } finally {
-          connection.release();
-        }
+        return findUserById(result.insertId);
+      } catch (error) {
+        // Protege contra duas requisições simultâneas com o mesmo e-mail.
+        if (error?.code === 'ER_DUP_ENTRY') return null;
+        throw error;
       }
-    },
-
-    async activateInvitation({ userId, passwordHash }) {
-      const [result] = await pool.execute(
-        `UPDATE usuario SET senha_hash = ?, status = 'ATIVO'
-         WHERE id = ? AND status IN ('CONVIDADO', 'ATIVO') AND senha_hash IS NULL`,
-        [passwordHash, userId],
-      );
-
-      if (result.affectedRows !== 1) return null;
-
-      return findUserById(userId);
     },
 
     async createRefreshToken({ userId, tokenHash, device, expiresInDays }) {
@@ -192,14 +175,4 @@ export function createAuthRepository(pool) {
       }
     },
   };
-}
-
-async function findUserByIdWithConnection(connection, id) {
-  const [rows] = await connection.execute(
-    `SELECT id, nome, email, senha_hash, papel, status, criado_em, versao_sessao
-     FROM usuario WHERE id = ? LIMIT 1`,
-    [id],
-  );
-
-  return rows[0] ?? null;
 }

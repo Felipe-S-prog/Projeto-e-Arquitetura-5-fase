@@ -10,11 +10,10 @@ const PUBLIC_PATHS = new Set([
   '/auth/register',
   '/auth/login',
   '/auth/refresh',
-  '/turmas/ingresso',
 ]);
 
 const PROTECTED_PREFIXES = [
-  '/admin', '/settings', '/turmas', '/questoes', '/provas',
+  '/me', '/admin', '/settings', '/turmas', '/questoes', '/provas',
   '/aplicacoes', '/copias', '/correcoes', '/relatorios', '/alunos',
 ];
 
@@ -32,6 +31,7 @@ export function createApiAuthMiddleware({ pool, config }) {
       if (PUBLIC_PATHS.has(path)) return next();
 
       const isSessionAction = SESSION_PATHS.has(path);
+      const isSelfService = path === '/me' || path.startsWith('/me/');
 
       const protectedPrefix = PROTECTED_PREFIXES.find(
         (prefix) => path === prefix || path.startsWith(`${prefix}/`),
@@ -69,7 +69,7 @@ export function createApiAuthMiddleware({ pool, config }) {
         throw AppError.unauthorized('Sua sessão foi encerrada. Entre novamente.');
       }
 
-      if (!isSessionAction) {
+      if (!isSessionAction && !isSelfService) {
         const requiredRole =
           path === '/admin' || path.startsWith('/admin/') ||
           path === '/settings' || path.startsWith('/settings/')

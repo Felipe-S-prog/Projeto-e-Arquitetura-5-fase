@@ -117,11 +117,13 @@ export default function ApplicationDetail() {
         </div>
 
         <div
+          onClick={hasPdf ? () => navigate(`/correcao/aplicacoes/${app.id}`) : undefined}
           style={{
             background: 'white',
             border: '1px solid var(--border)',
             borderRadius: 14,
             padding: 20,
+            cursor: hasPdf ? 'pointer' : 'default',
             display: 'flex',
             flexDirection: 'column',
             gap: 10,
@@ -144,16 +146,19 @@ export default function ApplicationDetail() {
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-strong)' }}>Correções</div>
           <div style={{ fontSize: 12.5, color: 'var(--muted-2)', flex: 1 }}>
-            {hasPdf ? 'Nenhuma correção registrada ainda.' : 'Disponível após gerar as provas.'}
+            {hasPdf ? 'Corrija pela lista de alunos desta aplicação.' : 'Disponível após gerar as provas.'}
           </div>
+          {hasPdf && <div style={{ fontSize: 13, fontWeight: 700 }}>Abrir correção →</div>}
         </div>
 
         <div
+          onClick={hasPdf ? () => navigate(`/relatorios?aplicacao=${app.id}`) : undefined}
           style={{
             background: 'white',
             border: '1px solid var(--border)',
             borderRadius: 14,
             padding: 20,
+            cursor: hasPdf ? 'pointer' : 'default',
             display: 'flex',
             flexDirection: 'column',
             gap: 10,
@@ -176,8 +181,9 @@ export default function ApplicationDetail() {
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-strong)' }}>Relatório</div>
           <div style={{ fontSize: 12.5, color: 'var(--muted-2)', flex: 1 }}>
-            {hasPdf ? 'Disponível após haver correções.' : 'Disponível após gerar as provas.'}
+            {hasPdf ? 'Notas, estatísticas e exportação.' : 'Disponível após gerar as provas.'}
           </div>
+          {hasPdf && <div style={{ fontSize: 13, fontWeight: 700 }}>Ver relatório →</div>}
         </div>
       </div>
     </div>

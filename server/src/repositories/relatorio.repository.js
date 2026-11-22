@@ -2,6 +2,7 @@ import {
   toAplicacaoResumo,
   toDesempenhoDaQuestao,
   toItemDoHistorico,
+  toNotaDoProfessor,
   toNotaDaCopia,
   toNotaDoAluno,
   toTurmaResumo,
@@ -207,6 +208,46 @@ export function createRelatorioRepository(pool) {
         [provaId]
       );
       return rows.map((row) => ({ questaoId: row.questao_id, ordem: row.ordem, texto: row.texto, correta: Boolean(row.correta) }));
+    },
+
+    // T66: resposta de cada questão em cada correção da aplicação, com a ordem da cópia, para a
+    // exportação mostrar a alternativa marcada por aluno (na ordem cadastrada da questão).
+    async listRespostasPorCorrecao(aplicacaoId) {
+      const [rows] = await pool.query(
+        `SELECT r.correcao_id, r.questao_id, r.letra_marcada, r.pontos, q.tipo, cp.ordem_embaralhamento
+           FROM correcao_resposta r
+           JOIN correcao c ON c.id = r.correcao_id
+           JOIN copia_prova cp ON cp.id = c.copia_prova_id
+           JOIN questao q ON q.id = r.questao_id
+          WHERE cp.aplicacao_id = ?`,
+        [aplicacaoId]
+      );
+      return rows.map((row) => ({
+        correcaoId: row.correcao_id,
+        questaoId: row.questao_id,
+        letraMarcada: row.letra_marcada,
+        pontos: Number(row.pontos),
+        tipo: row.tipo,
+        alternativesOrder: toOrdemEmbaralhamento(row.ordem_embaralhamento).alternativesOrder,
+      }));
+    },
+
+    // T66: todas as notas do professor, de todas as turmas (consolidado do professor).
+    async listNotasDoProfessor(professorId) {
+      const [rows] = await pool.query(
+        `SELECT t.nome AS turma_nome, t.periodo, al.nome AS aluno_nome, al.numero_matricula AS aluno_matricula,
+                p.titulo AS prova_titulo, a.data_aplicacao, c.nota, c.tipo, ${NOTA_MAXIMA} AS nota_maxima
+           FROM correcao c
+           JOIN copia_prova cp ON cp.id = c.copia_prova_id
+           JOIN aplicacao a ON a.id = cp.aplicacao_id
+           JOIN prova p ON p.id = a.prova_id
+           JOIN turma t ON t.id = a.turma_id
+           LEFT JOIN aluno al ON al.id = c.aluno_id
+          WHERE p.professor_id = ?
+          ORDER BY t.nome, al.nome IS NULL, al.nome, a.data_aplicacao, a.id`,
+        [professorId]
+      );
+      return rows.map(toNotaDoProfessor);
     },
 
     // T74: letra marcada em cada objetiva das correções automáticas, com a ordem da cópia

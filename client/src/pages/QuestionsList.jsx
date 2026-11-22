@@ -1,3 +1,4 @@
+import { normalizeTag, normalizeTags } from '../utils/tags';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
@@ -10,21 +11,28 @@ export default function QuestionsList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [tag, setTag] = useState('');
+  const [error, setError] = useState('');
+  const [deleting, setDeleting] = useState(null);
 
   const allTags = useMemo(() => {
     const set = new Set();
-    questions.forEach((q) => q.tags.forEach((t) => set.add(t)));
+    questions.forEach((q) => normalizeTags(q.tags ?? []).forEach((t) => set.add(t)));
     return Array.from(set).sort();
   }, [questions]);
 
   const filtered = questions.filter((q) => {
     const matchesSearch = q.excerpt.toLowerCase().includes(search.toLowerCase());
-    const matchesTag = !tag || q.tags.includes(tag);
+    const matchesTag = !tag || normalizeTags(q.tags ?? []).includes(normalizeTag(tag));
     return matchesSearch && matchesTag;
   });
 
-  const handleDelete = (id) => {
-    if (window.confirm('Excluir esta questão do banco?')) deleteQuestion(id);
+  const handleDelete = async (id) => {
+    if (deleting !== null || !window.confirm('Excluir esta questão do banco? Provas e correções vinculadas serão preservadas.')) return;
+    setError('');
+    setDeleting(id);
+    try { await deleteQuestion(id); }
+    catch (err) { setError(err.message || 'Não foi possível excluir a questão.'); }
+    finally { setDeleting(null); }
   };
 
   return (
@@ -34,14 +42,16 @@ export default function QuestionsList() {
         description="Banco reutilizável de questões objetivas usado na montagem de provas."
         actions={<PrimaryButton onClick={() => navigate('/questoes/nova')}>+ Criar questão</PrimaryButton>}
       />
+      {error && <p role="alert">{error}</p>}
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
         <TextInput
+          aria-label="Buscar questões por texto"
           placeholder="Buscar por texto"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={{ flex: 1, maxWidth: 280, padding: '10px 13px' }}
         />
-        <Select value={tag} onChange={(e) => setTag(e.target.value)} style={{ width: 'auto', padding: '10px 13px' }}>
+        <Select aria-label="Filtrar questões por tag" value={tag} onChange={(e) => setTag(e.target.value)} style={{ width: 'auto', padding: '10px 13px' }}>
           <option value="">Tags: todas</option>
           {allTags.map((t) => (
             <option key={t} value={t}>
@@ -102,7 +112,7 @@ export default function QuestionsList() {
                 >
                   Objetiva
                 </span>
-                <span style={{ fontSize: 12.5, color: 'var(--muted-3)' }}>{q.tags.join(', ')}</span>
+                <span style={{ fontSize: 12.5, color: 'var(--muted-3)' }}>{normalizeTags(q.tags ?? []).join(', ')}</span>
                 {q.imageUrl && <span style={{ fontSize: 12.5, color: 'var(--muted-3)' }}>· com imagem</span>}
               </div>
             </div>

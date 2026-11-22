@@ -13,10 +13,6 @@ import { apiRequest } from '../services/api';
 
 const DataContext = createContext(null);
 
-async function adminApiRequest(path, options = {}) {
-  return apiRequest(path, options);
-}
-
 
 function normalizeClass(cls) {
   return {
@@ -102,12 +98,12 @@ const DataProvider = ({ children }) => {
 
   // Carrega as questões da API.
   useEffect(() => {
-    if (!isAuthenticated || user?.role !== 'PROFESSOR') return undefined;
+    if (!isAuthenticated) return undefined;
     let cancelled = false;
 
     async function loadQuestions() {
       try {
-        const payload = await adminApiRequest(
+        const payload = await apiRequest(
           '/questoes',
         );
 
@@ -138,7 +134,7 @@ const DataProvider = ({ children }) => {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, user?.id, user?.role]);
+  }, [isAuthenticated, user?.id]);
 
   // Turmas passam a vir da API, não mais do classes.json.
   const [classes, setClasses] = useState([]);
@@ -155,40 +151,22 @@ const DataProvider = ({ children }) => {
   const [applicationsLoading, setApplicationsLoading] = useState(true);
   const [applicationsError, setApplicationsError] = useState('');
 
-  const [adminUsers, setAdminUsers] = useState([]);
-  const [adminUsersLoading, setAdminUsersLoading] = useState(true);
-  const [adminUsersError, setAdminUsersError] = useState('');
-
-  const [settings, setSettings] = useState({
-    institutionName: '',
-    defaultPeriod: '',
-  });
-
-  const [settingsLoading, setSettingsLoading] = useState(true);
-  const [settingsError, setSettingsError] = useState('');
-
   useEffect(() => {
     setQuestions([]);
     setClasses([]);
     setExams([]);
     setApplications([]);
-    setAdminUsers([]);
-    setSettings({ institutionName: '', defaultPeriod: '' });
     setClassesError('');
     setExamsError('');
     setApplicationsError('');
-    setAdminUsersError('');
-    setSettingsError('');
   }, [user?.id]);
 
-  // Carrega turmas, usuários administrativos e configurações.
+  // Carrega turmas, provas e aplicações.
   useEffect(() => {
     if (!isAuthenticated) {
       setClassesLoading(false);
       setExamsLoading(false);
       setApplicationsLoading(false);
-      setAdminUsersLoading(false);
-      setSettingsLoading(false);
       return undefined;
     }
     let cancelled = false;
@@ -198,7 +176,7 @@ const DataProvider = ({ children }) => {
       setClassesError('');
 
       try {
-        const result = await adminApiRequest(
+        const result = await apiRequest(
           '/turmas',
         );
 
@@ -226,8 +204,8 @@ const DataProvider = ({ children }) => {
 
       try {
         const [result, copies] = await Promise.all([
-          adminApiRequest('/aplicacoes'),
-          adminApiRequest('/copias'),
+          apiRequest('/aplicacoes'),
+          apiRequest('/copias'),
         ]);
 
         if (!Array.isArray(result) || !Array.isArray(copies)) {
@@ -254,54 +232,13 @@ const DataProvider = ({ children }) => {
         }
       }
     }
-    async function loadAdminUsers() {
-      setAdminUsersLoading(true);
-      setAdminUsersError('');
-
-      try {
-        const users = await adminApiRequest('/admin/usuarios');
-
-        if (!cancelled) {
-          setAdminUsers(users);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setAdminUsersError(error.message);
-        }
-      } finally {
-        if (!cancelled) {
-          setAdminUsersLoading(false);
-        }
-      }
-    }
-
-    async function loadSettings() {
-      setSettingsLoading(true);
-      setSettingsError('');
-
-      try {
-        const savedSettings = await adminApiRequest('/settings');
-
-        if (!cancelled) {
-          setSettings(savedSettings);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setSettingsError(error.message);
-        }
-      } finally {
-        if (!cancelled) {
-          setSettingsLoading(false);
-        }
-      }
-    }
 
     async function loadExams() {
       setExamsLoading(true);
       setExamsError('');
 
       try {
-        const result = await adminApiRequest(
+        const result = await apiRequest(
           '/provas',
         );
 
@@ -323,28 +260,19 @@ const DataProvider = ({ children }) => {
       }
     }
 
-    if (user?.role === 'PROFESSOR') {
-      loadClasses();
-      loadExams();
-      loadApplications();
-    } else {
-      setExamsLoading(false);
-      setApplicationsLoading(false);
-    }
-    if (user?.role === 'ADMINISTRADOR') {
-      loadAdminUsers();
-      loadSettings();
-    }
+    loadClasses();
+    loadExams();
+    loadApplications();
 
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, user?.id, user?.role]);
+  }, [isAuthenticated, user?.id]);
 
   // Cria uma questão na API.
   const addQuestion = useCallback(async (question) => {
     const saved = unwrapQuestion(
-      await adminApiRequest('/questoes', {
+      await apiRequest('/questoes', {
         method: 'POST',
         body: JSON.stringify(buildQuestionPayload(question)),
       }),
@@ -361,7 +289,7 @@ const DataProvider = ({ children }) => {
   // Atualiza uma questão existente na API.
   const updateQuestion = useCallback(async (id, question) => {
     const saved = unwrapQuestion(
-      await adminApiRequest(`/questoes/${id}`, {
+      await apiRequest(`/questoes/${id}`, {
         method: 'PUT',
         body: JSON.stringify(buildQuestionPayload(question)),
       }),
@@ -376,7 +304,7 @@ const DataProvider = ({ children }) => {
 
   // Exclui uma questão pela API.
   const deleteQuestion = useCallback(async (id) => {
-    await adminApiRequest(
+    await apiRequest(
       `/questoes/${id}`,
       { method: 'DELETE' },
     );
@@ -398,21 +326,9 @@ const DataProvider = ({ children }) => {
       throw new Error('Preencha o nome, a disciplina e o período.');
     }
 
-    const duplicate = classes.some(
-      (item) =>
-        item.name.trim().toLowerCase() === name.toLowerCase() &&
-        item.subject.trim().toLowerCase() === subject.toLowerCase() &&
-        item.period.trim().toLowerCase() === period.toLowerCase(),
-    );
-
-    if (duplicate) {
-      throw new Error(
-        'Já existe uma turma com esse nome, disciplina e período.',
-      );
-    }
 
     try {
-      const createdClass = await adminApiRequest('/turmas', {
+      const createdClass = await apiRequest('/turmas', {
         method: 'POST',
         body: JSON.stringify({
           nome: name,
@@ -430,7 +346,7 @@ const DataProvider = ({ children }) => {
       setClassesError(error.message);
       throw error;
     }
-  }, [classes]);
+  }, []);
 
   // Atualiza uma turma existente no MySQL.
 
@@ -447,23 +363,10 @@ const DataProvider = ({ children }) => {
       throw new Error('Preencha o nome, a disciplina e o período.');
     }
 
-    const duplicate = classes.some(
-      (item) =>
-        item.id !== classId &&
-        item.name.trim().toLowerCase() === name.toLowerCase() &&
-        item.subject.trim().toLowerCase() === subject.toLowerCase() &&
-        item.period.trim().toLowerCase() === period.toLowerCase(),
-    );
-
-    if (duplicate) {
-      throw new Error(
-        'Já existe outra turma com esse nome, disciplina e período.',
-      );
-    }
 
     try {
       // Envia os campos no formato JSON esperado pela API.
-      const response = await adminApiRequest(`/turmas/${classId}`, {
+      const response = await apiRequest(`/turmas/${classId}`, {
         method: 'PUT',
         body: JSON.stringify({
           nome: name,
@@ -514,28 +417,25 @@ const DataProvider = ({ children }) => {
     }
   }, [classes]);
 
-   const regenerateInviteCode = useCallback(async (id) => {
-    setClassesError('');
+  const removeStudent = useCallback(async (classId, studentId) => {
+    const result = await apiRequest(`/turmas/${classId}/matriculas/${studentId}`, { method: 'DELETE' });
+    setClasses((previous) => previous.map((item) => item.id === Number(classId)
+      ? { ...item, students: item.students.filter((student) => student.id !== Number(studentId)) } : item));
+    return result;
+  }, []);
+  const importStudents = useCallback(async (classId, csv) => {
+    const result = await apiRequest(`/turmas/${classId}/matriculas/importar`, { method: 'POST', body: JSON.stringify({ csv }) });
+    setClasses((previous) => previous.map((item) => item.id === Number(classId)
+      ? { ...item, students: [...item.students.filter((student) => !result.imported.some((added) => added.id === student.id)), ...result.imported] } : item));
+    return result;
+  }, []);
 
-    try {
-      const updatedClass = await adminApiRequest(
-        `/turmas/${id}/codigo-convite/regenerar`,
-        { method: 'POST' },
-      );
-
-      const normalized = normalizeClass(updatedClass);
-
-      setClasses((previous) =>
-        previous.map((item) =>
-          item.id === Number(id) ? normalized : item,
-        ),
-      );
-
-      return normalized;
-    } catch (error) {
-      setClassesError(error.message);
-      throw error;
-    }
+  const deleteClass = useCallback(async (id) => {
+    const result = await apiRequest(`/turmas/${id}`, { method: 'DELETE' });
+    setClasses((previous) => result.archived
+      ? previous.map((item) => item.id === Number(id) ? { ...item, status: 'Arquivada' } : item)
+      : previous.filter((item) => item.id !== Number(id)));
+    return result;
   }, []);
 
   // Arquiva a turma no MySQL.
@@ -543,7 +443,7 @@ const DataProvider = ({ children }) => {
     setClassesError('');
 
     try {
-      const archivedClass = await adminApiRequest(`/turmas/${id}/arquivar`, {
+      const archivedClass = await apiRequest(`/turmas/${id}/arquivar`, {
         method: 'PATCH',
       });
 
@@ -589,7 +489,7 @@ const DataProvider = ({ children }) => {
     }
 
     try {
-      const createdStudent = await adminApiRequest(
+      const createdStudent = await apiRequest(
         `/turmas/${classId}/matriculas`,
         {
           method: 'POST',
@@ -635,7 +535,7 @@ const DataProvider = ({ children }) => {
 
   // Cria a prova na API (nasce em Rascunho) e devolve a prova salva.
   const addExam = useCallback(async (exam) => {
-    const created = await adminApiRequest('/provas', {
+    const created = await apiRequest('/provas', {
       method: 'POST',
       body: JSON.stringify({
         title: exam.title,
@@ -656,7 +556,7 @@ const DataProvider = ({ children }) => {
 
   // Edita a prova na API (só em Rascunho) e atualiza a lista com a prova salva.
   const updateExam = useCallback(async (id, exam) => {
-    const updated = await adminApiRequest(`/provas/${id}`, {
+    const updated = await apiRequest(`/provas/${id}`, {
       method: 'PUT',
       body: JSON.stringify({
         title: exam.title,
@@ -687,7 +587,7 @@ const DataProvider = ({ children }) => {
   // Cria a aplicação na API (nasce Pendente) e devolve o id salvo.
   const createApplication = useCallback(
     async ({ examId, classId, quantity }) => {
-      const created = await adminApiRequest('/aplicacoes', {
+      const created = await apiRequest('/aplicacoes', {
         method: 'POST',
         body: JSON.stringify({ examId, classId, quantity }),
       });
@@ -724,7 +624,7 @@ const DataProvider = ({ children }) => {
       );
 
       try {
-        await adminApiRequest(`/aplicacoes/${target.id}`, {
+        await apiRequest(`/aplicacoes/${target.id}`, {
           method: 'PUT',
           body: JSON.stringify(patch),
         });
@@ -743,7 +643,7 @@ const DataProvider = ({ children }) => {
 
   // Marca a aplicação como Aplicada na API (PDF baixado) e usa a data que o servidor gravou.
   const confirmApplicationDownload = useCallback(async (id) => {
-    const updated = await adminApiRequest(`/aplicacoes/${Number(id)}/aplicar`, {
+    const updated = await apiRequest(`/aplicacoes/${Number(id)}/aplicar`, {
       method: 'POST',
     });
 
@@ -770,7 +670,7 @@ const DataProvider = ({ children }) => {
   // Gera as cópias no servidor.
   const generateApplicationCopies = useCallback(
     async (applicationId) => {
-      const copies = await adminApiRequest(
+      const copies = await apiRequest(
         `/aplicacoes/${Number(applicationId)}/copias`,
         { method: 'POST' },
       );
@@ -788,7 +688,7 @@ const DataProvider = ({ children }) => {
   // Publica o gabarito no servidor.
   const publishAnswerKey = useCallback(
     async (applicationId, code) => {
-      const copies = await adminApiRequest(
+      const copies = await apiRequest(
         `/aplicacoes/${Number(applicationId)}/copias/gabarito`,
         {
           method: 'POST',
@@ -810,7 +710,7 @@ const DataProvider = ({ children }) => {
   const unpublishAnswerKey = useCallback(
     async (applicationId, code) => {
       const path = `/aplicacoes/${Number(applicationId)}/copias/gabarito`;
-      const copies = await adminApiRequest(
+      const copies = await apiRequest(
         code === 'all' ? path : `${path}/${encodeURIComponent(code)}`,
         { method: 'DELETE' },
       );
@@ -848,88 +748,6 @@ const DataProvider = ({ children }) => {
       classes.find((item) => item.id === Number(classId))?.students || [],
     [classes],
   );
-
-  const addAdminUser = useCallback(async (user) => {
-    setAdminUsersError('');
-
-    try {
-      const createdUser = await adminApiRequest('/admin/usuarios', {
-        method: 'POST',
-        body: JSON.stringify(user),
-      });
-
-      setAdminUsers((previous) => [createdUser, ...previous]);
-
-      return createdUser;
-    } catch (error) {
-      setAdminUsersError(error.message);
-      throw error;
-    }
-  }, []);
-
-  const updateAdminUser = useCallback(async (id, patch) => {
-    setAdminUsersError('');
-
-    try {
-      const updatedUser = await adminApiRequest(
-        `/admin/usuarios/${id}`,
-        {
-          method: 'PUT',
-          body: JSON.stringify(patch),
-        },
-      );
-
-      setAdminUsers((previous) =>
-        previous.map((user) =>
-          user.id === updatedUser.id ? updatedUser : user,
-        ),
-      );
-
-      return updatedUser;
-    } catch (error) {
-      setAdminUsersError(error.message);
-      throw error;
-    }
-  }, []);
-
-  const removeAdminUser = useCallback(async (id) => {
-    setAdminUsersError('');
-
-    try {
-      await adminApiRequest(`/admin/usuarios/${id}`, {
-        method: 'DELETE',
-      });
-
-      setAdminUsers((previous) =>
-        previous.filter((user) => user.id !== Number(id)),
-      );
-    } catch (error) {
-      setAdminUsersError(error.message);
-      throw error;
-    }
-  }, []);
-
-  // Atualiza as configurações pela API.
-  const updateSettings = useCallback(async (patch) => {
-    setSettingsError('');
-
-    try {
-      const updatedSettings = await adminApiRequest('/settings', {
-        method: 'PUT',
-        body: JSON.stringify({
-          institutionName: patch.institutionName,
-          defaultPeriod: patch.defaultPeriod,
-        }),
-      });
-
-      setSettings(updatedSettings);
-
-      return updatedSettings;
-    } catch (error) {
-      setSettingsError(error.message);
-      throw error;
-    }
-  }, []);
 
   const getClassById = useCallback(
     (id) => classes.find((item) => item.id === Number(id)),
@@ -1001,20 +819,16 @@ const DataProvider = ({ children }) => {
       applications,
       applicationsLoading,
       applicationsError,
-      adminUsers,
-      adminUsersLoading,
-      adminUsersError,
-      settings,
-      settingsLoading,
-      settingsError,
       addQuestion,
       updateQuestion,
       deleteQuestion,
       addClass,
       updateClass,
       archiveClass,
-      regenerateInviteCode,
+      deleteClass,
       enrollStudent,
+      removeStudent,
+      importStudents,
       addExam,
       updateExam,
       createApplication,
@@ -1025,10 +839,6 @@ const DataProvider = ({ children }) => {
       unpublishAnswerKey,
       findCopyByCode,
       classStudents,
-      addAdminUser,
-      updateAdminUser,
-      removeAdminUser,
-      updateSettings,
       getClassById,
       getExamById,
       getApplicationById,
@@ -1049,20 +859,16 @@ const DataProvider = ({ children }) => {
       applications,
       applicationsLoading,
       applicationsError,
-      adminUsers,
-      adminUsersLoading,
-      adminUsersError,
-      settings,
-      settingsLoading,
-      settingsError,
       addQuestion,
       updateQuestion,
       deleteQuestion,
       addClass,
       updateClass,
       archiveClass,
-      regenerateInviteCode,
+      deleteClass,
       enrollStudent,
+      removeStudent,
+      importStudents,
       addExam,
       updateExam,
       createApplication,
@@ -1073,10 +879,6 @@ const DataProvider = ({ children }) => {
       unpublishAnswerKey,
       findCopyByCode,
       classStudents,
-      addAdminUser,
-      updateAdminUser,
-      removeAdminUser,
-      updateSettings,
       getClassById,
       getExamById,
       getApplicationById,

@@ -1,0 +1,47 @@
+name: N3 - Turmas e Questões
+on:
+  pull_request:
+    paths:
+      - 'client/**'
+      - 'server/**'
+      - '.github/workflows/n3-turmas-questoes.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests-and-build:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: n3-test-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      N3_MYSQL_TEST: 'true'
+      N3_MYSQL_PASSWORD: n3-test-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+      - run: npm ci
+        working-directory: server
+      - run: npm test
+        working-directory: server
+      - run: npm ci
+        working-directory: client
+      - run: npm run lint
+        working-directory: client
+      - run: npm run build
+        working-directory: client

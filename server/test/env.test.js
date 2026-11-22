@@ -10,7 +10,6 @@ test('loadConfig: aplica os padrões quando só o essencial é informado', () =>
   assert.equal(config.nodeEnv, 'development');
   assert.equal(config.auth.accessTokenTtlSeconds, 900);
   assert.equal(config.auth.refreshTokenTtlDays, 30);
-  assert.deepEqual(config.auth.adminEmailDomains, ['catolicasc.org.br']);
   assert.deepEqual(config.corsOrigins, ['http://localhost:5173']);
   assert.deepEqual(config.db, { host: '127.0.0.1', port: 3306, user: 'sgp', password: 'segredo', database: 'sgp' });
 });
