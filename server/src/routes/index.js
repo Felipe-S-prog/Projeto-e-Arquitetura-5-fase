@@ -8,13 +8,14 @@ import { createGabaritoRoutes } from './gabarito.routes.js';
 import { createAlunoHistoricoRoutes, createRelatorioRoutes } from './relatorio.routes.js';
 import { createProvaRoutes } from './prova.routes.js';
 import { createTurmasRoutes } from './turmas.routes.js';
-import { createIngressoTurmaRoutes } from './ingressoTurma.routes.js';
 import { createQuestoesRoutes } from './questoes.routes.js';
 import { createUploadImagemRoutes } from './upload-imagem.routes.js';
+import { createMeRoutes } from './me.routes.js';
 
 export function createRoutes({ pool }) {
   const router = Router();
 
+  router.use('/me', createMeRoutes({ pool }));
   router.use('/health', createHealthRoutes({ pool }));
   router.use('/aplicacoes/:aplicacaoId/copias', createCopiasDaAplicacaoRoutes({ pool }));
   router.use('/aplicacoes/:aplicacaoId/pdf', createPdfRoutes({ pool }));
@@ -24,7 +25,6 @@ export function createRoutes({ pool }) {
   router.use('/correcoes', createCorrecaoRoutes({ pool }));
   router.use('/relatorios', createRelatorioRoutes({ pool }));
   router.use('/alunos', createAlunoHistoricoRoutes({ pool }));
-  router.use('/turmas/ingresso', createIngressoTurmaRoutes({ pool }));
   router.use('/turmas', createTurmasRoutes({ pool }));
   router.use('/questoes', createUploadImagemRoutes());
   router.use('/questoes', createQuestoesRoutes({ pool }));

@@ -155,3 +155,56 @@ test('removerCorrecao: apaga a correção existente e responde 404 para id desco
   await rejeitaCom(service.removerCorrecao(id, 1), 404, 'não encontrada');
   await rejeitaCom(service.removerCorrecao('abc', 1), 400, 'inválida');
 });
+
+test('listarAplicacao: uma linha por cópia com o estado e "sem folha" para quem não tem cópia nem nota', async () => {
+  const repo = {
+    async findAplicacao(id, professorId) {
+      return id === 50 && professorId === 1
+        ? { id: 50, prova: { id: 5, titulo: 'P1' }, turma: { id: 9, nome: 'Turma A' }, notaMaxima: 10 }
+        : null;
+    },
+    async listCopiasDaAplicacao() {
+      return [
+        { codigo: 'BBB222', rotulo: 'Bruno', aluno: { id: 8, nome: 'Bruno' }, correcao: { id: 1, nota: 7.5, tipo: 'AUTOMATICA' } },
+        { codigo: 'ANON11', rotulo: 'Prova #01', aluno: null, correcao: null },
+        { codigo: 'ANON22', rotulo: 'Prova #02', aluno: { id: 6, nome: 'Carla' }, correcao: { id: 2, nota: 5, tipo: 'MANUAL' } },
+        { codigo: 'AAA111', rotulo: 'Ana', aluno: { id: 7, nome: 'Ana' }, correcao: null },
+      ];
+    },
+    async listAlunosDaTurma() {
+      return [{ id: 7, nome: 'Ana' }, { id: 8, nome: 'Bruno' }, { id: 6, nome: 'Carla' }, { id: 5, nome: 'Diego', matricula: '04' }];
+    },
+  };
+  const service = createCorrecaoService(repo);
+  const r = await service.listarAplicacao('50', 1);
+  assert.deepEqual(
+    r.linhas.map((l) => [l.aluno?.nome ?? l.rotulo, l.estado, l.codigo, l.correcao?.percentual ?? null]),
+    [
+      ['Ana', 'PENDENTE', 'AAA111', null],
+      ['Bruno', 'CORRIGIDA', 'BBB222', 75],
+      ['Carla', 'CORRIGIDA', 'ANON22', 50],
+      ['Diego', 'SEM_FOLHA', null, null],
+      ['Prova #01', 'PENDENTE', 'ANON11', null],
+    ]
+  );
+  assert.deepEqual(r.resumo, { corrigidas: 2, pendentes: 2, semFolha: 1, totalCopias: 4 });
+  await rejeitaCom(service.listarAplicacao(50, 2), 404, 'não encontrada');
+  await rejeitaCom(service.listarAplicacao('x', 1), 400, 'inválida');
+});
+
+test('buscarCopiaParaCorrecao: devolve a geometria da folha na ordem impressa, igual à do PDF', async () => {
+  const service = createCorrecaoService(fakeRepository());
+  const { folha, questoes } = await service.buscarCopiaParaCorrecao('ANA123', 1);
+  assert.equal(folha.marcadores.length, 4);
+  assert.deepEqual(folha.questoes.map((q) => [q.numero, q.questaoId, q.opcoes.map((o) => o.letra).join('')]), [
+    [1, 100, 'AB'],
+    [2, 200, 'AB'],
+  ]);
+  assert.deepEqual(questoes.map((q) => q.questaoId), [100, 200]);
+  // mesmos centros que o PDF desenha (pdf/sheetLayout.js)
+  const { getSheetGeometry, markerCenters } = await import('../src/pdf/sheetLayout.js');
+  const geometria = getSheetGeometry([2, 2]);
+  assert.deepEqual(folha.marcadores, markerCenters(geometria));
+  assert.equal(folha.questoes[1].opcoes[1].x, geometria.rows[1].options[1].cx);
+  assert.equal(folha.questoes[1].opcoes[1].y, geometria.rows[1].options[1].cy);
+});

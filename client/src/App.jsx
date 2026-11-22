@@ -19,9 +19,9 @@ import PdfPreview from './pages/PdfPreview';
 import PdfTest from './pages/PdfTest';
 import AnswerKey from './pages/AnswerKey';
 import PublicAnswerKey from './pages/PublicAnswerKey';
-import StudentJoinClass from './pages/StudentJoinClass';
 import QrReaderTest from './pages/QrReaderTest';
 import Grading from './pages/Grading';
+import GradingApplication from './pages/GradingApplication';
 import GradeReports from './pages/GradeReports';
 import StudentHistory from './pages/StudentHistory';
 import ClassEdit from './pages/ClassEdit';
@@ -53,7 +53,6 @@ function AppRoutes() {
 
       {/* Rotas públicas: não exigem login. */}
       <Route path="/gabarito" element={<PublicAnswerKey />} />
-      <Route path="/turmas/ingresso" element={<StudentJoinClass />} />
 
       <Route
         path="/"
@@ -83,6 +82,7 @@ function AppRoutes() {
         <Route path="aplicacoes/:id/gabarito" element={<AnswerKey />} />
         <Route path="leitor-qr" element={<QrReaderTest />} />
         <Route path="correcao" element={<Grading />} />
+        <Route path="correcao/aplicacoes/:id" element={<GradingApplication />} />
         <Route path="relatorios" element={<GradeReports />} />
         <Route path="relatorios/alunos/:id" element={<StudentHistory />} />
       </Route>

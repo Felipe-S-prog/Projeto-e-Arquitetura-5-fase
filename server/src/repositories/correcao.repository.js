@@ -1,4 +1,12 @@
-import { toAlternativa, toCopia, toCorrecao, toQuestaoDaProva, toResposta } from '../models/correcao.model.js';
+import {
+  toAlternativa,
+  toAplicacaoDaCorrecao,
+  toCopia,
+  toCopiaDaLista,
+  toCorrecao,
+  toQuestaoDaProva,
+  toResposta,
+} from '../models/correcao.model.js';
 
 // Repository da Correção e Notas: ÚNICA camada com SQL desta frente.
 // Toda consulta filtra pelo professor dono da prova (RNF04).
@@ -30,6 +38,35 @@ export function createCorrecaoRepository(pool) {
     async findCopiaById(copiaId, professorId) {
       const [rows] = await pool.query(`${SELECT_COPIA} WHERE cp.id = ? AND p.professor_id = ?`, [copiaId, professorId]);
       return rows.length ? toCopia(rows[0]) : null;
+    },
+
+    async findAplicacao(aplicacaoId, professorId) {
+      const [rows] = await pool.query(
+        `SELECT a.id, a.status, a.data_aplicacao, p.id AS prova_id, p.titulo AS prova_titulo,
+                t.id AS turma_id, t.nome AS turma_nome,
+                (SELECT COALESCE(SUM(pq.pontuacao), 0) FROM prova_questao pq WHERE pq.prova_id = p.id) AS nota_maxima
+           FROM aplicacao a
+           JOIN prova p ON p.id = a.prova_id
+           JOIN turma t ON t.id = a.turma_id
+          WHERE a.id = ? AND p.professor_id = ?`,
+        [aplicacaoId, professorId]
+      );
+      return rows.length ? toAplicacaoDaCorrecao(rows[0]) : null;
+    },
+
+    async listCopiasDaAplicacao(aplicacaoId) {
+      const [rows] = await pool.query(
+        `SELECT cp.id AS copia_id, cp.codigo, cp.rotulo,
+                al.id AS aluno_id, al.nome AS aluno_nome, al.numero_matricula AS aluno_matricula,
+                c.id AS correcao_id, c.nota, c.tipo, c.corrigida_em
+           FROM copia_prova cp
+           LEFT JOIN correcao c ON c.copia_prova_id = cp.id
+           LEFT JOIN aluno al ON al.id = COALESCE(c.aluno_id, cp.aluno_id)
+          WHERE cp.aplicacao_id = ?
+          ORDER BY cp.id`,
+        [aplicacaoId]
+      );
+      return rows.map(toCopiaDaLista);
     },
 
     async listQuestoesDaProva(provaId) {

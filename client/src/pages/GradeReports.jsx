@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Badge, Breadcrumb, EmptyState, FormField, PageHeader, SecondaryButton, Select } from '../components/ui';
+import AnswerDistribution, { MostMarked } from '../components/AnswerDistribution';
+import { Badge, Breadcrumb, EmptyState, FormField, PageHeader, PrimaryButton, SecondaryButton, Select } from '../components/ui';
 import { apiDownload } from '../services/api';
 import { useApiGet } from '../services/useApiGet';
 import { formatDate, formatPercent, formatScore, GRADING_TYPE_LABEL, scoreColor } from '../utils/grades';
@@ -8,6 +9,14 @@ import { formatDate, formatPercent, formatScore, GRADING_TYPE_LABEL, scoreColor 
 const VIEWS = [
   { key: 'aplicacao', label: 'Por aplicação' },
   { key: 'turma', label: 'Consolidado da turma' },
+  { key: 'todas', label: 'Todas as turmas' },
+];
+
+// Formatos de exportação (T66). O Excel vem primeiro: é o que o professor usa no dia a dia.
+const FORMATS = [
+  { key: 'xlsx', label: 'Excel' },
+  { key: 'pdf', label: 'PDF' },
+  { key: 'csv', label: 'CSV' },
 ];
 
 const cardStyle = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 24, marginBottom: 18 };
@@ -57,23 +66,50 @@ function ErrorState({ error }) {
   return <EmptyState>{error.message}</EmptyState>;
 }
 
-function ExportButton({ path, fallbackName }) {
-  const [state, setState] = useState({ busy: false, error: '' });
-  const download = async () => {
-    setState({ busy: true, error: '' });
+// Botões de exportação de um relatório: path é a rota sem o formato (ex.: /relatorios/turmas/3/exportar).
+function ExportButtons({ path, fileName }) {
+  const [state, setState] = useState({ busy: null, error: '' });
+  const download = async (format) => {
+    setState({ busy: format, error: '' });
     try {
-      await apiDownload(path, fallbackName);
-      setState({ busy: false, error: '' });
+      await apiDownload(`${path}?formato=${format}`, `${fileName}.${format}`);
+      setState({ busy: null, error: '' });
     } catch (error) {
-      setState({ busy: false, error: error.message });
+      setState({ busy: null, error: error.message });
     }
   };
   return (
     <div style={{ textAlign: 'right' }}>
-      <SecondaryButton onClick={download} disabled={state.busy}>
-        {state.busy ? 'Gerando...' : 'Exportar CSV (Excel)'}
-      </SecondaryButton>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13, color: 'var(--muted-2)' }}>Exportar:</span>
+        {FORMATS.map(({ key, label }) => {
+          const Button = key === 'xlsx' ? PrimaryButton : SecondaryButton;
+          return (
+            <Button key={key} onClick={() => download(key)} disabled={Boolean(state.busy)} style={{ padding: '9px 16px' }}>
+              {state.busy === key ? 'Gerando...' : label}
+            </Button>
+          );
+        })}
+      </div>
       {state.error && <div style={{ fontSize: 12.5, color: 'var(--red-text)', marginTop: 6 }}>{state.error}</div>}
+    </div>
+  );
+}
+
+// Consolidado do professor (T66): todas as notas de todas as turmas, para baixar de uma vez.
+function AllClassesReport() {
+  return (
+    <div style={cardStyle}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 380px' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 6 }}>Notas de todas as turmas</div>
+          <div style={{ fontSize: 13.5, color: 'var(--muted-2)', lineHeight: 1.5 }}>
+            No Excel: uma aba com todas as notas (turma, aluno, prova, data, nota e correção) e uma aba por turma com
+            os alunos e as aplicações. No PDF: uma tabela por turma. No CSV: a lista com todas as notas.
+          </div>
+        </div>
+        <ExportButtons path="/relatorios/exportar" fileName="notas-todas-as-turmas" />
+      </div>
     </div>
   );
 }
@@ -97,6 +133,7 @@ function applicationLabel(a) {
 function ApplicationReport({ applicationId, onSelect }) {
   const list = useApiGet('/relatorios/aplicacoes');
   const report = useApiGet(applicationId ? `/relatorios/aplicacoes/${applicationId}` : null);
+  const [openQuestion, setOpenQuestion] = useState(null); // T74: questão com as alternativas abertas
 
   if (list.loading) return <EmptyState>Carregando aplicações...</EmptyState>;
   if (list.error) return <ErrorState error={list.error} />;
@@ -119,7 +156,7 @@ function ApplicationReport({ applicationId, onSelect }) {
           </FormField>
         </div>
         <div style={{ flex: 1 }} />
-        {report.data && <ExportButton path={`/relatorios/aplicacoes/${applicationId}/csv`} fallbackName="notas-da-aplicacao.csv" />}
+        {report.data && <ExportButtons path={`/relatorios/aplicacoes/${applicationId}/exportar`} fileName="notas-da-aplicacao" />}
       </div>
 
       {!applicationId && <EmptyState>Escolha uma aplicação para ver as notas.</EmptyState>}
@@ -202,26 +239,55 @@ function ApplicationReport({ applicationId, onSelect }) {
                     <th style={thStyle}>Nº</th>
                     <th style={thStyle}>Enunciado</th>
                     <th style={thStyle}>Taxa de acerto</th>
+                    <th style={thStyle}>Mais marcada</th>
                     <th style={{ ...thStyle, textAlign: 'right' }}>Em branco</th>
                     <th style={{ ...thStyle, textAlign: 'right' }}>Média de pontos</th>
+                    <th style={thStyle} />
                   </tr>
                 </thead>
                 <tbody>
                   {report.data.questoes.map((q) => (
-                    <tr key={q.questaoId}>
+                    <Fragment key={q.questaoId}>
+                    <tr>
                       <td style={{ ...tdStyle, fontWeight: 600 }}>{q.posicao}</td>
-                      <td style={{ ...tdStyle, maxWidth: 380 }}>
+                      <td style={{ ...tdStyle, maxWidth: 300 }}>
                         <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.enunciado}</div>
                         {q.tipo === 'DISCURSIVA' && <div style={{ fontSize: 12, color: 'var(--muted-3)' }}>Discursiva</div>}
                       </td>
                       <td style={tdStyle}>
                         <HitRateBar value={q.taxaAcerto} />
                       </td>
+                      <td style={tdStyle}>
+                        <MostMarked distribuicao={q.distribuicao} />
+                      </td>
                       <td style={{ ...tdStyle, textAlign: 'right' }}>{q.tipo === 'OBJETIVA' ? q.emBranco : '—'}</td>
                       <td style={{ ...tdStyle, textAlign: 'right' }}>
                         {formatScore(q.mediaPontos)} / {formatScore(q.pontuacao)}
                       </td>
+                      <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        {q.distribuicao && (
+                          <button
+                            type="button"
+                            onClick={() => setOpenQuestion(openQuestion === q.questaoId ? null : q.questaoId)}
+                            aria-expanded={openQuestion === q.questaoId}
+                            style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, fontWeight: 600, color: 'var(--navy)', cursor: 'pointer' }}
+                          >
+                            {openQuestion === q.questaoId ? 'Fechar' : 'Alternativas'}
+                          </button>
+                        )}
+                      </td>
                     </tr>
+                    {openQuestion === q.questaoId && (
+                      <tr>
+                        <td colSpan={7} style={{ ...tdStyle, borderTop: 'none', paddingTop: 0, paddingBottom: 16 }}>
+                          {/* preso à esquerda: continua visível quando a tabela rola para o lado */}
+                          <div style={{ position: 'sticky', left: 8, width: 540, maxWidth: '100%' }}>
+                            <AnswerDistribution distribuicao={q.distribuicao} />
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -259,7 +325,7 @@ function ClassReport({ classId, onSelect }) {
           </FormField>
         </div>
         <div style={{ flex: 1 }} />
-        {data && <ExportButton path={`/relatorios/turmas/${classId}/csv`} fallbackName="notas-consolidadas.csv" />}
+        {data && <ExportButtons path={`/relatorios/turmas/${classId}/exportar`} fileName="notas-consolidadas" />}
       </div>
 
       {!classId && <EmptyState>Escolha uma turma para ver as notas de todas as aplicações.</EmptyState>}
@@ -333,20 +399,25 @@ function ClassReport({ classId, onSelect }) {
 // por turma (alunos x aplicações), ambos com exportação em CSV para o Excel.
 export default function GradeReports() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const view = searchParams.get('turma') !== null || searchParams.get('visao') === 'turma' ? 'turma' : 'aplicacao';
+  const view =
+    searchParams.get('visao') === 'todas'
+      ? 'todas'
+      : searchParams.get('turma') !== null || searchParams.get('visao') === 'turma'
+        ? 'turma'
+        : 'aplicacao';
   const applicationId = searchParams.get('aplicacao') || null;
   const classId = searchParams.get('turma') || null;
 
   return (
     <div>
       <Breadcrumb items={[{ label: 'Relatórios' }]} />
-      <PageHeader title="Relatórios de notas" description="Notas por aplicação e consolidadas por turma, com exportação para o Excel." />
-      <Tabs value={view} onChange={(key) => setSearchParams(key === 'turma' ? { visao: 'turma' } : {})} />
-      {view === 'aplicacao' ? (
+      <PageHeader title="Relatórios de notas" description="Notas por aplicação, por turma e de todas as turmas, com exportação para Excel, PDF e CSV." />
+      <Tabs value={view} onChange={(key) => setSearchParams(key === 'aplicacao' ? {} : { visao: key })} />
+      {view === 'aplicacao' && (
         <ApplicationReport applicationId={applicationId} onSelect={(id) => setSearchParams(id ? { aplicacao: id } : {})} />
-      ) : (
-        <ClassReport classId={classId} onSelect={(id) => setSearchParams(id ? { turma: id } : { visao: 'turma' })} />
       )}
+      {view === 'turma' && <ClassReport classId={classId} onSelect={(id) => setSearchParams(id ? { turma: id } : { visao: 'turma' })} />}
+      {view === 'todas' && <AllClassesReport />}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 // Controller dos relatórios de notas e do histórico do aluno: só fala HTTP.
 export function createRelatorioController(relatorioService) {
-  function enviarCsv(res, { nomeArquivo, conteudo }) {
-    res.set('Content-Type', 'text/csv; charset=utf-8');
+  function enviarArquivo(res, { nomeArquivo, tipoConteudo, conteudo }) {
+    res.set('Content-Type', tipoConteudo);
     res.attachment(nomeArquivo); // Content-Disposition: attachment; filename="..."
     res.send(conteudo);
   }
@@ -15,8 +15,9 @@ export function createRelatorioController(relatorioService) {
       res.json(await relatorioService.relatorioDaAplicacao(req.params.id, req.professorId));
     },
 
-    async aplicacaoCsv(req, res) {
-      enviarCsv(res, await relatorioService.csvDaAplicacao(req.params.id, req.professorId));
+    async exportarAplicacao(req, res) {
+      const formato = req.path.endsWith('/csv') ? 'csv' : req.query.formato;
+      enviarArquivo(res, await relatorioService.exportarAplicacao(req.params.id, formato, req.professorId));
     },
 
     async listarTurmas(req, res) {
@@ -27,8 +28,13 @@ export function createRelatorioController(relatorioService) {
       res.json(await relatorioService.relatorioDaTurma(req.params.id, req.professorId));
     },
 
-    async turmaCsv(req, res) {
-      enviarCsv(res, await relatorioService.csvDaTurma(req.params.id, req.professorId));
+    async exportarTurma(req, res) {
+      const formato = req.path.endsWith('/csv') ? 'csv' : req.query.formato;
+      enviarArquivo(res, await relatorioService.exportarTurma(req.params.id, formato, req.professorId));
+    },
+
+    async exportarConsolidado(req, res) {
+      enviarArquivo(res, await relatorioService.exportarConsolidado(req.query.formato, req.professorId));
     },
 
     async historicoDoAluno(req, res) {

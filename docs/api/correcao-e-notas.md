@@ -45,17 +45,19 @@ Regras:
 
 | Método | Rota | Descrição |
 |---|---|---|
-| GET | `/correcoes/copias/:codigo` | Cópia lida no QR, pronta para corrigir (questões impressas, alunos da turma se for anônima e a correção existente) |
+| GET | `/correcoes/aplicacoes/:id` | Alunos da aplicação com o estado da correção: corrigida, pendente ou sem folha (T90) |
+| GET | `/correcoes/copias/:codigo` | Cópia lida no QR, pronta para corrigir (questões impressas, geometria da folha, alunos da turma se for anônima e a correção existente) |
 | POST | `/correcoes` | Correção automática pelas respostas marcadas |
 | POST | `/correcoes/manual` | Lançamento manual da nota |
 | GET | `/correcoes/:id` | Correção com as respostas e o gabarito da cópia |
 | DELETE | `/correcoes/:id` | Exclui a correção (a nota sai dos relatórios e do histórico) |
 | GET | `/relatorios/aplicacoes` | Aplicações do professor com total de cópias, corrigidas e média |
 | GET | `/relatorios/aplicacoes/:id` | Notas da aplicação, estatísticas e desempenho por questão |
-| GET | `/relatorios/aplicacoes/:id/csv` | Exportação das notas da aplicação (CSV para Excel) |
+| GET | `/relatorios/aplicacoes/:id/exportar?formato=xlsx` | Exportação das notas da aplicação: `xlsx`, `pdf` ou `csv` (T66). `/csv` continua valendo |
 | GET | `/relatorios/turmas` | Turmas do professor (para escolher o consolidado) |
 | GET | `/relatorios/turmas/:id` | Consolidado da turma: alunos × aplicações, média de cada aluno e da turma |
-| GET | `/relatorios/turmas/:id/csv` | Exportação do consolidado (CSV para Excel) |
+| GET | `/relatorios/turmas/:id/exportar?formato=xlsx` | Exportação do consolidado da turma: `xlsx`, `pdf` ou `csv`. `/csv` continua valendo |
+| GET | `/relatorios/exportar?formato=xlsx` | Consolidado do professor: notas de todas as turmas (`xlsx`, `pdf` ou `csv`) |
 | GET | `/alunos/:id/historico` | Histórico de notas e desempenho do aluno nas turmas do professor |
 
 ### POST `/correcoes`
@@ -107,11 +109,93 @@ precisa dos pontos (de 0 até a pontuação da questão). Resposta `201`:
 | Código de cópia que não é do professor, correção/aplicação/turma/aluno inexistente | 404 | `NOT_FOUND` |
 | Cópia já corrigida sem `substituir`, aluno já tem nota na aplicação, cópia inconsistente com a prova | 409 | `CONFLICT` |
 
-## Exportação (CSV)
+## Correção pela lista de alunos (T90)
 
-Os relatórios em CSV abrem direto no Excel em português: separador `;`, vírgula decimal, acentos
-preservados (UTF-8 com BOM) e proteção contra fórmulas em células de texto. O nome do arquivo vem no
-cabeçalho `Content-Disposition` (liberado para o front pelo CORS).
+Na tela **Correção**, o professor escolhe a aplicação e vê uma linha por aluno:
+
+- **Corrigida**: a cópia já tem nota (automática ou manual).
+- **Pendente**: a cópia foi gerada e ainda não foi corrigida. Inclui as provas sem identificação.
+- **Sem folha**: aluno matriculado que não tem cópia nem nota nesta aplicação (por exemplo, em aplicação
+  sem identificação, até a folha dele ser associada).
+
+Da lista ele abre cada prova; depois de corrigir, "Próxima pendente" abre a seguinte. O card **Correções**
+no detalhe da aplicação leva para essa lista.
+
+## Leitura da folha pela foto (T63 e T64)
+
+A rota `GET /correcoes/copias/:codigo` devolve em `folha` a geometria da folha de resposta daquela cópia,
+calculada por `server/src/pdf/sheetLayout.js` (o mesmo arquivo que desenha a folha no PDF):
+
+```json
+{
+  "pagina": { "largura": 595.28, "altura": 841.89 },
+  "qr": { "x": 66, "y": 294, "tamanho": 140 },
+  "tamanhoMarcador": 20,
+  "marcadores": [{ "x": 300, "y": 304 }, { "x": 516, "y": 304 }, { "x": 516, "y": 529 }, { "x": 300, "y": 529 }],
+  "questoes": [{ "numero": 1, "questaoId": 12, "opcoes": [{ "letra": "A", "x": 364, "y": 340, "raio": 5.5 }] }]
+}
+```
+
+Unidades em pt, origem no canto superior esquerdo. `folha` vem nulo quando a prova não pode ser lida pela foto
+(questão sem alternativas).
+
+A leitura acontece no navegador (`client/src/utils/sheetReader.js`), seguindo `docs/folha-de-resposta.md`:
+
+1. O QR Code dá o código da cópia e a posição da folha (usa só 3 cantos do QR).
+2. Os 4 quadrados pretos dos cantos são procurados perto da posição prevista; com eles sai a homografia.
+3. Mede-se o miolo de cada bolinha no canal vermelho, comparado com o papel em volta.
+4. Por linha: em branco se a mais escura tiver menos de 0,12; marcadas as que tiverem pelo menos metade da
+   escuridão da mais escura; mais de uma é marcação dupla (anulada).
+5. Folha com menos de 1000 px de largura na foto é recusada com pedido de nova foto.
+
+O resultado preenche a tela de correção e **nada é gravado sem o professor confirmar**. Ficam destacadas para
+conferência: marcação dupla, marcação fraca, uma segunda bolinha quase marcada e questão em branco com sinal de
+marcação. A correção é gravada pela mesma rota `POST /correcoes`.
+
+Os testes (`cd client && npm test`) desenham a folha com a geometria real, aplicam rotação, perspectiva, luz
+desigual e ruído e conferem a leitura, inclusive de cabeça para baixo e com 25 questões.
+
+## Estatística das respostas por questão (T74)
+
+Em `GET /relatorios/aplicacoes/:id`, cada questão objetiva de `questoes` traz `distribuicao`: quantas pessoas marcaram cada alternativa. Questão discursiva vem com `distribuicao: null`.
+
+```json
+{
+  "respostas": 12,
+  "emBranco": { "quantidade": 1, "percentual": 8.33 },
+  "alternativas": [
+    { "letra": "A", "texto": "f'(1) = -2", "correta": false, "quantidade": 3, "percentual": 25 },
+    { "letra": "C", "texto": "f'(1) = 0", "correta": true, "quantidade": 8, "percentual": 66.67 }
+  ],
+  "maisMarcadas": ["C"]
+}
+```
+
+- Conta só as correções automáticas: o lançamento manual não grava a resposta de cada questão.
+- A letra gravada na correção é a da ordem impressa da cópia. Cada resposta volta para a alternativa original pela ordem da própria cópia, então as versões embaralhadas somam certo. As letras do resultado são as da ordem cadastrada da questão.
+- `emBranco` junta as questões em branco e as anuladas por marcação dupla, que a correção grava do mesmo jeito (sem letra).
+- `maisMarcadas` lista todas as alternativas empatadas no topo, e fica vazia quando ninguém marcou alternativa.
+- O cálculo fica em `services/relatorio.alternativas.js`, com testes em `server/test/relatorio.alternativas.test.js`.
+
+## Exportação: Excel, PDF e CSV (T66)
+
+Os três formatos têm as mesmas colunas (`server/src/services/relatorio.exportacao.js`):
+
+| Relatório | Conteúdo |
+|---|---|
+| Por aplicação | Uma linha por aluno: matrícula, código, correção, nota, % e a **alternativa marcada em cada questão**. A letra é a da ordem cadastrada da questão (a mesma para todas as versões embaralhadas); no cabeçalho, entre parênteses, a correta. No Excel e no PDF, mais uma tabela com o percentual de cada alternativa, em branco e acerto por questão. |
+| Consolidado da turma | Uma linha por aluno e uma coluna por aplicação, com provas feitas, média em % e a média de cada aplicação. |
+| Todas as turmas | Consolidado do professor. Excel: uma aba com todas as notas (turma, aluno, prova, data, nota, correção) e uma aba por turma. PDF: uma tabela por turma. CSV: a lista com todas as notas. |
+
+- **Excel (.xlsx)**: gerado sem biblioteca externa (`server/src/utils/xlsx.js`); cabeçalho em negrito, linha
+  congelada, filtro e números como número.
+- **PDF**: A4 deitado, com resumo no topo, cabeçalho repetido a cada página e numeração (`server/src/pdf/buildReportPdf.js`).
+- **CSV**: abre direto no Excel em português (separador `;`, vírgula decimal, UTF-8 com BOM) e protege contra
+  fórmulas em células de texto. Leva só a primeira tabela, porque CSV não tem abas.
+
+Formato desconhecido responde `400`. O nome do arquivo vem no cabeçalho `Content-Disposition` (liberado para o
+front pelo CORS). Na tela **Relatórios**, cada relatório tem os botões Excel, PDF e CSV, e a aba **Todas as
+turmas** baixa o consolidado do professor.
 
 ## Banco de dados
 
@@ -132,3 +216,20 @@ npm test            # testes automáticos da correção e dos relatórios, sem M
 
 No front (`client`, `npm run dev`): menu **Correção** → digite `DEMA33` (nominal) ou `DEMB22` (anônima).
 Depois veja **Relatórios** e clique no nome de um aluno para abrir o histórico.
+
+### Casos de borda de ponta a ponta (T65)
+
+`server/test/correcao.e2e.test.js` passa por login, rotas, regras e MySQL: questões em branco, marcação dupla
+anulada, recorreção sem confirmação, letra inexistente, cópia anônima (com e sem aluno), aluno fora da turma,
+nota acima do máximo e negativa, nota duplicada na mesma aplicação, isolamento entre professores e exclusão.
+
+Ele só roda com um banco de teste, que é **apagado e recriado** a cada execução (o nome precisa terminar em
+`_test` ou `_e2e`). Sem essas variáveis, o `npm test` pula esses casos.
+
+```bash
+cd server
+TEST_DB_USER=root TEST_DB_PASSWORD=sua_senha TEST_DB_NAME=sgp_e2e npm test
+```
+
+`TEST_DB_HOST` e `TEST_DB_PORT` são opcionais (padrão `127.0.0.1:3306`). A leitura da folha pela foto tem os
+testes dela no front: `cd client && npm test`.

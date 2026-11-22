@@ -68,6 +68,34 @@ export function toCorrecao(dbRow) {
   };
 }
 
+// Aplicação vista pela tela de correção (T90): prova, turma e nota máxima.
+export function toAplicacaoDaCorrecao(dbRow) {
+  const row = toCamelCase(dbRow);
+  return {
+    id: row.id,
+    status: row.status,
+    dataAplicacao: toDateOnly(row.dataAplicacao),
+    prova: { id: row.provaId, titulo: row.provaTitulo },
+    turma: { id: row.turmaId, nome: row.turmaNome },
+    notaMaxima: Number(row.notaMaxima),
+  };
+}
+
+// Uma cópia da aplicação com a correção dela, se houver. O aluno é o da correção
+// (lançamento manual em prova anônima) ou, se não houver, o impresso na cópia.
+export function toCopiaDaLista(dbRow) {
+  const row = toCamelCase(dbRow);
+  return {
+    copiaId: row.copiaId,
+    codigo: row.codigo,
+    rotulo: row.rotulo,
+    aluno: row.alunoId ? { id: row.alunoId, nome: row.alunoNome, matricula: row.alunoMatricula ?? null } : null,
+    correcao: row.correcaoId
+      ? { id: row.correcaoId, nota: Number(row.nota), tipo: row.tipo, corrigidaEm: toIsoDate(row.corrigidaEm) }
+      : null,
+  };
+}
+
 export function toResposta(dbRow) {
   const row = toCamelCase(dbRow);
   return {

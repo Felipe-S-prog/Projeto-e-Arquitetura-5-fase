@@ -2,7 +2,8 @@ import { toCamelCase } from '../utils/case.js';
 
 // Models das Aplicações (T18): convertem as linhas do banco nos objetos que o front já usa
 // (ver client/src/data/applications.json):
-// { id, examId, classId, status, quantity, date, shuffleQuestions, shuffleAlternatives, linkToRoster }.
+// { id, examId, classId, status, quantity, date, shuffleQuestions, shuffleAlternatives, linkToRoster },
+// mais gradedCount (correções lançadas), que a tela usa para travar uma nova geração das cópias (T58).
 
 const STATUS_PARA_API = { PENDENTE: 'Pendente', APLICADA: 'Aplicada' };
 
@@ -25,6 +26,7 @@ export function toAplicacao(dbRow) {
     shuffleAlternatives: Boolean(row.embaralharAlternativas),
     linkToRoster: Boolean(row.vincularAlunos),
   };
+  if (row.totalCorrecoes !== undefined) aplicacao.gradedCount = Number(row.totalCorrecoes);
   // Quando a criação muda o status da prova (Rascunho -> Pronta), o front precisa saber.
   if (row.provaStatus !== undefined) {
     aplicacao.examStatus = { RASCUNHO: 'Rascunho', PRONTA: 'Pronta', ARQUIVADA: 'Arquivada' }[row.provaStatus] ?? row.provaStatus;

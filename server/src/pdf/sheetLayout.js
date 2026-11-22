@@ -17,7 +17,10 @@ export const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E'];
 // 20 pt: bem maior que qualquer parte do QR (o centro dos quadrados do QR tem uns 14,5 pt),
 // para o leitor não confundir os marcadores com partes do QR.
 export const MARKER_SIZE = 20;
-export const BUBBLE_RADIUS = 4.6;
+// Raio da bolinha: 5,5 pt (3,9 mm de diâmetro) até 20 questões. Com mais questões as linhas
+// ficam mais juntas e o raio acompanha o passo (36%), para sobrar papel entre as bolinhas.
+export const BUBBLE_RADIUS = 5.5;
+const BUBBLE_TO_PITCH = 0.36;
 export const QR_BOX = 140; // quadrado do QR, já com a margem branca de 4 módulos
 export const CARD_TOP = 276; // topo fixo do quadro de resposta
 const COLUMN_PITCH = 30;
@@ -44,6 +47,7 @@ export function getSheetGeometry(optionCounts) {
 
   const columnCount = Math.max(...optionCounts);
   const rowPitch = questionCount <= 20 ? 17 : 340 / questionCount;
+  const bubbleRadius = Math.min(BUBBLE_RADIUS, rowPitch * BUBBLE_TO_PITCH);
 
   const left = MARGIN;
   const right = PAGE.width - MARGIN;
@@ -91,7 +95,7 @@ export function getSheetGeometry(optionCounts) {
         letter: OPTION_LETTERS[j],
         cx: columns[j].cx,
         cy,
-        r: BUBBLE_RADIUS,
+        r: bubbleRadius,
       })),
     };
   });

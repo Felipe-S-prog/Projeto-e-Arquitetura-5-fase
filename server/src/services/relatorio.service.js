@@ -1,6 +1,10 @@
 import { AppError } from '../errors/AppError.js';
+import { buildReportPdf } from '../pdf/buildReportPdf.js';
 import { toCsv } from '../utils/csv.js';
+import { toXlsx } from '../utils/xlsx.js';
 import { arredondar, percentual } from './correcao.calculo.js';
+import { distribuicaoDasAlternativas } from './relatorio.alternativas.js';
+import { tabelaDaTurma, tabelaDoProfessor, tabelasDaAplicacao } from './relatorio.exportacao.js';
 
 function parseId(valor, mensagem) {
   const id = Number(valor);
@@ -40,7 +44,7 @@ function mediaPercentual(itens) {
   return media(itens.map((item) => item.percentual));
 }
 
-function nomeDoArquivo(...partes) {
+function nomeDoArquivo(extensao, ...partes) {
   const base = partes
     .join('-')
     .normalize('NFD')
@@ -48,10 +52,34 @@ function nomeDoArquivo(...partes) {
     .replace(/[^A-Za-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .toLowerCase();
-  return `${base || 'relatorio'}.csv`;
+  return `${base || 'relatorio'}.${extensao}`;
 }
 
-const TIPO_LEGIVEL = { AUTOMATICA: 'Automática', MANUAL: 'Manual' };
+const FORMATOS = {
+  csv: 'text/csv; charset=utf-8',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  pdf: 'application/pdf',
+};
+
+function validarFormato(formato) {
+  const tipo = String(formato ?? 'csv').toLowerCase();
+  if (!FORMATOS[tipo]) throw AppError.badRequest('Formato inválido. Use csv, xlsx ou pdf.');
+  return tipo;
+}
+
+// CSV leva só a primeira tabela (um arquivo CSV não tem abas); Excel leva uma aba por tabela.
+async function gerarArquivo(tipo, documento, nomeArquivo) {
+  let conteudo;
+  if (tipo === 'csv') {
+    const [tabela] = documento.tabelas;
+    conteudo = toCsv(tabela.colunas.map((c) => c.titulo), tabela.linhas);
+  } else if (tipo === 'xlsx') {
+    conteudo = toXlsx(documento.tabelas);
+  } else {
+    conteudo = Buffer.from((await buildReportPdf(documento)).bytes);
+  }
+  return { nomeArquivo, tipoConteudo: FORMATOS[tipo], conteudo };
+}
 
 // Service dos relatórios de notas (T32) e do histórico do aluno (T33).
 export function createRelatorioService(repository) {
@@ -69,10 +97,13 @@ export function createRelatorioService(repository) {
 
   async function relatorioDaAplicacao(id, professorId) {
     const aplicacao = await carregarAplicacao(id, professorId);
-    const [linhas, questoes] = await Promise.all([
+    const [linhas, questoes, alternativas, respostas] = await Promise.all([
       repository.listNotasDaAplicacao(aplicacao.id),
       repository.listDesempenhoPorQuestao(aplicacao.id, aplicacao.prova.id),
+      repository.listAlternativasDaProva(aplicacao.prova.id),
+      repository.listRespostasObjetivas(aplicacao.id),
     ]);
+    const distribuicao = distribuicaoDasAlternativas(alternativas, respostas);
 
     const notas = linhas.map((linha) => ({
       ...linha,
@@ -93,6 +124,8 @@ export function createRelatorioService(repository) {
         ...q,
         taxaAcerto: q.tipo === 'OBJETIVA' && q.corrigidas > 0 ? percentual(q.acertos, q.corrigidas) : null,
         mediaPontos: q.mediaPontos === null ? null : arredondar(q.mediaPontos),
+        // T74: quantas pessoas marcaram cada alternativa (só objetivas; discursiva fica nula)
+        distribuicao: q.tipo === 'OBJETIVA' ? distribuicao.get(q.questaoId) ?? null : null,
       })),
     };
   }
@@ -153,34 +186,43 @@ export function createRelatorioService(repository) {
     relatorioDaAplicacao,
     relatorioDaTurma,
 
-    async csvDaAplicacao(id, professorId) {
-      const { aplicacao, notas } = await relatorioDaAplicacao(id, professorId);
-      const linhas = notas.map((n) => [
-        n.codigo,
-        n.rotulo,
-        n.aluno?.nome ?? '',
-        n.aluno?.matricula ?? '',
-        n.nota,
-        n.percentual,
-        n.tipo ? TIPO_LEGIVEL[n.tipo] : 'Pendente',
+    // T66: exportação em CSV, Excel (.xlsx) ou PDF. As três usam as mesmas tabelas.
+    async exportarAplicacao(id, formato, professorId) {
+      const tipo = validarFormato(formato);
+      const relatorio = await relatorioDaAplicacao(id, professorId);
+      const [respostas, alternativas] = await Promise.all([
+        repository.listRespostasPorCorrecao(relatorio.aplicacao.id),
+        repository.listAlternativasDaProva(relatorio.aplicacao.prova.id),
       ]);
-      return {
-        nomeArquivo: nomeDoArquivo('notas', aplicacao.prova.titulo, aplicacao.turma.nome),
-        conteudo: toCsv(['Código', 'Identificação na prova', 'Aluno', 'Matrícula', `Nota (máx. ${aplicacao.notaMaxima})`, '% da nota', 'Correção'], linhas),
-      };
+      const documento = tabelasDaAplicacao(relatorio, respostas, alternativas);
+      return gerarArquivo(tipo, documento, nomeDoArquivo(tipo, 'notas', relatorio.aplicacao.prova.titulo, relatorio.aplicacao.turma.nome));
     },
 
-    async csvDaTurma(id, professorId) {
-      const { turma, aplicacoes, alunos } = await relatorioDaTurma(id, professorId);
-      const cabecalho = [
-        'Aluno',
-        'Matrícula',
-        ...aplicacoes.map((a) => `${a.prova.titulo}${a.dataAplicacao ? ` (${a.dataAplicacao.split('-').reverse().join('/')})` : ''} - máx. ${a.notaMaxima}`),
-        'Provas feitas',
-        'Média (%)',
-      ];
-      const linhas = alunos.map((l) => [l.aluno.nome, l.aluno.matricula ?? '', ...l.notas.map((n) => n.nota), l.provasFeitas, l.mediaPercentual]);
-      return { nomeArquivo: nomeDoArquivo('notas-consolidadas', turma.nome), conteudo: toCsv(cabecalho, linhas) };
+    async exportarTurma(id, formato, professorId) {
+      const tipo = validarFormato(formato);
+      const relatorio = await relatorioDaTurma(id, professorId);
+      const tabela = tabelaDaTurma(relatorio);
+      const documento = {
+        titulo: `Notas consolidadas: ${tabela.titulo}`,
+        subtitulo: [`${relatorio.alunos.length} aluno(s) · ${relatorio.aplicacoes.length} aplicação(ões) · média da turma ${relatorio.mediaPercentualDaTurma === null ? '-' : `${String(relatorio.mediaPercentualDaTurma).replace('.', ',')}%`}`],
+        tabelas: [{ ...tabela, titulo: undefined }],
+      };
+      return gerarArquivo(tipo, documento, nomeDoArquivo(tipo, 'notas-consolidadas', relatorio.turma.nome));
+    },
+
+    // Consolidado do professor: todas as turmas. No Excel, uma aba com todas as notas e uma por turma.
+    async exportarConsolidado(formato, professorId) {
+      const tipo = validarFormato(formato);
+      const [notas, turmas] = await Promise.all([repository.listNotasDoProfessor(professorId), repository.listTurmas(professorId)]);
+      const porTurma = [];
+      for (const t of turmas.filter((t) => t.totalAplicacoes > 0)) porTurma.push(tabelaDaTurma(await relatorioDaTurma(t.id, professorId)));
+      const todas = tabelaDoProfessor(notas);
+      const documento = {
+        titulo: 'Notas de todas as turmas',
+        subtitulo: [`${notas.length} nota(s) em ${porTurma.length} turma(s) com aplicações.`],
+        tabelas: tipo === 'pdf' ? porTurma : [todas, ...porTurma],
+      };
+      return gerarArquivo(tipo, documento, nomeDoArquivo(tipo, 'notas-todas-as-turmas'));
     },
 
     // T33: histórico de notas e desempenho de um aluno nas turmas do professor.

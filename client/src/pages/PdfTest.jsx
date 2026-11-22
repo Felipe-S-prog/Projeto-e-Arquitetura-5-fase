@@ -98,6 +98,7 @@ export default function PdfTest() {
     <div>
       <Breadcrumb
         items={[
+          { label: 'Aplicações', to: '/aplicacoes' },
           { label: exam?.title, to: `/aplicacoes/${app.id}` },
           { label: 'Pré-visualização', to: `/aplicacoes/${app.id}/pdf/preview` },
           { label: 'Teste do PDF' },
