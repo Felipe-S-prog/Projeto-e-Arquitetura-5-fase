@@ -136,17 +136,17 @@ const DataProvider = ({ children }) => {
     };
   }, [isAuthenticated, user?.id]);
 
-  // Turmas passam a vir da API, não mais do classes.json.
+  // Turmas vêm da API.
   const [classes, setClasses] = useState([]);
   const [classesLoading, setClassesLoading] = useState(true);
   const [classesError, setClassesError] = useState('');
 
-  // Provas passam a vir da API, não mais do exams.json.
+  // Provas vêm da API.
   const [exams, setExams] = useState([]);
   const [examsLoading, setExamsLoading] = useState(true);
   const [examsError, setExamsError] = useState('');
 
-  // Aplicações passam a vir da API, não mais do applications.json.
+  // Aplicações vêm da API.
   const [applications, setApplications] = useState([]);
   const [applicationsLoading, setApplicationsLoading] = useState(true);
   const [applicationsError, setApplicationsError] = useState('');

@@ -1,7 +1,6 @@
 import { toCamelCase } from '../utils/case.js';
 
 // Models das Aplicações (T18): convertem as linhas do banco nos objetos que o front já usa
-// (ver client/src/data/applications.json):
 // { id, examId, classId, status, quantity, date, shuffleQuestions, shuffleAlternatives, linkToRoster },
 // mais gradedCount (correções lançadas), que a tela usa para travar uma nova geração das cópias (T58).
 
