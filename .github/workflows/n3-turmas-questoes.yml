@@ -1,16 +1,16 @@
-name: N3 - Turmas e Questões
+name: CI - Testes e Build
+
 on:
   pull_request:
-    paths:
-      - 'client/**'
-      - 'server/**'
-      - '.github/workflows/n3-turmas-questoes.yml'
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
   tests-and-build:
     runs-on: ubuntu-latest
+
     services:
       mysql:
         image: mysql:8.0
@@ -23,11 +23,19 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
+
     env:
       N3_MYSQL_TEST: 'true'
       N3_MYSQL_PASSWORD: n3-test-password
+      TEST_DB_HOST: 127.0.0.1
+      TEST_DB_PORT: 3306
+      TEST_DB_USER: root
+      TEST_DB_PASSWORD: n3-test-password
+      TEST_DB_NAME: sgp_ci_e2e
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -35,13 +43,23 @@ jobs:
           cache-dependency-path: |
             server/package-lock.json
             client/package-lock.json
-      - run: npm ci
+
+      - name: Instalar dependências do servidor
+        run: npm ci
         working-directory: server
-      - run: npm test
+
+      - name: Testes do servidor com cobertura
+        run: npm test -- --experimental-test-coverage
         working-directory: server
-      - run: npm ci
+
+      - name: Instalar dependências do frontend
+        run: npm ci
         working-directory: client
-      - run: npm run lint
+
+      - name: Lint do frontend
+        run: npm run lint
         working-directory: client
-      - run: npm run build
+
+      - name: Build do frontend
+        run: npm run build
         working-directory: client
