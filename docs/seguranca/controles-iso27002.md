@@ -20,7 +20,7 @@ A ISO 27001 pede que a organização escolha os controles a partir dos riscos; a
 | **Desenvolvimento e manutenção de sistemas** | ✅ | Toda mudança por Pull Request revisado; testes automatizados de isolamento entre professores; segredos fora do código; migrations versionadas com verificação de integridade; operações críticas em transação; nota calculada no servidor; upload confere o tipo real do arquivo; erros internos não vazam detalhes | `server/test/` (8 arquivos com testes de isolamento), `server/src/database/migrator.js`, `server/src/middlewares/errorHandler.js` | R02, R09, R16 |
 | **Gestão de incidentes de segurança** | 🟡 | Roteiro de registro, contenção, recuperação e aprendizado; ferramentas de contenção no sistema (sair de todos os dispositivos, despublicar gabarito); falta log com o usuário para investigar | Política, item 4.8; `server/src/middlewares/requestLogger.js` | R15, R16 |
 | **Gestão da continuidade do negócio** | 🟡 | Banco gerenciado com backup pelo provedor; rota de verificação `/api/health`; falta plano B para a API e teste de restauração | `server/src/routes/health.routes.js` | R06, R07, R08 |
-| **Conformidade com as diretrizes da empresa** | 🟡 | LGPD aplicada: finalidade, minimização (fotos não guardadas), acesso só do professor dono, anonimização de conta (T38, em revisão); objetivos de segurança medidos a cada entrega | Política, item 4.3; escopo, item 4 | R14, R15 |
+| **Conformidade com as diretrizes da empresa** | 🟡 | LGPD aplicada: finalidade, minimização (fotos não guardadas), acesso só do professor dono, anonimização de conta (T38, na main); objetivos de segurança medidos a cada entrega | Política, item 4.3; escopo, item 4 | R14, R15 |
 
 Resumo: **5 categorias aplicadas** (uma delas por transferência aos provedores) e **6 parciais**, todas com a ação correspondente no plano de ação (seção 3).
 
@@ -45,7 +45,7 @@ Os dados pessoais de alunos e professores ficam no MySQL do Aiven. Aplicando o q
 |---|---|
 | **Limitar acessos** | Só o professor da turma vê os dados dos alunos; a equipe não usa dados reais nos testes (banco local com dados fictícios) |
 | **Registrar operações** | Hoje há log de requisições sem o usuário; o registro de quem acessou notas e relatórios é ação do plano (R15, T41) |
-| **Utilizar criptografia** | Em trânsito: HTTPS no front e na API e SSL até o banco. Em repouso: senhas e tokens só como hash; o armazenamento do banco é criptografado pelo provedor, conforme a documentação do Aiven (a confirmar no plano contratado) |
+| **Utilizar criptografia** | Em trânsito: HTTPS no front e na API e SSL até o banco. Em repouso: senhas e tokens só como hash; o Aiven criptografa em repouso tanto as instâncias do banco quanto os backups (confirmado pelo custodiante, Bruno, em 22/11/2026, na [documentação de segurança do Aiven](https://aiven.io/docs/platform/concepts/cloud-security)) |
 
 ### ISO 27701 — Gestão da privacidade
 
@@ -56,7 +56,7 @@ Extensão da ISO 27001 para a privacidade, usada aqui para mostrar a conformidad
 | Finalidade | Dados de alunos usados só para gerar, corrigir e acompanhar provas |
 | Minimização | Só nome, e-mail, matrícula, respostas e notas; fotos das folhas lidas no navegador e descartadas |
 | Transparência | A política é publicada no repositório e resumida no manual do usuário |
-| Direitos do titular | Remoção do aluno da turma (T47) e anonimização da conta do professor preservando as notas (T38), ambas em revisão |
+| Direitos do titular | Remoção do aluno da turma (T47) e anonimização da conta do professor preservando as notas (T38), ambas já na main |
 | Responsabilização | Encarregado de dados definido no [escopo](escopo-sgsi.md); roteiro de incidentes com avaliação de comunicação à ANPD |
 
 ## 3. Plano de ação

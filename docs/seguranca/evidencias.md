@@ -18,6 +18,17 @@
 
 As duas evidências parciais (1 e 3) confirmam riscos já registrados na [análise de riscos](analise-riscos.md), com ação no plano: CSP e HSTS no front (R03) e limite de tentativas no login (R01, T40).
 
+## Confirmações nos provedores
+
+Itens que dependem da configuração dos provedores e não podem ser testados pelo sistema. Foram conferidos pelo custodiante da infraestrutura (Bruno) em 22/11/2026, na documentação oficial:
+
+| # | Item | Resultado | Fonte | Risco ou controle |
+|---|---|---|---|---|
+| 10 | Disco do servidor da API no Render | 🟡 O plano Free não permite disco persistente: as imagens das questões ficam num sistema de arquivos temporário e podem se perder em nova publicação, reinício ou suspensão do serviço. Confirma o risco R08. | [Render: plano Free](https://render.com/docs/free) e [discos persistentes](https://render.com/docs/disks) | R08 |
+| 11 | Criptografia em repouso do banco no Aiven | ✅ O Aiven criptografa em repouso as instâncias do banco (volume inteiro) e os backups. | [Aiven: Cloud security](https://aiven.io/docs/platform/concepts/cloud-security) | Utilizar criptografia (27018) |
+
+A mesma página do Aiven informa que o MySQL **não obriga** conexão criptografada: quem exige é o cliente. A API exige SSL com verificação do certificado do servidor quando `DB_SSL=true` ou `DB_SSL_CA` está definido (`server/src/config/env.js`). Por isso, essa variável precisa estar configurada no Render.
+
 ## Observação sobre o ambiente
 
 Na máquina usada, um software de segurança inspeciona o tráfego HTTPS, e o Node.js e o npm não reconheceram a cadeia de certificados até receberem a opção `--use-system-ca`, que usa os certificados do Windows. Não é uma falha do SGP. Vale registrar como cuidado operacional: desligar a verificação de certificado (`NODE_TLS_REJECT_UNAUTHORIZED=0`) nunca é a solução, porque abre caminho para interceptação.

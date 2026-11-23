@@ -10,6 +10,6 @@
 | [Inventário de ativos](inventario-ativos.md) ([planilha](inventario-ativos.csv)) | 26 ativos com proprietário, custodiante, localização, classificação e C-I-D | ISO 27001 |
 | [Análise de riscos](analise-riscos.md) ([planilha](analise-riscos.csv)) | 16 riscos com probabilidade, impacto, controles existentes e tratamento | ISO 27005 |
 | [Controles e plano de ação](controles-iso27002.md) | As 11 categorias de controle aplicadas ao SGP, normas de nuvem e privacidade e o plano de ação | ISO 27002, 27017, 27018 e 27701 |
-| [Evidências](evidencias.md) | 9 verificações no sistema local e no publicado, com o resultado de cada controle | ISO 27001 (verificação) |
+| [Evidências](evidencias.md) | 9 verificações no sistema local e no publicado, mais 2 confirmações na documentação dos provedores, com o resultado de cada controle | ISO 27001 (verificação) |
 
 Ordem de leitura sugerida (ciclo PDCA): escopo → inventário → análise de riscos → classificação → política → controles e plano de ação → evidências.

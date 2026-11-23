@@ -56,7 +56,7 @@ Toda informação do SGP tem um nível (Público, Interno, Confidencial ou Restr
 - **Finalidade:** os dados de alunos (nome, e-mail, matrícula, respostas e notas) são usados só para gerar, corrigir e acompanhar as provas da turma.
 - **Minimização:** o sistema não pede dados além desses; as fotos das folhas são lidas no navegador e não são guardadas no servidor.
 - **Acesso:** só o professor da turma vê os dados dos seus alunos.
-- **Direitos do titular:** o professor pode remover um aluno da turma sem apagar as notas já lançadas (T47) e anonimizar a própria conta, preservando o histórico (T38). As duas funções estão em revisão para a entrega final.
+- **Direitos do titular:** o professor pode remover um aluno da turma sem apagar as notas já lançadas (T47) e anonimizar a própria conta, preservando o histórico (T38). As duas funções já estão no sistema.
 - **Registro:** as atividades sobre notas devem ser registradas, para demonstrar a conformidade e investigar incidentes (ação R15 da análise de riscos).
 
 ### 4.4 Gabarito e provas
