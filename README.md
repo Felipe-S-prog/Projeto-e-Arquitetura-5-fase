@@ -414,6 +414,8 @@ Posição da entrega final (N3). Nenhuma tela usa dados de exemplo: tudo o que a
 | Correção e Notas | Lançamento manual, relatórios e histórico (T29 a T33, T74) | ✅ Sim | Inclui a distribuição das respostas por alternativa. |
 | Correção e Notas | Exportação dos relatórios em CSV, Excel e PDF (T66) | ✅ Sim | |
 
+Não há mais dados fictícios no front-end: a T35 tirou as questões de exemplo do `DataContext` e a T49 removeu os arquivos JSON que restavam em `client/src/data/`. Todos os dados do sistema vêm da API e do MySQL.
+
 ### 7.2 Anonimização de conta (LGPD)
 
 O professor autenticado pode pedir a anonimização da própria conta pelo endpoint `POST /api/me/anonymize` (T38, que retomou e concluiu a T09 da N2). O sistema:
@@ -511,6 +513,7 @@ Projeto-e-Arquitetura-5-fase/
 │   ├── manual/img/               # Telas do manual do usuário
 │   ├── modelo-dados/             # MER/DER, script SQL e dicionário de dados
 │   ├── n3/                       # Validações das tarefas da N3
+│   ├── seguranca/                # SGSI simulado (ISO 27001): inventário, riscos, política e controles
 │   ├── uml/                      # Diagramas UML do projeto
 │   ├── desempenho-pdf.md         # Medição do tempo de geração do PDF
 │   ├── folha-de-resposta.md      # Layout da folha de resposta e calibração da leitura
@@ -518,6 +521,8 @@ Projeto-e-Arquitetura-5-fase/
 ├── .github/workflows/            # Testes em cada PR e publicação do front-end
 └── README.md
 ```
+
+A pasta [`docs/seguranca`](docs/seguranca/README.md) aplica ao SGP um sistema de gestão de segurança da informação simulado, baseado na ISO 27001, com inventário de ativos, análise de riscos, política, controles da ISO 27002 e evidências. Foi feita para a disciplina de Segurança da Informação.
 
 ## 10. Como Executar o Projeto
 
