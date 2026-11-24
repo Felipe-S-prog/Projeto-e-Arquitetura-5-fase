@@ -14,8 +14,8 @@
 ![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
 ![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)
 
-![Status](https://img.shields.io/badge/status-em%20desenvolvimento-F5A623?style=flat-square)
-![Entrega](https://img.shields.io/badge/entrega%20atual-N2-3D348B?style=flat-square)
+![Status](https://img.shields.io/badge/status-entrega%20final-2E7D32?style=flat-square)
+![Entrega](https://img.shields.io/badge/entrega%20atual-N3-3D348B?style=flat-square)
 ![Licença](https://img.shields.io/badge/licença-uso%20acadêmico-7B4FA6?style=flat-square)
 
 </div>
@@ -24,11 +24,11 @@
 
 | Nome completo | Papel / principais frentes no projeto |
 |---|---|
-| BRUNO ROVANI MARCELINO | Autenticação e Perfil — cadastro de professor por um administrador, login de professor/administrador, JWT/refresh token e implementação parcial da anonimização de conta (LGPD — T09, não concluída). |
-| CAMILA TEXEIRA | Turmas e Questões — criação de turmas, matrícula por e-mail/código de convite, CRUD do banco de questões. |
-| FELIPE DOS SANTOS | Provas e Aplicações — montagem de provas (banco de questões da prova), aplicação de provas a turmas. |
-| MATHEUS KUCHENBECKER | Geração de PDF e Gabarito — versões, embaralhamento de questões/alternativas, identificação do aluno, publicação de gabarito. |
-| MIGUEL CARLOS BERTOLDI | Correção e Notas — fluxo de correção, lançamento manual de nota, relatórios e histórico de notas por turma. |
+| BRUNO ROVANI MARCELINO | Autenticação e Perfil — cadastro livre de professores, login, JWT/refresh token, logout de todos os dispositivos e anonimização de conta (LGPD). |
+| CAMILA TEXEIRA | Turmas e Questões — turmas, matrícula manual e por CSV, remoção de aluno, banco de questões com tags padronizadas. |
+| FELIPE DOS SANTOS | Provas e Aplicações — montagem e edição de provas, aplicação de provas a turmas e publicação automática do front-end. |
+| MATHEUS KUCHENBECKER | Geração de PDF e Gabarito — cópias embaralhadas por aluno, PDF com folha de resposta e QR Code, publicação e consulta pública do gabarito, manual do usuário. |
+| MIGUEL CARLOS BERTOLDI | Correção e Notas — correção pela lista de alunos, leitura da folha pela foto, lançamento manual, relatórios (CSV, Excel e PDF) e histórico do aluno. |
 
 ## 📑 Sumário
 
@@ -42,13 +42,13 @@
 - [6. Decisões Arquiteturais (ADRs)](#6-decisões-arquiteturais-adrs)
 - [7. Modelo de Dados](#7-modelo-de-dados)
   - [7.1 Estado da integração com o banco](#71-estado-da-integração-com-o-banco)
-  - [7.2 Situação da T09 — Anonimização de conta (LGPD)](#72-situação-da-t09--anonimização-de-conta-lgpd)
+  - [7.2 Anonimização de conta (LGPD)](#72-anonimização-de-conta-lgpd)
 - [8. Stack Tecnológica](#8-stack-tecnológica)
 - [9. Estrutura de Pastas](#9-estrutura-de-pastas)
 - [10. Como Executar o Projeto](#10-como-executar-o-projeto)
   - [10.1 Pré-requisitos](#101-pré-requisitos)
   - [10.2 Configurar o back-end e o banco](#102-configurar-o-back-end-e-o-banco)
-  - [10.3 Criar o primeiro administrador](#103-criar-o-primeiro-administrador)
+  - [10.3 Criar a primeira conta](#103-criar-a-primeira-conta)
   - [10.4 Iniciar o front-end](#104-iniciar-o-front-end)
   - [10.5 Problemas comuns](#105-problemas-comuns)
 - [11. Especificação da API](#11-especificação-da-api)
@@ -74,25 +74,27 @@ Entregar uma plataforma que permita ao professor cadastrar questões, montar pro
 
 Dentro do escopo do projeto:
 
-- Cadastro de professores feito por um administrador; login de professores e administradores (alunos não fazem login).
+- Cadastro livre de professores: o próprio professor cria a conta na tela de entrada e faz login (não há administrador nem convite; alunos não fazem login).
 - Cada professor só acessa suas próprias turmas, questões e provas — isolamento de dados é entre contas de professor, não entre alunos.
-- Banco de questões por professor, objetivas e discursivas.
-- Criação de turmas e matrícula de alunos como registro (nome/e-mail informados pelo professor ou pelo próprio aluno com o código de convite da turma), sem gerar conta de acesso para o aluno.
+- Banco de questões por professor, com tags padronizadas e imagem opcional. O PDF imprime questões objetivas.
+- Criação de turmas e matrícula de alunos como registro (nome, e-mail e matrícula informados pelo professor, um por um ou por arquivo CSV), sem gerar conta de acesso para o aluno.
 - Criação de provas reutilizáveis (banco de questões da prova) e aplicação dessas provas a uma ou mais turmas.
-- Geração de um PDF único consolidado por aplicação, com quantidade configurável de versões, embaralhamento de questões e alternativas, e opção de prova com ou sem identificação do aluno.
-- Publicação de gabarito (por versão ou por aplicação) em um link público, sem exigir login do aluno.
-- Correção automatizada a partir da leitura do gabarito preenchido.
-- Lançamento manual de nota quando a prova foi gerada sem identificação do aluno.
-- Relatórios de notas (por aplicação e consolidados), com exportação.
+- Geração de um PDF único consolidado por aplicação, com uma cópia por pessoa, embaralhamento de questões e alternativas, e opção de prova com ou sem identificação do aluno.
+- Publicação de gabarito (por cópia ou por aplicação) em um link público, sem exigir login do aluno.
+- Correção automatizada pela foto da folha de resposta: o sistema identifica a prova pelo QR Code e lê as bolinhas marcadas no próprio navegador, e o professor confere antes de gravar.
+- Lançamento manual de nota, quando o professor prefere informar só a nota final.
+- Relatórios de notas (por aplicação e consolidados), com exportação em CSV, Excel e PDF.
 - Histórico de notas e desempenho do aluno, consultado pelo professor (o aluno não tem essa consulta dentro do sistema).
+- Anonimização da conta do professor (LGPD), preservando o histórico acadêmico.
 
 Fora do escopo do semestre:
 
-- **App mobile nativo** dedicado à leitura de QR Code — a especificação de referência do cliente prevê um app React Native exclusivo do professor para essa etapa; como a disciplina exige stack **Node.js + Express + MySQL**, a equipe optou por manter a correção na aplicação web nesta entrega. A leitura automática das marcações da folha ainda não faz parte do sistema.
+- **App mobile nativo** dedicado à leitura de QR Code — a especificação de referência do cliente prevê um app React Native exclusivo do professor para essa etapa; como a disciplina exige stack **Node.js + Express + MySQL**, a correção ficou na aplicação web, que também funciona no navegador do celular (a câmera abre direto para fotografar a folha).
 - **Arquitetura de microsserviços** (Auth, Exam/Class/Application, Grade, Sync, Vision) proposta na especificação de referência — o projeto da disciplina segue uma **arquitetura em camadas única** (rota → controle → serviço → repositório → model), conforme exigido pela metodologia da disciplina.
 - Fila de sincronização offline e deduplicação de correções (dependem diretamente do app mobile acima).
-- Exclusão física de dados (LGPD) — a proposta é utilizar anonimização de conta; a implementação da T09, entretanto, não foi concluída nesta entrega.
-- **Conta e login de aluno na plataforma** — decisão validada com o cliente: o aluno nunca acessa o sistema diretamente. Contas de professor são criadas por um administrador; o único ponto de contato do aluno é o gabarito publicado via link público, sem autenticação.
+- Exclusão física de dados (LGPD) — o sistema anonimiza a conta em vez de apagar o histórico de notas (seção 7.2).
+- **Conta e login de aluno na plataforma** — decisão validada com o cliente: o aluno nunca acessa o sistema diretamente. O único ponto de contato do aluno é o gabarito publicado via link público, sem autenticação. O ingresso do aluno na turma por código de convite, que existiu na N2, foi retirado na N3: quem matricula é sempre o professor.
+- **Perfil de administrador** — retirado na N3 (T77/T78). Cada professor cria e gerencia a própria conta, e não há telas nem rotas de administração.
 
 ## 2. Requisitos
 
@@ -102,17 +104,17 @@ Fora do escopo do semestre:
 
 | Código | Requisito |
 |---|---|
-| RF01 | O sistema deve permitir cadastro de professores por um administrador, e login de professores e administradores. O aluno não possui login. |
-| RF02 | O professor deve poder criar, editar, listar e excluir (soft-delete) questões objetivas e discursivas, com tags e filtros — sempre restrito ao próprio banco de questões do professor. |
-| RF03 | O professor deve poder criar turmas e matricular alunos informando nome e e-mail; a matrícula é apenas um registro para identificação nas provas, não cria conta de acesso para o aluno. |
+| RF01 | O sistema deve permitir que o professor crie a própria conta e faça login. Não há perfil de administrador (retirado na N3) e o aluno não possui login. |
+| RF02 | O professor deve poder criar, editar, listar e excluir (soft-delete) questões objetivas, com tags padronizadas e filtros — sempre restrito ao próprio banco de questões do professor. |
+| RF03 | O professor deve poder criar turmas e matricular alunos informando nome e e-mail, um por um ou por arquivo CSV, e remover alunos da turma sem perder as notas; a matrícula é apenas um registro para identificação nas provas, não cria conta de acesso para o aluno. |
 | RF04 | O professor deve poder montar provas com quantidade livre de questões (até 20) e pontuação definida individualmente por questão. |
 | RF05 | O professor deve poder aplicar uma prova já criada a uma ou mais turmas, gerando aplicações independentes entre si (permitindo reaplicação, ex.: segunda chamada). |
 | RF06 | O sistema deve gerar um PDF único e consolidado por aplicação, com opção de múltiplas versões e embaralhamento independente de questões e de alternativas por versão. |
 | RF07 | O sistema deve permitir gerar a prova com ou sem identificação do aluno no cabeçalho. |
 | RF08 | O sistema deve permitir a publicação do gabarito (por versão ou por aplicação) em um link público, acessível pelo aluno sem necessidade de login. |
-| RF09 | O sistema deve corrigir automaticamente a prova a partir da leitura do gabarito preenchido, calculando a nota conforme a pontuação de cada questão. |
-| RF10 | Quando a prova foi gerada sem identificação, o professor deve poder lançar manualmente a nota, associando-a ao aluno correto. |
-| RF11 | O professor deve poder gerar relatórios de notas por aplicação e consolidados, com exportação (ao menos CSV/Excel). |
+| RF09 | O sistema deve corrigir automaticamente a prova a partir da foto da folha de resposta preenchida, calculando a nota conforme a pontuação de cada questão. |
+| RF10 | O professor deve poder lançar manualmente a nota e, quando a prova foi gerada sem identificação, associá-la ao aluno correto. |
+| RF11 | O professor deve poder gerar relatórios de notas por aplicação e consolidados, com exportação em CSV, Excel e PDF. |
 | RF12 | O professor deve poder consultar o histórico de notas e desempenho de cada aluno dentro de suas turmas. |
 
 ### 2.2 Não Funcionais (RNF)
@@ -124,7 +126,7 @@ Fora do escopo do semestre:
 | RNF03 | O login deve emitir token JWT de acesso e refresh token, com suporte a logout do dispositivo atual e logout de todos os dispositivos. |
 | RNF04 | O isolamento de dados entre professores deve ser garantido: um professor só pode acessar suas próprias turmas, questões, provas e notas. Alunos não autenticam no sistema, então esse isolamento não se aplica a eles. |
 | RNF05 | O sistema deve responder em tempo aceitável em uma conexão padrão (meta inicial: até 2s nas operações comuns). |
-| RNF06 | O sistema deve estar hospedado em um serviço gratuito e permanecer acessível ao longo do semestre. Nesta entrega, o front-end está publicado no Cloudflare Pages e a API no Render. |
+| RNF06 | O sistema deve estar hospedado em um serviço gratuito e permanecer acessível ao longo do semestre. Nesta entrega, o front-end está publicado no Cloudflare Pages (a cada merge na `main`, pelo GitHub Actions), a API no Render e o MySQL no Aiven, com conexão SSL. |
 
 ## 3. Modelagem (UML)
 
@@ -171,7 +173,7 @@ O caso de uso do grupo (`casos-de-uso.png`) tem várias ações do Professor: *C
 
 Mostram a troca de mensagens entre o usuário, o front-end, a API e o MySQL nos três fluxos principais. Foram desenhados no planejamento, então os nomes de algumas rotas diferem da API implementada; as rotas reais estão na [seção 11](#11-especificação-da-api).
 
-**1. Cadastro de professor pelo administrador e login**
+**1. Cadastro de professor pelo administrador e login** (desenhado na N2; desde a N3 o próprio professor cria a conta e não há administrador, mas o login, o JWT e o refresh token seguem o mesmo fluxo)
 
 ![Sequência: autenticação](docs/uml/Autentica%C3%A7%C3%A3o.drawio.png)
 
@@ -185,17 +187,17 @@ Mostram a troca de mensagens entre o usuário, o front-end, a API e o MySQL nos 
 
 ## 4. Telas do Sistema
 
-### 📌 N1 — Telas do Sistema
+📌 **N1**, atualizada na N3
 
-Prints das telas principais, apresentados na ordem do fluxo de navegação (a tela A leva à tela B). Cada imagem é acompanhada de uma breve descrição de sua funcionalidade.
+Prints das telas principais, apresentados na ordem do fluxo de navegação (a tela A leva à tela B). Cada imagem é acompanhada de uma breve descrição de sua funcionalidade. O passo a passo completo, com todas as telas atuais, está no [Manual do Usuário](docs/manual-usuario.md).
 
 ### 4.1 Tela de Login
 
 <p align="center">
-  <img width="591" height="691" alt="Tela de Login" src="https://github.com/user-attachments/assets/cef8cdf1-6569-41b1-a08d-bfce18f514e7" />
+  <img width="683" alt="Tela de entrada do professor" src="docs/manual/img/16-entrar.png" />
 </p>
 
-**Descrição:** Vista apresentada ao entrar no sistema, contendo os campos de **e-mail** e **senha**.
+**Descrição:** Vista apresentada ao entrar no sistema, contendo os campos de **e-mail** e **senha**. Em **Não tem uma conta? Criar conta**, o professor informa nome, e-mail e senha e já entra no sistema (cadastro livre, sem administrador).
 
 ---
 
@@ -215,11 +217,13 @@ Prints das telas principais, apresentados na ordem do fluxo de navegação (a te
   <img width="234" height="386" alt="Tópicos do sistema" src="https://github.com/user-attachments/assets/afaa2349-b74f-40b1-8e0d-61ec9ca10d08" />
 </p>
 
-**Descrição:** No lado direito, ficam os tópicos/temas do sistema, separados em:
+**Descrição:** No lado esquerdo, ficam os tópicos/temas do sistema, separados em:
 
 - **CONTEÚDO:** Questões e Provas
 - **OPERAÇÃO:** Aplicações e Turmas
-- **SISTEMA:** Administração
+- **AVALIAÇÃO:** Correção e Relatórios
+
+O grupo **SISTEMA** (Administração), que aparece no print da N1, saiu na N3 junto com o perfil de administrador.
 
 ---
 
@@ -283,43 +287,37 @@ Prints das telas principais, apresentados na ordem do fluxo de navegação (a te
 
 **Descrição:** Visualização detalhada de uma aplicação selecionada.
 
+<p align="center">
+  <img width="1366" alt="Alunos da turma e importação por CSV" src="docs/manual/img/19-turma-alunos.png" />
+</p>
+
+**Descrição:** Dentro da turma, o professor matricula alunos um por um ou importa a lista por um arquivo CSV exportado do Excel, e pode remover um aluno sem perder as notas dele.
+
 ---
 
-### 4.7 Administração
+### 4.7 Correção
 
 <p align="center">
-  <img width="1471" height="861" alt="Tela de Administração" src="https://github.com/user-attachments/assets/cf61cf07-41b8-4b7a-9568-ea32a069c46e" />
+  <img width="1366" alt="Lista de correção da aplicação" src="docs/manual/img/22-correcao-lista.png" />
 </p>
 
-**Descrição:** Local destinado à criação e gerenciamento de usuários, como **professores** e **administradores**. Essa tela **somente é exibida para usuários com perfil de Administrador**.
-
-É possível criar um novo usuário informando:
-
-- **Nome**
-- **E-mail**
-- **Papel:** Professor ou Administrador
+**Descrição:** Em **Correção**, o professor escolhe a aplicação e vê a lista de alunos com a situação de cada prova (corrigida, pendente ou sem folha) e a nota.
 
 <p align="center">
-  <img width="432" height="413" alt="Criação de usuário" src="https://github.com/user-attachments/assets/550c6402-41a2-4c07-a289-3c09573f3b57" />
+  <img width="1366" alt="Respostas lidas pela foto da folha" src="docs/manual/img/23-correcao-foto.png" />
 </p>
 
-**Descrição:** Após a criação, é possível editar os dados do usuário.
+**Descrição:** Ao enviar a foto da folha de resposta, o sistema lê as bolinhas marcadas e preenche as respostas; o professor confere e clica em **Corrigir prova**. Também é possível marcar as respostas na tela ou lançar a nota manualmente.
+
+---
+
+### 4.8 Relatórios
 
 <p align="center">
-  <img width="1207" height="822" alt="Edição de usuário" src="https://github.com/user-attachments/assets/86bdad20-2e1e-4306-93cd-f8226abf2115" />
+  <img width="1366" alt="Relatório da aplicação" src="docs/manual/img/12-relatorio-aplicacao.png" />
 </p>
 
-**Descrição:** Após a criação do usuário, é exibido também o campo **Status**, que pode assumir os valores **Convidado** (aguardando liberação) ou **Ativo** (usuário ativo no sistema).
-
-<p align="center">
-  <img width="389" height="149" alt="Status do usuário" src="https://github.com/user-attachments/assets/cf28616f-256c-4ef0-af9f-edaa0f8fa9ca" />
-</p>
-
-**Descrição:** Ao clicar em **Remover**, é exibido um pop-up solicitando a confirmação da ação.
-
-<p align="center">
-  <img width="445" height="141" alt="Confirmação de remoção" src="https://github.com/user-attachments/assets/4c73250b-59c8-4f55-9f78-95cea29cb6fb" />
-</p>
+**Descrição:** O relatório da aplicação mostra média, mediana, maior e menor nota, as notas de cada aluno e o desempenho por questão, com a alternativa mais marcada. Há também o consolidado da turma e o histórico de cada aluno, com exportação em CSV, Excel e PDF.
 
 ## 5. Arquitetura de Software
 
@@ -365,7 +363,7 @@ ADRs (Registros de Decisão Arquitetural) do projeto:
 - [ADR-001: Escopo reduzido em relação à especificação de referência do cliente](docs/adr/ADR-001-escopo-reduzido-sem-app-mobile-e-microsservicos.md)
 - [ADR-002: API em camadas (rota → controller → service → repository → model)](docs/adr/ADR-002-arquitetura-em-camadas.md)
 - [ADR-003: MySQL como banco e estrutura criada por migrations versionadas](docs/adr/ADR-003-mysql-com-migrations-versionadas.md)
-- [ADR-004: Autenticação com JWT, refresh token rotativo e cadastro por convite](docs/adr/ADR-004-autenticacao-jwt-com-refresh-token-e-cadastro-por-convite.md) (parcialmente substituído pelo ADR-006)
+- [ADR-004: Autenticação com JWT, refresh token rotativo e cadastro por convite](docs/adr/ADR-004-autenticacao-jwt-com-refresh-token-e-cadastro-por-convite.md) (parcialmente substituído pelo ADR-006: o cadastro por convite deu lugar ao cadastro livre; JWT e refresh token rotativo continuam)
 - [ADR-005: Ciclo de status da prova (Rascunho → Pronta → Arquivada)](docs/adr/ADR-005-ciclo-de-status-da-prova.md)
 - [ADR-006: Sistema só do professor, com cadastro livre e sem administrador](docs/adr/ADR-006-sistema-so-do-professor-com-cadastro-livre.md)
 
@@ -387,42 +385,47 @@ O banco é criado pelas migrations de `server/database/migrations/`, aplicadas e
 | `002_configuracoes.sql` | `configuracoes`: nome da instituição e período padrão |
 | `003_correcao_respostas.sql` | `correcao_resposta`: resposta de cada questão em uma correção |
 | `004_versao_sessao.sql` | `usuario.versao_sessao`: invalida os tokens de acesso no logout de todos os dispositivos |
+| `005_normalizar_tags.sql` | Unifica as tags repetidas (acentos, maiúsculas e espaços) sem perder os vínculos com as questões (T79) |
+| `005_professor_unico.sql` | Deixa só o papel de professor: contas de administrador viram professor, e o status passa a ser `ATIVO` ou `ANONIMIZADO` (T77/T38) |
 
-O migrator também configura SSL/TLS quando necessário para conectar a bancos hospedados que exigem conexão criptografada.
+As duas migrations 005 são independentes e o migrator aplica as duas, em ordem alfabética. O migrator também configura SSL/TLS quando necessário para conectar a bancos hospedados que exigem conexão criptografada.
 
 ### 7.1 Estado da integração com o banco
 
-Posição da entrega da N2.
+Posição da entrega final (N3). Nenhuma tela usa dados de exemplo: tudo o que aparece no sistema vem da API e do MySQL.
 
 | Frente | Parte | Lê e grava no MySQL? | Observação |
 |---|---|---|---|
-| Autenticação | Login, JWT e refresh token (T07) | ✅ Sim | Cadastro por convite, hash de senha e proteção de rotas autenticadas. |
-| Autenticação | Logout de todos os dispositivos (T08) | ✅ Sim | Incrementa a versão da sessão e revoga os refresh tokens; migration `004_versao_sessao.sql` aplicada no banco de produção. |
-| Autenticação | Anonimização de conta (T09) | ❌ Não concluída | Implementação iniciada, mas não finalizada nem integrada à `main`; o endpoint previsto ainda não está disponível na API publicada. Ver seção 7.2. |
-| Administração | Usuários e configurações (T10) | ✅ Sim | |
-| Turmas | Criar, editar e arquivar (T13) | ✅ Sim | |
-| Turmas | Matrícula pelo professor (T15) | ✅ Sim | A rota `POST /api/turmas/:id/matriculas` foi restaurada pela PR #56 e incluída na `main`, substituindo o estado anterior em que a rota estava ausente. |
-| Turmas | Código de convite e ingresso do aluno (T14) | ✅ Sim | O aluno informa nome, e-mail e código em `/turmas/ingresso`, sem criar conta. |
-| Questões | Listar, criar, editar e excluir (T11) | ✅ Sim | A tela trabalha com questões objetivas; a listagem utilizada na montagem de provas passou a consultar somente a API, sem incluir as questões de exemplo embutidas no front-end. |
+| Autenticação | Cadastro livre de professores e login (T07, T77/T78) | ✅ Sim | O professor cria a própria conta; senha com bcrypt; JWT de acesso e refresh token rotativo. Não há mais administrador nem convite. |
+| Autenticação | Logout de todos os dispositivos (T08) | ✅ Sim | Incrementa a versão da sessão e revoga os refresh tokens. |
+| Autenticação | Anonimização de conta (T38, que retomou a T09 da N2) | ✅ Sim | `POST /api/me/anonymize`; ver seção 7.2. Disponível pela API, sem tela própria no front-end. |
+| Turmas | Criar, editar, arquivar e excluir (T13, T81) | ✅ Sim | Turma com aplicações é arquivada em vez de excluída, para preservar provas e notas. |
+| Turmas | Matrícula pelo professor, importação por CSV e remoção de aluno (T15, T47, T48, T75) | ✅ Sim | Importação de até 500 alunos com resultado por linha; a remoção preserva cadastro, cópias e notas. |
+| Turmas | Ingresso do aluno por código de convite (T14) | ➖ Retirado | Saiu na N3: quem matricula é sempre o professor. |
+| Questões | Listar, criar, editar e excluir (T11) e tags padronizadas (T79) | ✅ Sim | Questões objetivas; tags unificadas no front-end, na API e na migration `005_normalizar_tags.sql`. |
 | Questões | Upload de imagem (T12) | ✅ Sim | Arquivos em `server/uploads/questoes`; o banco guarda o caminho. |
-| Provas | Criar, listar, editar e arquivar (T17) | ✅ Sim | |
+| Provas | Criar, listar, editar e arquivar (T17, T82) | ✅ Sim | Edição só em Rascunho. |
 | Aplicações | Criar, configurar e marcar como aplicada, com a regra de status da prova (T18 e T19) | ✅ Sim | |
-| PDF e Gabarito | Cópias e publicação do gabarito (T23) | ✅ Sim | Geradas pelo servidor em `copia_prova`. |
-| PDF e Gabarito | Cópias vinculadas aos alunos matriculados (T24) | ✅ Sim | Uma cópia nominal por aluno. |
-| PDF e Gabarito | Geração e download do PDF no servidor (T25) | ✅ Sim | Questão discursiva ainda não é aceita no PDF; imagens WEBP e GIF ficam de fora, com aviso. |
-| PDF e Gabarito | Consulta pública do gabarito, sem login (T26) | ✅ Sim | |
-| PDF e Gabarito | Exportação do gabarito em PDF (T27) | ✅ Sim | |
-| Correção e Notas | Correção, lançamento manual, relatórios e histórico (T29 a T33) | ✅ Sim | O professor lê o QR e marca as respostas na tela; a leitura automática das marcações da folha ainda não existe. |
+| PDF e Gabarito | Cópias por pessoa, vinculadas aos alunos, e publicação do gabarito (T23, T24) | ✅ Sim | Geradas pelo servidor em `copia_prova`; a regeração é bloqueada depois do download ou de uma correção (T58). |
+| PDF e Gabarito | Geração e download do PDF no servidor (T25, T89) | ✅ Sim | Folha de resposta com QR Code, bolinhas e marcadores de canto calibrados para a leitura pela foto. Questão discursiva não é aceita no PDF; imagens WEBP e GIF ficam de fora, com aviso. |
+| PDF e Gabarito | Consulta pública, despublicação e exportação do gabarito (T26, T27, T59) | ✅ Sim | |
+| Correção e Notas | Correção pela lista de alunos da aplicação (T90) | ✅ Sim | Situação de cada aluno: corrigida, pendente ou sem folha. |
+| Correção e Notas | Leitura da folha pela foto (T63 a T65) | ✅ Sim | A leitura das bolinhas roda no navegador (`client/src/utils/sheetReader.js`); o professor confere antes de gravar. |
+| Correção e Notas | Lançamento manual, relatórios e histórico (T29 a T33, T74) | ✅ Sim | Inclui a distribuição das respostas por alternativa. |
+| Correção e Notas | Exportação dos relatórios em CSV, Excel e PDF (T66) | ✅ Sim | |
 
-A T35 removeu as questões de exemplo que eram carregadas pelo `DataContext` do front-end. Com isso, a lista usada na montagem das provas passa a vir da API e evita a seleção de questões fictícias que não existem no MySQL. Os arquivos JSON de dados fictícios que restavam em `client/src/data/` foram removidos na T49: todos os dados do sistema vêm da API e do MySQL.
+Não há mais dados fictícios no front-end: a T35 tirou as questões de exemplo do `DataContext` e a T49 removeu os arquivos JSON que restavam em `client/src/data/`. Todos os dados do sistema vêm da API e do MySQL.
 
-### 7.2 Situação da T09 — Anonimização de conta (LGPD)
+### 7.2 Anonimização de conta (LGPD)
 
-A T09 prevê a implementação do endpoint `POST /api/me/anonymize`, para que o usuário autenticado solicite a anonimização da própria conta. A finalidade é substituir os dados pessoais identificáveis por valores anonimizados, preservar o registro do usuário e manter o histórico de notas e correções associado aos registros acadêmicos, sem realizar a exclusão física do histórico.
+O professor autenticado pode pedir a anonimização da própria conta pelo endpoint `POST /api/me/anonymize` (T38, que retomou e concluiu a T09 da N2). O sistema:
 
-**Situação na entrega da N2:** a implementação foi iniciada, mas ficou parcial e não foi concluída dentro do prazo. A funcionalidade não foi integrada à `main` e não está disponível na versão hospedada. Portanto, o endpoint `POST /api/me/anonymize` não deve ser considerado implementado ou utilizável nesta versão do sistema.
+- troca o nome e o e-mail por valores sem identificação (`Conta anonimizada #<id>` e um e-mail `@anonimizado.invalid`) e apaga o hash da senha;
+- marca a conta como `ANONIMIZADO`, o que impede novos logins;
+- revoga todos os refresh tokens e encerra as sessões abertas;
+- mantém as turmas, provas, correções e notas ligadas ao registro, sem exclusão física do histórico acadêmico.
 
-A conclusão da T09 permanece pendente para uma próxima etapa. Até que seja implementada, revisada, testada e integrada, a conta do usuário não deve ser considerada anonimizável pelo sistema.
+A anonimização não tem tela própria no front-end nesta entrega: é feita pela API, com o token da sessão.
 
 ## 8. Stack Tecnológica
 
@@ -443,14 +446,21 @@ Tecnologias usadas no projeto e por que cada uma foi escolhida. A stack obrigat�
 - **helmet**: cabeçalhos HTTP de segurança.
 - **dotenv**: leitura das variáveis de ambiente do arquivo `.env`.
 - **bcryptjs**: hash das senhas.
-- **pdf-lib** e **qrcode**: montagem do PDF das provas e do gabarito, com o QR Code de cada cópia.
+- **pdf-lib** e **qrcode**: montagem do PDF das provas, do gabarito e dos relatórios, com o QR Code de cada cópia. A planilha Excel dos relatórios é montada pelo próprio servidor, sem biblioteca extra.
 - **multer**: recebimento das imagens enviadas nas questões.
+- **node:test**: testes automatizados, nativos do Node, sem dependência extra.
 
 **Front-end (`client/`)**
 
 - **React 19** com **Vite 8**: interface e servidor de desenvolvimento.
 - **React Router 7**: navegação entre as telas.
-- **qrcode** e **jsQR**: exibição e leitura do QR Code das provas.
+- **qrcode** e **jsQR**: exibição e leitura do QR Code das provas. A leitura das bolinhas da folha (`utils/sheetReader.js`) é feita no navegador, com canvas, sem biblioteca de visão computacional.
+- **oxlint**: verificação do código (`npm run lint`).
+
+**Publicação e integração contínua**
+
+- **GitHub Actions**: o workflow `n3-turmas-questoes.yml` roda os testes (com um MySQL 8 de verdade), o lint e o build em cada PR; o `deploy-front.yml` publica o front-end a cada merge na `main`.
+- **Cloudflare Pages** (front-end), **Render** (API) e **Aiven** (MySQL com SSL), todos em planos gratuitos.
 
 ## 9. Estrutura de Pastas
 
@@ -500,10 +510,19 @@ Projeto-e-Arquitetura-5-fase/
 │   ├── adr/                      # Registros de decisões de arquitetura
 │   ├── api/                      # Especificação detalhada da API por frente
 │   ├── arquitetura/              # Documento e diagrama da arquitetura em camadas
+│   ├── manual/img/               # Telas do manual do usuário
 │   ├── modelo-dados/             # MER/DER, script SQL e dicionário de dados
-│   └── uml/                      # Diagramas UML do projeto
+│   ├── n3/                       # Validações das tarefas da N3
+│   ├── seguranca/                # SGSI simulado (ISO 27001): inventário, riscos, política e controles
+│   ├── uml/                      # Diagramas UML do projeto
+│   ├── desempenho-pdf.md         # Medição do tempo de geração do PDF
+│   ├── folha-de-resposta.md      # Layout da folha de resposta e calibração da leitura
+│   └── manual-usuario.md         # Manual do usuário (professor)
+├── .github/workflows/            # Testes em cada PR e publicação do front-end
 └── README.md
 ```
+
+A pasta [`docs/seguranca`](docs/seguranca/README.md) aplica ao SGP um sistema de gestão de segurança da informação simulado, baseado na ISO 27001, com inventário de ativos, análise de riscos, política, controles da ISO 27002 e evidências. Foi feita para a disciplina de Segurança da Informação.
 
 ## 10. Como Executar o Projeto
 
@@ -553,10 +572,12 @@ DB_PORT=3306
 DB_USER=sgp
 DB_PASSWORD=sgp_dev
 DB_NAME=sgp
-ALLOW_ADMIN_BOOTSTRAP=true
-ADMIN_EMAIL_DOMAINS=catolicasc.org.br
-PROFESSOR_EMAIL_DOMAINS=catolicasc.org.br,catolicasc.edu.br
+JWT_ACCESS_SECRET=
+JWT_ACCESS_TTL_SECONDS=900
+REFRESH_TOKEN_TTL_DAYS=30
 ```
+
+Em desenvolvimento, `JWT_ACCESS_SECRET` pode ficar vazio; em produção, a API não sobe sem um segredo exclusivo de pelo menos 32 caracteres. Para um banco hospedado que exige SSL, use `DB_SSL_CA`, `DB_SSL_CA_PATH` ou `DB_SSL=true`, conforme os comentários do `.env.example`.
 
 Os valores `sgp`/`sgp_dev` são destinados ao desenvolvimento com o Docker Compose do projeto. Se usar um MySQL já instalado na máquina, substitua `DB_USER` e `DB_PASSWORD` pelas credenciais desse servidor e mantenha `DB_PORT` igual à porta em que ele está escutando. Não é necessário criar as tabelas manualmente pelo MySQL Workbench: as migrations fazem isso.
 
@@ -597,17 +618,11 @@ Para conferir a API e o banco, abra:
 
 Deixe o terminal da API aberto enquanto estiver usando o sistema.
 
-### 10.3 Criar o primeiro administrador
+### 10.3 Criar a primeira conta
 
-Com o back-end e o banco funcionando, abra o front-end conforme a próxima seção. Na tela de login, selecione **Configurar o primeiro administrador** se ainda não houver administrador cadastrado. Informe nome, e-mail com um dos domínios permitidos para administradores e uma senha com pelo menos 8 caracteres.
+Com o back-end e o banco funcionando, abra o front-end conforme a próxima seção. Na tela de entrada, clique em **Não tem uma conta? Criar conta**, informe nome, e-mail e uma senha com pelo menos 8 caracteres e clique em **Criar conta e entrar**. Não há administrador: toda conta é de professor, e cada professor vê só os próprios dados. O sistema não envia e-mail de confirmação nesta versão.
 
-A configuração local usa `ALLOW_ADMIN_BOOTSTRAP=true`. Em desenvolvimento, o código também permite essa configuração por padrão quando a variável não é definida; mantê-la explícita no `.env` facilita o entendimento. Depois de criar o primeiro administrador, essa opção de inicialização não cria outras contas administrativas se já houver um administrador válido.
-
-O projeto verifica se o domínio do e-mail está na lista configurada em `ADMIN_EMAIL_DOMAINS` ou `PROFESSOR_EMAIL_DOMAINS`; nesta etapa, isso não equivale a uma confirmação de propriedade da caixa de e-mail. Ajuste os domínios conforme a orientação da equipe. Em produção, use um `JWT_ACCESS_SECRET` exclusivo e forte, habilite o bootstrap apenas durante a criação inicial e desabilite-o depois.
-
-Para testar o papel de professor, entre como administrador e crie um usuário com o papel **Professor** e status **Convidado**. Saia da conta administrativa e, na tela de login, use **Primeiro acesso? Ative seu convite** com o e-mail convidado para definir a senha. Depois, entre normalmente como professor.
-
-Opcionalmente, a equipe pode carregar dados de demonstração com `npm run db:seed` na pasta `server`, depois das migrations. O seed cria um convite `professor.demo@catolicasc.edu.br` e registros de exemplo para correção, notas e histórico. Para entrar com esse professor, ative o convite pelo fluxo de primeiro acesso. O seed não define uma senha padrão.
+Opcionalmente, a equipe pode carregar dados de demonstração com `npm run db:seed` na pasta `server`, depois das migrations. O seed cria o professor `professor.demo@catolicasc.edu.br`, sem senha, e registros de exemplo para correção, notas e histórico. Para entrar com ele, use **Criar conta** com esse mesmo e-mail e defina a senha. O seed não define uma senha padrão.
 
 ### 10.4 Iniciar o front-end
 
@@ -654,52 +669,44 @@ Abra o endereço mostrado pelo Vite, normalmente <http://localhost:5173>. Não �
 | Docker informa que a porta `3306` está ocupada | Altere `DB_PORT=3307` no `server/.env` e rode `docker compose up -d` novamente, ou use a instalação local do MySQL em vez do Docker. |
 | `O MySQL recusou o usuário` | Confira se o banco escolhido está rodando e se host, porta, usuário e senha correspondem a ele. Lembre-se de que um volume Docker já inicializado mantém suas credenciais originais. |
 | `/api/health` mostra um JSON em uma tela simples | Está correto: esse endpoint verifica a API. A interface fica no endereço do Vite, normalmente `http://localhost:5173`. |
-| A opção de configurar o primeiro administrador não aparece | Verifique se já existe um administrador no banco e se `ALLOW_ADMIN_BOOTSTRAP=true` está configurado para o ambiente local. Reinicie a API após alterar o `.env`. |
+| Ao criar a conta, aparece "Já existe uma conta cadastrada com esse e-mail" | O e-mail já tem conta com senha: use **Entrar**. Uma conta antiga sem senha (como a do seed) pode concluir o cadastro pelo **Criar conta**. |
+| Depois de atualizar o código, a API reclama de coluna ou valor inválido em `usuario` | Faltou aplicar as migrations novas: rode `npm run db:migrate` na pasta `server`. |
 | O front-end não consegue chamar a API | Confira se a API está rodando, se `VITE_API_URL` aponta para `http://localhost:3333/api` e se `CLIENT_ORIGIN` inclui a origem usada pelo Vite. Reinicie ambos após alterar as variáveis. |
 
 O arquivo `server/.env` e o arquivo `client/.env.local` contêm configurações locais e **não devem ser enviados ao GitHub**. Versione apenas os arquivos `.env.example`, sem senhas reais ou tokens secretos.
 
-Consulte [`server/README.md`](server/README.md) para detalhes das variáveis de ambiente, camadas, migrations, autenticação e testes. A autenticação da T07 já utiliza cadastro por convite, senha, JWT e refresh token; as demais funcionalidades são integradas por frente, conforme a evolução das PRs.
+Consulte [`server/README.md`](server/README.md) para detalhes das variáveis de ambiente, camadas, migrations, autenticação e testes.
 
 ## 11. Especificação da API
 
-📌 **N2**
+📌 **N2**, atualizada na N3
 
-A API utiliza o prefixo `/api`. A lista abaixo apresenta os endpoints integrados à `main` nesta entrega. A T09 não aparece como rota porque seu endpoint de anonimização ainda não foi concluído nem integrado.
+A API utiliza o prefixo `/api`. A lista abaixo apresenta os endpoints da `main` na entrega final. As rotas de administração (`/api/admin/*`, `/api/settings`, bootstrap do primeiro administrador) e o ingresso do aluno por código de convite foram retirados na N3.
 
-**Saúde e autenticação**
+**Saúde, autenticação e conta**
 
 | Método | Rota | Descrição |
 |---|---|---|
 | GET | `/api/health` | Verifica se a API está no ar. |
 | GET | `/api/health/db` | Verifica a conexão com o MySQL. |
-| GET | `/api/auth/bootstrap-status` | Informa se ainda é necessário criar o primeiro administrador. |
-| POST | `/api/auth/bootstrap-admin` | Cria o primeiro administrador, quando o bootstrap está permitido. |
-| POST | `/api/auth/register` | Ativa um convite existente e define a senha inicial. |
-| POST | `/api/auth/login` | Autentica o usuário e retorna a sessão com JWT e refresh token. |
+| POST | `/api/auth/register` | Cria a conta do professor (cadastro livre) e já retorna a sessão. |
+| POST | `/api/auth/login` | Autentica o professor e retorna a sessão com JWT e refresh token. |
 | POST | `/api/auth/refresh` | Renova a sessão e revoga o refresh token anterior. |
 | GET | `/api/auth/session` | Retorna o usuário da sessão atual. |
 | POST | `/api/auth/logout` | Revoga o refresh token da sessão atual. |
 | POST | `/api/auth/logout-all` | Encerra a sessão em todos os dispositivos. |
-
-**Administração**
-
-| Método | Rota | Descrição |
-|---|---|---|
-| GET, POST | `/api/admin/usuarios` | Lista e cria usuários. |
-| PUT, DELETE | `/api/admin/usuarios/:id` | Edita e remove um usuário. |
-| GET, PUT | `/api/settings` | Consulta e altera as configurações do sistema. |
+| POST | `/api/me/anonymize` | Anonimiza a conta do professor autenticado (LGPD) e encerra as sessões. |
 
 **Turmas e questões**
 
 | Método | Rota | Descrição |
 |---|---|---|
 | GET, POST | `/api/turmas` | Lista e cria turmas. |
-| PUT | `/api/turmas/:id` | Edita uma turma. |
+| PUT, DELETE | `/api/turmas/:id` | Edita uma turma; exclui (ou arquiva, se já tiver aplicações). |
 | PATCH | `/api/turmas/:id/arquivar` | Arquiva uma turma. |
 | POST | `/api/turmas/:id/matriculas` | Matricula um aluno manualmente em uma turma. |
-| POST | `/api/turmas/:id/codigo-convite/regenerar` | Gera um novo código de convite; o anterior deixa de valer. |
-| POST | `/api/turmas/ingresso` | Matricula o aluno pelo código de convite (pública). |
+| POST | `/api/turmas/:id/matriculas/importar` | Importa alunos de um CSV (até 500), com o resultado de cada linha. |
+| DELETE | `/api/turmas/:id/matriculas/:alunoId` | Remove o aluno da turma, preservando cadastro, cópias e notas. |
 | GET, POST | `/api/questoes` | Lista e cria questões. |
 | PUT, DELETE | `/api/questoes/:id` | Edita e exclui (soft-delete) uma questão. |
 | POST | `/api/questoes/upload-imagem` | Envia a imagem de uma questão. |
@@ -722,7 +729,9 @@ A API utiliza o prefixo `/api`. A lista abaixo apresenta os endpoints integrados
 | GET | `/api/copias` | Todas as cópias do professor. |
 | GET, POST | `/api/aplicacoes/:id/copias` | Lista e gera as cópias de uma aplicação. |
 | POST | `/api/aplicacoes/:id/copias/gabarito` | Publica o gabarito de uma cópia ou de todas. |
-| GET | `/api/aplicacoes/:id/pdf` | Gera e baixa o PDF consolidado das provas. |
+| DELETE | `/api/aplicacoes/:id/copias/gabarito` | Despublica o gabarito de todas as cópias. |
+| DELETE | `/api/aplicacoes/:id/copias/gabarito/:code` | Despublica o gabarito de uma cópia. |
+| GET | `/api/aplicacoes/:id/pdf` | Gera e baixa o PDF consolidado das provas (`?modo=completo` ou `folha-de-resposta`). |
 | GET | `/api/aplicacoes/:id/pdf/gabarito` | Gera e baixa o gabarito em PDF. |
 | GET | `/api/gabarito/:codigo` | Consulta pública do gabarito, sem login. |
 
@@ -730,17 +739,21 @@ A API utiliza o prefixo `/api`. A lista abaixo apresenta os endpoints integrados
 
 | Método | Rota | Descrição |
 |---|---|---|
+| GET | `/api/correcoes/aplicacoes/:id` | Alunos da aplicação com a situação da correção de cada um. |
 | GET | `/api/correcoes/copias/:codigo` | Busca a cópia pelo código do QR, pronta para corrigir. |
-| POST | `/api/correcoes` | Corrige pelas respostas informadas e calcula a nota. |
+| POST | `/api/correcoes` | Corrige pelas respostas informadas (marcadas na tela ou lidas da foto) e calcula a nota. |
 | POST | `/api/correcoes/manual` | Lança a nota manualmente. |
 | GET, DELETE | `/api/correcoes/:id` | Consulta e desfaz uma correção. |
 | GET | `/api/relatorios/aplicacoes` | Lista as aplicações com resumo de notas. |
 | GET | `/api/relatorios/aplicacoes/:id` | Relatório de uma aplicação. |
-| GET | `/api/relatorios/aplicacoes/:id/csv` | Exporta o relatório da aplicação. |
+| GET | `/api/relatorios/aplicacoes/:id/exportar` | Exporta o relatório da aplicação (`?formato=csv`, `xlsx` ou `pdf`; `/csv` continua valendo). |
 | GET | `/api/relatorios/turmas` | Lista as turmas do professor. |
 | GET | `/api/relatorios/turmas/:id` | Relatório consolidado da turma. |
-| GET | `/api/relatorios/turmas/:id/csv` | Exporta o consolidado da turma. |
+| GET | `/api/relatorios/turmas/:id/exportar` | Exporta o consolidado da turma (`?formato=csv`, `xlsx` ou `pdf`; `/csv` continua valendo). |
+| GET | `/api/relatorios/exportar` | Exporta o consolidado de todas as turmas do professor. |
 | GET | `/api/alunos/:id/historico` | Histórico de notas do aluno. |
+
+A leitura da foto da folha não tem rota própria: ela roda no navegador, que manda para `POST /api/correcoes` as respostas lidas depois da conferência do professor.
 
 As rotas que exigem autenticação recebem o token de acesso no cabeçalho `Authorization: Bearer <accessToken>`. A lista de endpoints deve acompanhar a integração de cada PR; detalhes de camadas, autenticação e desenvolvimento estão em [`server/README.md`](server/README.md).
 
@@ -753,15 +766,55 @@ Especificação detalhada por frente:
 
 📌 **N3** (validações e tratamento de erros/casos de borda passam a ser cobrados nesta entrega)
 
-Para validar localmente, execute `npm test` na pasta `server` e `npm run build` na pasta `client`. Os testes do back-end cobrem regras de negócio e utilitários; os testes que dependem de um banco devem ser executados com as migrations aplicadas quando indicado pelo próprio teste. Antes de abrir uma PR, confira também os fluxos alterados manualmente, incluindo campos obrigatórios, e-mail já cadastrado, usuário convidado sem senha e acesso a recursos de outro professor.
+Os testes usam o executor nativo do Node (`node:test`) e rodam sem MySQL: as camadas recebem a de baixo por parâmetro, então serviços e rotas são testados com repositórios falsos.
+
+**Como rodar**
+
+```bash
+# na pasta server
+npm test
+# na pasta client
+npm test
+npm run lint
+npm run build
+```
+
+Para ver a cobertura, acrescente `--experimental-test-coverage`: `node --test --experimental-test-coverage`.
+
+**Resultado na entrega final** (`main` de 22/11/2026)
+
+| Parte | Testes | Cobertura de linhas | Ramos | Funções |
+|---|---|---|---|---|
+| Back-end (`server/`, 37 arquivos de teste) | 216: 214 passam e 2 só rodam com MySQL | 78,95% | 87,71% | 75,78% |
+| Front-end (`client/`, leitor da folha) | 5, todos passam | 90,00% | 84,56% | 93,75% |
+
+A cobertura do Node conta os arquivos carregados pelos testes. No front-end, os testes automatizados cobrem o leitor da folha (`sheetReader.js`); as telas foram validadas à mão e pelo build.
+
+**O que os testes cobrem**
+
+- **Regras de negócio e casos de borda** de cada frente: senha e sessão, cadastro com e-mail repetido, isolamento entre professores (um professor não acessa recurso de outro), turmas e matrículas (importação com linhas inválidas e duplicadas), tags, limites da prova (20 questões, pontuação), status da prova e da aplicação, bloqueio de regeração, publicação e despublicação do gabarito, correção automática e manual, relatórios e exportações.
+- **Rotas HTTP** com a API montada de verdade: códigos de resposta, formato dos erros e autenticação.
+- **PDF**: montagem do PDF consolidado e do gabarito e geometria da folha de resposta (`sheetLayout.js`).
+- **Leitura da folha** (front-end): folha inclinada e com perspectiva, de cabeça para baixo, quadro de 25 questões, foto pequena demais e a decisão de cada linha (marcada, em branco, dupla ou fraca).
+- **Com MySQL de verdade** (2 testes, ligados por `N3_MYSQL_TEST=true`): matrícula concorrente sem duplicar aluno e a migration que unifica as tags.
+
+**Integração contínua**
+
+O workflow [`n3-turmas-questoes.yml`](.github/workflows/n3-turmas-questoes.yml) roda em cada PR que muda `client/` ou `server/`: sobe um MySQL 8, executa `npm test` no servidor (incluindo os 2 testes com MySQL), o lint e o build do front-end.
+
+**Validações manuais**
+
+Os fluxos de tela foram conferidos à mão no sistema local e no publicado. Registros das validações da N3: [`docs/n3/`](docs/n3/). A leitura da folha foi testada numa simulação com fotos geradas a partir do PDF real, com perspectiva, luz desigual e desfoque ([`docs/folha-de-resposta.md`](docs/folha-de-resposta.md)), e o tempo de geração do PDF foi medido com turmas grandes ([`docs/desempenho-pdf.md`](docs/desempenho-pdf.md)).
 
 ## 13. Manual do Usuário
 
 📌 **N3**
 
-Guia rápido de como usar o sistema, do ponto de vista de quem vai operá-lo (o cliente), não do desenvolvedor: passo a passo das principais funcionalidades, com prints. Pode ficar em um arquivo separado, `docs/manual-usuario.md`, com o link a partir daqui:
+Guia de uso do sistema do ponto de vista do professor, não do desenvolvedor: passo a passo de todas as funcionalidades, com 24 telas do sistema e destaque para a correção pela foto da folha.
 
 📘 [Manual do Usuário](docs/manual-usuario.md)
+
+Capítulos: visão geral, acesso, banco de questões, turmas e alunos, provas, aplicações, gerar e imprimir as provas, gabarito, correção, relatórios e histórico, e problemas comuns.
 
 ## 14. Equipe e Contribuições
 
@@ -769,11 +822,11 @@ Guia rápido de como usar o sistema, do ponto de vista de quem vai operá-lo (o 
 
 Nome: principais contribuições no projeto (ex.: telas de cadastro, integração com banco, documentação). Serve para deixar claro quem fez o quê na entrega da equipe; não substitui o diário de organização de tarefas individual de cada pessoa.
 
-- **Bruno**: Autenticação e Perfil (cadastro/login, JWT/refresh e logout de todos os dispositivos — T08). A T09 (anonimização de conta) foi iniciada, mas não concluída nem integrada nesta entrega; ver seção 7.2.
-- **Camila**: Turmas e Questões (turmas, matrícula, banco de questões).
-- **Felipe dos Santos**: Provas e Aplicações (montagem e aplicação de provas às turmas).
-- **Matheus**: Geração de PDF e Gabarito (versões, embaralhamento de questões/alternativas, identificação do aluno, publicação de gabarito).
-- **Miguel**: Correção e Notas (fluxo de correção, lançamento manual, relatórios, histórico do aluno).
+- **Bruno**: Autenticação e Perfil (login, JWT/refresh e logout de todos os dispositivos; na N3, cadastro livre de professores com a retirada do administrador — T77/T78 — e anonimização de conta — T38).
+- **Camila**: Turmas e Questões (turmas, matrícula, banco de questões; na N3, importação de alunos por CSV, remoção de aluno, exclusão de turma e tags padronizadas — T47, T48, T75, T79 a T81).
+- **Felipe dos Santos**: Provas e Aplicações (montagem e aplicação de provas às turmas; na N3, edição de prova — T82 — e publicação automática do front-end no Cloudflare Pages).
+- **Matheus**: Geração de PDF e Gabarito (cópias embaralhadas, identificação do aluno, PDF e publicação de gabarito; na N3, folha calibrada para a leitura pela foto, bloqueio de regeração, despublicação do gabarito, testes e medição do PDF, estatística por alternativa e manual do usuário — T58 a T61, T74, T89).
+- **Miguel**: Correção e Notas (fluxo de correção, lançamento manual, relatórios, histórico do aluno; na N3, correção pela lista de alunos, leitura da folha pela foto e exportação em Excel e PDF — T63 a T66, T90).
 
 ---
 
