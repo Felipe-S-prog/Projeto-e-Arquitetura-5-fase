@@ -414,7 +414,7 @@ Posição da entrega da N2.
 | PDF e Gabarito | Exportação do gabarito em PDF (T27) | ✅ Sim | |
 | Correção e Notas | Correção, lançamento manual, relatórios e histórico (T29 a T33) | ✅ Sim | O professor lê o QR e marca as respostas na tela; a leitura automática das marcações da folha ainda não existe. |
 
-A T35 removeu as questões de exemplo que eram carregadas pelo `DataContext` do front-end. Com isso, a lista usada na montagem das provas passa a vir da API e evita a seleção de questões fictícias que não existem no MySQL. O diretório `client/src/data/` ainda pode conter arquivos de apoio ou dados de demonstração, mas eles não devem ser tratados como fonte das questões reais do sistema.
+A T35 removeu as questões de exemplo que eram carregadas pelo `DataContext` do front-end. Com isso, a lista usada na montagem das provas passa a vir da API e evita a seleção de questões fictícias que não existem no MySQL. Os arquivos JSON de dados fictícios que restavam em `client/src/data/` foram removidos na T49: todos os dados do sistema vêm da API e do MySQL.
 
 ### 7.2 Situação da T09 — Anonimização de conta (LGPD)
 

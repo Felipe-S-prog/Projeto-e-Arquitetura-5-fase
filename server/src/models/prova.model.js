@@ -1,7 +1,7 @@
 import { toCamelCase } from '../utils/case.js';
 
 // Models da Provas (T17): convertem as linhas do banco nos objetos que o front já usa
-// (ver client/src/data/exams.json): { id, title, description, status, questions: [{ questionId, score }] }.
+// { id, title, description, status, questions: [{ questionId, score }] }.
 
 const STATUS_PARA_API = { RASCUNHO: 'Rascunho', PRONTA: 'Pronta', ARQUIVADA: 'Arquivada' };
 
