@@ -82,3 +82,23 @@ input:focus, select:focus, textarea:focus {
   outline: 2px solid oklch(80% 0.06 250);
   outline-offset: 1px;
 }
+
+/* Texto só para leitor de tela (ex.: título de coluna de ações). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Foco visível em botões e links usados pelo teclado. */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid oklch(55% 0.12 250);
+  outline-offset: 2px;
+}

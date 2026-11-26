@@ -1,25 +1,14 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Badge, Breadcrumb, EmptyState } from '../components/ui';
+import { Badge, Breadcrumb, EmptyState, ErrorMessage, PageHeader, SectionCard, StatCard, StatGrid } from '../components/ui';
 import { useApiGet } from '../services/useApiGet';
 import { formatDate, formatDateTime, formatPercent, formatScore, GRADING_TYPE_LABEL, scoreColor } from '../utils/grades';
-
-const cardStyle = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 22, marginBottom: 14 };
-
-function StatCard({ label, value, color }) {
-  return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
-      <div style={{ fontSize: 12, color: 'var(--muted-3)', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 800, color: color ?? 'var(--ink)' }}>{value}</div>
-    </div>
-  );
-}
 
 // Respostas de uma correção automática, carregadas só quando o professor abre o item.
 function AnswersDetail({ gradingId }) {
   const { data, error, loading } = useApiGet(`/correcoes/${gradingId}`);
   if (loading) return <div style={{ fontSize: 13, color: 'var(--muted-2)' }}>Carregando respostas...</div>;
-  if (error) return <div style={{ fontSize: 13, color: 'var(--red-text)' }}>{error.message}</div>;
+  if (error) return <ErrorMessage style={{ marginTop: 0 }}>{error.message}</ErrorMessage>;
 
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -47,9 +36,9 @@ function HistoryItem({ item }) {
   const automatic = item.tipo === 'AUTOMATICA';
 
   return (
-    <div style={cardStyle}>
+    <SectionCard style={{ padding: 22, marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 280px', minWidth: 0 }}>
+        <div style={{ flex: '1 1 min(100%, 280px)', minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-strong)' }}>{item.prova.titulo}</div>
             <Badge status={GRADING_TYPE_LABEL[item.tipo]} />
@@ -71,9 +60,9 @@ function HistoryItem({ item }) {
           <div style={{ fontSize: 12.5, color: 'var(--muted-2)' }}>{formatPercent(item.percentual)}</div>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 13, fontWeight: 600 }}>
+      <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 13, fontWeight: 600, flexWrap: 'wrap' }}>
         {automatic && (
-          <button type="button" onClick={() => setOpen((v) => !v)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--navy)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+          <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--navy)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
             {open ? 'Ocultar respostas' : 'Ver respostas'}
           </button>
         )}
@@ -85,7 +74,7 @@ function HistoryItem({ item }) {
           <AnswersDetail gradingId={item.correcaoId} />
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -108,13 +97,9 @@ export default function StudentHistory() {
   return (
     <div>
       <Breadcrumb items={[{ label: 'Relatórios', to: '/relatorios' }, { label: aluno.nome }]} />
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{aluno.nome}</div>
-        <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 5 }}>
-          {aluno.email}
-          {aluno.matricula ? ` · matrícula ${aluno.matricula}` : ''}
-        </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+      <PageHeader title={aluno.nome} description={`${aluno.email}${aluno.matricula ? ` · matrícula ${aluno.matricula}` : ''}`} />
+      <div style={{ marginTop: -14, marginBottom: 24 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {turmas.map((t) => (
             <Link
               key={t.id}
@@ -127,14 +112,14 @@ export default function StudentHistory() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
+      <StatGrid>
         <StatCard label="Provas corrigidas" value={resumo.provas} />
         <StatCard label="Média" value={formatPercent(resumo.mediaPercentual)} color={scoreColor(resumo.mediaPercentual)} />
         <StatCard label="Melhor resultado" value={formatPercent(resumo.melhorPercentual)} />
         <StatCard label="Pior resultado" value={formatPercent(resumo.piorPercentual)} />
-      </div>
+      </StatGrid>
 
-      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--faint)', marginBottom: 12 }}>HISTÓRICO DE NOTAS</div>
+      <h2 style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--faint)', margin: '24px 0 12px' }}>HISTÓRICO DE NOTAS</h2>
       {notas.length === 0 ? (
         <EmptyState>Este aluno ainda não tem notas lançadas.</EmptyState>
       ) : (
