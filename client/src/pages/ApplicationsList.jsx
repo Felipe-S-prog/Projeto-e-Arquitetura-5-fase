@@ -18,7 +18,7 @@ export default function ApplicationsList() {
         {applications.map((a) => {
           const exam = getExamById(a.examId);
           const cls = getClassById(a.classId);
-          const hasPdf = a.status === 'Aplicada';
+          const hasPdf = a.status !== 'Pendente'; // Aplicada ou Corrigida
           return (
             <div
               key={a.id}

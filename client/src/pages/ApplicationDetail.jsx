@@ -13,7 +13,7 @@ export default function ApplicationDetail() {
 
   const exam = getExamById(app.examId);
   const cls = getClassById(app.classId);
-  const hasPdf = app.status === 'Aplicada';
+  const hasPdf = app.status !== 'Pendente'; // Aplicada ou Corrigida
   const stageOpacity = hasPdf ? 1 : 0.55;
   const publishedCount = (app.copies || []).filter((c) => c.answerKeyPublished).length;
 
