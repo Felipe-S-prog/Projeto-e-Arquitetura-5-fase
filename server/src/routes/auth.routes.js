@@ -18,6 +18,7 @@ export function createAuthRoutes({ pool, config }) {
   const loginLimiter = createRateLimiter({
     windowMs: 15 * 60 * 1000,
     max: 5,
+    countOnlyStatus: 401,
   });
 
   const refreshLimiter = createRateLimiter({

@@ -13,6 +13,7 @@ import { createApiAuthMiddleware } from './middlewares/apiAuth.js';
 // para os testes poderem trocar o banco real por um falso.
 export function createApp({ pool, config }) {
   const app = express();
+  app.set('trust proxy', 1);
 
   app.use(helmet()); // cabeçalhos de segurança
   // só o front autorizado pode chamar a API; Content-Disposition liberado para o front ler o nome dos arquivos baixados

@@ -1,14 +1,10 @@
-export function createRateLimiter({ windowMs, max }) {
+export function createRateLimiter({ windowMs, max, countOnlyStatus = null }) {
   const clients = new Map();
   let requestsUntilCleanup = 0;
 
   return (req, res, next) => {
     const now = Date.now();
-    const forwardedIp = req.get('x-forwarded-for')?.split(',')[0]?.trim();
-
-    const ip = forwardedIp && forwardedIp.length <= 64
-      ? forwardedIp
-      : req.ip || req.socket.remoteAddress || 'unknown';
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
 
     requestsUntilCleanup += 1;
 
@@ -39,8 +35,17 @@ export function createRateLimiter({ windowMs, max }) {
       });
     }
 
-    bucket.count += 1;
     clients.set(ip, bucket);
+
+    if (countOnlyStatus !== null) {
+      res.once('finish', () => {
+        if (res.statusCode === countOnlyStatus) {
+          bucket.count += 1;
+        }
+      });
+    } else {
+      bucket.count += 1;
+    }
 
     next();
   };
