@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import LiveSheetReader from '../components/LiveSheetReader';
 import QrReader from '../components/QrReader';
 import { Badge, Breadcrumb, FormField, PageHeader, PrimaryButton, SecondaryButton, Select, TextInput } from '../components/ui';
 import { apiRequest } from '../services/api';
@@ -320,6 +321,9 @@ export default function Grading() {
   const [sheetReading, setSheetReading] = useState(null);
   const [readingSheet, setReadingSheet] = useState(false);
   const [sheetError, setSheetError] = useState('');
+  // Leitura da folha pela câmera ao vivo; as folhas já buscadas ficam guardadas por código.
+  const [liveOpen, setLiveOpen] = useState(false);
+  const folhaCache = useRef(new Map());
 
   const loadCopy = async (code) => {
     const normalized = code.trim().toUpperCase();
@@ -329,6 +333,7 @@ export default function Grading() {
     try {
       const data = await apiRequest(`/correcoes/copias/${encodeURIComponent(normalized)}`);
       setCopy(data);
+      setLiveOpen(false);
       setGrading(data.correcao);
       setEditing(!data.correcao);
       setAnswers(answersFromGrading(data.correcao));
@@ -414,7 +419,40 @@ export default function Grading() {
     }
   };
 
+  // Geometria da folha de uma prova, para a leitura ao vivo. Busca na API só uma vez por código.
+  const getFolha = useCallback(
+    async (code) => {
+      if (copy?.copia.codigo === code && copy.folha) return copy.folha;
+      if (!folhaCache.current.has(code)) {
+        try {
+          const data = await apiRequest(`/correcoes/copias/${encodeURIComponent(code)}`);
+          folhaCache.current.set(code, data.folha ?? null);
+        } catch (error) {
+          throw new SheetReadError(error.status === 404 ? `Nenhuma prova sua tem o código ${code}.` : 'Não foi possível buscar a prova. Confira a internet.');
+        }
+      }
+      const folha = folhaCache.current.get(code);
+      if (!folha) throw new SheetReadError('Esta prova não pode ser lida pela folha. Marque as respostas na tela.');
+      return folha;
+    },
+    [copy]
+  );
+
+  // Leitura aceita pela câmera ao vivo: abre a prova lida (se for outra) e preenche as respostas.
+  const handleLiveRead = async ({ code, reading }) => {
+    setLiveOpen(false);
+    setSheetError('');
+    let target = copy;
+    if (!target || target.copia.codigo !== code) {
+      if (target && !window.confirm(`A folha é da prova ${code}, não da prova ${target.copia.codigo}. Abrir a prova ${code}?`)) return;
+      target = await loadCopy(code);
+      if (!target) return;
+    }
+    applyReading(reading);
+  };
+
   const reset = () => {
+    setLiveOpen(false);
     setSheetReading(null);
     setSheetError('');
     setCopy(null);
@@ -500,11 +538,28 @@ export default function Grading() {
       {!copy && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, alignItems: 'start' }}>
           <div style={{ ...cardStyle, marginBottom: 0 }}>
+            <SectionTitle hint="Aponte a câmera para a folha preenchida: o sistema identifica a prova e lê as marcações, sem tirar foto.">
+              Ler folha pela câmera
+            </SectionTitle>
+            {liveOpen ? (
+              <LiveSheetReader getFolha={getFolha} onRead={handleLiveRead} onClose={() => setLiveOpen(false)} />
+            ) : (
+              <>
+                <div style={{ fontSize: 13.5, color: 'var(--muted-2)', marginBottom: 14 }}>
+                  A leitura é automática quando a folha fica parada; se preferir, use a contagem de 3 segundos.
+                </div>
+                <PrimaryButton type="button" onClick={() => setLiveOpen(true)}>
+                  Abrir câmera
+                </PrimaryButton>
+              </>
+            )}
+          </div>
+          <div style={{ ...cardStyle, marginBottom: 0 }}>
             <SectionTitle hint="Tire uma foto da folha preenchida: o sistema identifica a prova e lê as marcações.">Ler folha pela foto</SectionTitle>
             <div style={{ fontSize: 13.5, color: 'var(--muted-2)', marginBottom: 14 }}>
               Folha inteira na foto, sem reflexo e sem cortar os quadrados pretos dos cantos.
             </div>
-            <SheetPhotoButton onFile={readPhoto} busy={readingSheet} primary>
+            <SheetPhotoButton onFile={readPhoto} busy={readingSheet}>
               Enviar foto da folha
             </SheetPhotoButton>
             {sheetError && <ErrorText>{sheetError}</ErrorText>}
@@ -582,6 +637,11 @@ export default function Grading() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
                 <SectionTitle>{grading ? 'Corrigir novamente' : 'Corrigir prova'}</SectionTitle>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {copy.folha && mode === 'answers' && !liveOpen && (
+                    <SecondaryButton type="button" onClick={() => setLiveOpen(true)}>
+                      Ler pela câmera
+                    </SecondaryButton>
+                  )}
                   {copy.folha && mode === 'answers' && (
                     <SheetPhotoButton onFile={readPhoto} busy={readingSheet}>
                       Ler folha pela foto
@@ -593,6 +653,11 @@ export default function Grading() {
               {sheetError && (
                 <div style={{ marginTop: -8, marginBottom: 14 }}>
                   <ErrorText>{sheetError}</ErrorText>
+                </div>
+              )}
+              {liveOpen && copy.folha && mode === 'answers' && (
+                <div style={{ marginBottom: 22 }}>
+                  <LiveSheetReader getFolha={getFolha} onRead={handleLiveRead} onClose={() => setLiveOpen(false)} />
                 </div>
               )}
 

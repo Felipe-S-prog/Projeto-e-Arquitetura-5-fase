@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import QRCode from 'qrcode';
 import { folhaDaCopia } from '../../server/src/services/correcao.folha.js';
 import { decideRow, findSheetQr, homographyFrom4, readAnswers, SheetReadError } from '../src/utils/sheetReader.js';
+import { createStabilityTracker, scaleQr } from '../src/utils/liveSheet.js';
 
 // Folha de teste: a mesma geometria que o servidor manda para o front (e que desenha o PDF).
 function folhaCom(alternativasPorQuestao) {
@@ -150,4 +151,64 @@ test('decideRow: em branco, marcação fraca, dupla e marcação limpa', () => {
   assert.equal(decideRow([0.05, 0.18, 0.04]).duvidosa, true); // caneta fraca: conferir
   assert.equal(decideRow([0.7, 0.05, 0.66]).situacao, 'DUPLA');
   assert.equal(decideRow([0.7, 0.3, 0.05]).duvidosa, true); // segunda bolinha suja
+});
+
+// Reduz a imagem pela média de blocos (como o canvas faz no navegador) até maxSide no lado maior.
+function shrink(image, maxSide) {
+  const factor = Math.max(image.width, image.height) / maxSide;
+  const width = Math.round(image.width / factor);
+  const height = Math.round(image.height / factor);
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const sx = Math.min(image.width - 1, Math.floor(x * factor));
+      const sy = Math.min(image.height - 1, Math.floor(y * factor));
+      const si = (sy * image.width + sx) * 4;
+      const i = (y * width + x) * 4;
+      data[i] = image.data[si];
+      data[i + 1] = image.data[si + 1];
+      data[i + 2] = image.data[si + 2];
+      data[i + 3] = 255;
+    }
+  }
+  return { imageData: { data, width, height }, factor: image.width / width };
+}
+
+// Quadro de câmera 1920x1080 (paisagem) com só o QR e o quadro de respostas enquadrados:
+// o topo e o pé da folha ficam fora da imagem, como na leitura ao vivo.
+function cameraFrame(folha, code, marks, seed) {
+  return photo(folha, code, marks, {
+    width: 1920,
+    height: 1080,
+    seed,
+    corners: [{ x: 300, y: -470 }, { x: 1720, y: -440 }, { x: 1700, y: 1570 }, { x: 280, y: 1545 }],
+  });
+}
+
+test('câmera ao vivo: QR achado no quadro reduzido e bolinhas lidas no quadro inteiro', () => {
+  const folha = folhaCom(Array(10).fill(5));
+  const frame = cameraFrame(folha, 'LIVE01', MARKS, 11);
+  const small = shrink(frame, 1000);
+  const qr = scaleQr(findSheetQr(small.imageData), small.factor);
+  assert.ok(qr, 'o QR deveria ser lido no quadro reduzido');
+  assert.equal(qr.code, 'LIVE01');
+  const { respostas, larguraFolhaPx } = readAnswers(frame, qr, folha);
+  assert.ok(larguraFolhaPx >= 1000, `folha com ${larguraFolhaPx} px`);
+  assert.deepEqual(
+    respostas.map((r) => r.letra),
+    ['A', 'C', null, null, 'E', 'B', 'A', 'D', 'C', 'B']
+  );
+});
+
+test('câmera ao vivo: dois quadros seguidos da mesma folha são aceitos como estáveis', () => {
+  const folha = folhaCom(Array(10).fill(5));
+  const tracker = createStabilityTracker(2);
+  const results = [11, 23].map((seed) => {
+    const frame = cameraFrame(folha, 'LIVE02', MARKS, seed);
+    const small = shrink(frame, 1000);
+    const qr = scaleQr(findSheetQr(small.imageData), small.factor);
+    return { code: qr.code, reading: readAnswers(frame, qr, folha) };
+  });
+  assert.equal(tracker.push(results[0]), false);
+  assert.equal(tracker.push(results[1]), true);
 });
