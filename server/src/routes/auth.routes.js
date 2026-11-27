@@ -30,10 +30,8 @@ export function createAuthRoutes({ pool, config }) {
   router.post('/register', registerLimiter, controller.register);
   router.post('/login', loginLimiter, controller.login);
   router.post('/refresh', refreshLimiter, controller.refresh);
-  if (config.nodeEnv === 'development' || config.nodeEnv === 'test') {
-    router.post('/forgot-password', controller.requestPasswordReset);
-    router.post('/reset-password', controller.resetPassword);
-  }
+  router.post('/forgot-password', controller.requestPasswordReset);
+  router.post('/reset-password', controller.resetPassword);
   router.get('/session', controller.session);
   router.post('/logout', controller.logout);
   router.post('/logout-all', controller.logoutAll);
