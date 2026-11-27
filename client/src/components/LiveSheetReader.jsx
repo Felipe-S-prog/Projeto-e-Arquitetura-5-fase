@@ -18,11 +18,13 @@ const COUNTDOWN_SECONDS = 3;
 // getFolha(codigo) devolve a geometria da folha daquela prova (ou lança SheetReadError) e
 // onRead({ code, reading }) recebe a leitura aceita. A câmera desliga ao terminar ou ao sair.
 export default function LiveSheetReader({ getFolha, onRead, onClose }) {
+  const [startingCamera, setStartingCamera] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
   const [hint, setHint] = useState('');
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(null);
   const [capturing, setCapturing] = useState(false);
+  const openingCameraRef = useRef(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const timerRef = useRef(null);
@@ -98,6 +100,7 @@ export default function LiveSheetReader({ getFolha, onRead, onClose }) {
   }, [finish, readImage, stopAll]);
 
   const turnOn = async () => {
+    if (openingCameraRef.current || streamRef.current) return;
     setError('');
     if (!cameraSupported()) {
       setError('A câmera só funciona em página segura (https ou localhost) e em navegador com suporte.');
@@ -105,6 +108,8 @@ export default function LiveSheetReader({ getFolha, onRead, onClose }) {
     }
     const video = videoRef.current;
     if (!video) return;
+    openingCameraRef.current = true;
+    setStartingCamera(true);
     try {
       const stream = await startCamera(video, { highRes: true });
       if (videoRef.current !== video) {
@@ -119,8 +124,13 @@ export default function LiveSheetReader({ getFolha, onRead, onClose }) {
       activeRef.current = true;
       timerRef.current = setTimeout(tick, SCAN_INTERVAL_MS);
     } catch (err) {
-      stopAll();
-      setError(describeCameraError(err));
+      if (videoRef.current === video) {
+        stopAll();
+        setError(describeCameraError(err));
+      }
+    } finally {
+      openingCameraRef.current = false;
+      if (videoRef.current === video) setStartingCamera(false);
     }
   };
 
@@ -236,8 +246,8 @@ export default function LiveSheetReader({ getFolha, onRead, onClose }) {
           </>
         ) : (
           <>
-            <PrimaryButton type="button" onClick={turnOn}>
-              Ligar câmera
+            <PrimaryButton type="button" onClick={turnOn} disabled={startingCamera}>
+              {startingCamera ? 'Ligando câmera…' : 'Ligar câmera'}
             </PrimaryButton>
             {onClose && (
               <SecondaryButton type="button" onClick={close}>
