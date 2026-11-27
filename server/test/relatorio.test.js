@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { createApp } from '../src/app.js';
 import { loadConfig } from '../src/config/env.js';
 import { calcularEstatisticas, createRelatorioService } from '../src/services/relatorio.service.js';
+import { toAplicacaoResumo } from '../src/models/relatorio.model.js';
 import { inflateRawSync } from 'node:zlib';
 import { PDFDocument } from 'pdf-lib';
 import { toCsv } from '../src/utils/csv.js';
@@ -79,6 +80,15 @@ function fakeRepository() {
     },
   };
 }
+
+test('toAplicacaoResumo: a listagem diz se a aplicação é nominal (para diferenciar na escolha da correção)', () => {
+  const base = { id: 1, data_aplicacao: '2026-11-20', status: 'APLICADA', prova_id: 2, prova_titulo: 'P1', turma_id: 3, turma_nome: 'T', nota_maxima: '10.00', total_copias: 4, corrigidas: 1, media: '7.5' };
+  assert.equal(toAplicacaoResumo({ ...base, vincular_alunos: 1 }).nominal, true);
+  assert.equal(toAplicacaoResumo({ ...base, vincular_alunos: 0 }).nominal, false);
+  // fora da listagem (sem contagens) o campo não aparece
+  const { total_copias: _t, corrigidas: _c, media: _m, ...semContagens } = base;
+  assert.equal('nominal' in toAplicacaoResumo(semContagens), false);
+});
 
 test('calcularEstatisticas: média, mediana, maior, menor e média em %', () => {
   assert.deepEqual(calcularEstatisticas([8, 5.5, 7, 10], 10), {

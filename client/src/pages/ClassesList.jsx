@@ -1,5 +1,5 @@
 
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import {
   PageHeader,
@@ -57,7 +57,7 @@ export default function ClassesList() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
           gap: 16,
         }}
       >
@@ -67,22 +67,16 @@ export default function ClassesList() {
           ).length;
 
           return (
-            <div
+            <Link
               key={cls.id}
-              onClick={() => navigate(`/turmas/${cls.id}`)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  navigate(`/turmas/${cls.id}`);
-                }
-              }}
-              role="button"
-              tabIndex={0}
+              to={`/turmas/${cls.id}`}
               style={{
                 background: 'white',
                 border: '1px solid var(--border)',
                 borderRadius: 14,
                 padding: 20,
-                cursor: 'pointer',
+                color: 'inherit',
+                textDecoration: 'none',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 14,
@@ -131,7 +125,7 @@ export default function ClassesList() {
                   Abrir →
                 </span>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
