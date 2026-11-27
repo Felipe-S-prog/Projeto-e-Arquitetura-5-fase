@@ -23,3 +23,22 @@ test('toAplicacao: gradedCount traz as correções lançadas, para a tela travar
 test('toAplicacao: sem a contagem na consulta, gradedCount não aparece', () => {
   assert.equal('gradedCount' in toAplicacao(linha()), false);
 });
+
+test('toAplicacao: Aplicada com todas as cópias corrigidas vira Corrigida', () => {
+  const aplicada = (correcoes, copias) =>
+    toAplicacao(linha({ status: 'APLICADA', total_correcoes: correcoes, total_copias: copias })).status;
+  assert.equal(aplicada(5, 5), 'Corrigida');
+  assert.equal(aplicada('5', '5'), 'Corrigida');
+  assert.equal(aplicada(4, 5), 'Aplicada');
+  assert.equal(aplicada(0, 0), 'Aplicada');
+  assert.equal(toAplicacao(linha({ status: 'APLICADA' })).status, 'Aplicada');
+});
+
+test('toAplicacao: Pendente não vira Corrigida nem com correções lançadas', () => {
+  assert.equal(toAplicacao(linha({ total_correcoes: 2, total_copias: 2 })).status, 'Pendente');
+});
+
+test('toAplicacao: copiesCount traz o total de cópias quando a consulta conta', () => {
+  assert.equal(toAplicacao(linha({ total_copias: '3' })).copiesCount, 3);
+  assert.equal('copiesCount' in toAplicacao(linha()), false);
+});

@@ -1,6 +1,6 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import { PageHeader, PrimaryButton, Badge } from '../components/ui';
+import { PageHeader, PrimaryButton, Badge, EmptyState } from '../components/ui';
 import { QrMarkerIcon } from '../components/icons';
 
 export default function ApplicationsList() {
@@ -18,23 +18,25 @@ export default function ApplicationsList() {
         {applications.map((a) => {
           const exam = getExamById(a.examId);
           const cls = getClassById(a.classId);
-          const hasPdf = a.status === 'Aplicada';
+          const hasPdf = a.status !== 'Pendente'; // Aplicada ou Corrigida
           return (
-            <div
+            <Link
               key={a.id}
-              onClick={() => navigate(`/aplicacoes/${a.id}`)}
+              to={`/aplicacoes/${a.id}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                flexWrap: 'wrap',
                 gap: 20,
                 padding: '20px 22px',
                 background: 'white',
                 border: '1px solid var(--border)',
                 borderRadius: 14,
-                cursor: 'pointer',
+                color: 'inherit',
+                textDecoration: 'none',
               }}
             >
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+              <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, minWidth: 0 }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-strong)' }}>{exam?.title}</div>
                   <div style={{ fontSize: 12.5, color: 'var(--muted-2)', marginTop: 3 }}>
@@ -61,7 +63,7 @@ export default function ApplicationsList() {
               </div>
               <Badge status={a.status} />
               <span style={{ fontSize: 13, fontWeight: 700, flexShrink: 0 }}>Abrir →</span>
-            </div>
+            </Link>
           );
         })}
         {applicationsLoading && (
@@ -70,14 +72,12 @@ export default function ApplicationsList() {
           </div>
         )}
         {applicationsError && !applicationsLoading && (
-          <div style={{ padding: 24, textAlign: 'center', color: 'var(--red-text, #b42318)', fontSize: 13.5 }}>
+          <div role="alert" style={{ padding: 24, textAlign: 'center', color: 'var(--red-text, #b42318)', fontSize: 13.5 }}>
             Não foi possível carregar as aplicações: {applicationsError}
           </div>
         )}
         {!applicationsLoading && !applicationsError && applications.length === 0 && (
-          <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted-3)', fontSize: 13.5 }}>
-            Nenhuma aplicação registrada ainda.
-          </div>
+          <EmptyState>Nenhuma aplicação registrada ainda.</EmptyState>
         )}
       </div>
     </div>

@@ -19,7 +19,7 @@ export function createRelatorioRepository(pool) {
   return {
     async listAplicacoes(professorId) {
       const [rows] = await pool.query(
-        `SELECT a.id, a.data_aplicacao, a.status, p.id AS prova_id, p.titulo AS prova_titulo,
+        `SELECT a.id, a.data_aplicacao, a.status, a.vincular_alunos, p.id AS prova_id, p.titulo AS prova_titulo,
                 t.id AS turma_id, t.nome AS turma_nome, ${NOTA_MAXIMA} AS nota_maxima,
                 COUNT(DISTINCT cp.id) AS total_copias, COUNT(c.id) AS corrigidas, AVG(c.nota) AS media
            FROM aplicacao a

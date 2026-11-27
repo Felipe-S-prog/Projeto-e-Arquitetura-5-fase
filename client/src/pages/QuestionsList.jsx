@@ -1,8 +1,8 @@
 import { normalizeTag, normalizeTags } from '../utils/tags';
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
-import { PageHeader, PrimaryButton, TextInput, Select } from '../components/ui';
+import { DangerButton, EmptyState, PageHeader, PrimaryButton, TextInput, Select } from '../components/ui';
 import { BubbleIcon } from '../components/icons';
 import { resolveAssetUrl } from '../services/api';
 
@@ -43,7 +43,7 @@ export default function QuestionsList() {
         actions={<PrimaryButton onClick={() => navigate('/questoes/nova')}>+ Criar questão</PrimaryButton>}
       />
       {error && <p role="alert">{error}</p>}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
         <TextInput
           aria-label="Buscar questões por texto"
           placeholder="Buscar por texto"
@@ -66,6 +66,7 @@ export default function QuestionsList() {
             key={q.id}
             style={{
               display: 'flex',
+              flexWrap: 'wrap',
               gap: 16,
               alignItems: 'flex-start',
               padding: '18px 20px',
@@ -116,34 +117,22 @@ export default function QuestionsList() {
                 {q.imageUrl && <span style={{ fontSize: 12.5, color: 'var(--muted-3)' }}>· com imagem</span>}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 14, fontSize: 13, paddingTop: 4, flexShrink: 0 }}>
-             <a
-             href={`/questoes/nova?editar=${q.id}`}
-             style={{ textDecoration: 'none', fontWeight: 600 }}
-             onClick={(e) => {
-             e.preventDefault();
-              navigate(`/questoes/nova?editar=${q.id}`);
-           }}
-            >
-              Editar
-             </a>
-              <a
-                href="#"
-                style={{ textDecoration: 'none', fontWeight: 600, color: 'var(--red-text)' }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleDelete(q.id);
-                }}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 13, marginLeft: 'auto' }}>
+              <Link to={`/questoes/nova?editar=${q.id}`} style={{ fontWeight: 600 }}>
+                Editar
+              </Link>
+              <DangerButton
+                type="button"
+                disabled={deleting !== null}
+                onClick={() => handleDelete(q.id)}
               >
-                Excluir
-              </a>
+                {deleting === q.id ? 'Excluindo…' : 'Excluir'}
+              </DangerButton>
             </div>
           </div>
         ))}
         {filtered.length === 0 && (
-          <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted-3)', fontSize: 13.5 }}>
-            Nenhuma questão encontrada.
-          </div>
+          <EmptyState>Nenhuma questão encontrada.</EmptyState>
         )}
       </div>
     </div>

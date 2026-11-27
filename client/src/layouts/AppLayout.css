@@ -203,9 +203,41 @@
 }
 
 @media (max-width: 560px) {
+  /* No celular o menu lateral vira uma faixa no topo que rola para o lado:
+     a tela fica com a largura toda para o conteúdo (ex.: foto da folha na correção). */
+  .app-shell {
+    flex-direction: column;
+  }
+
   .app-sidebar {
-    width: 174px;
-    padding: 14px 7px;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  /* rótulos das seções e espaçador */
+  .app-sidebar > div:not(:first-child) {
+    display: none;
+  }
+
+  /* só o logo, sem o texto */
+  .app-sidebar > div:first-child {
+    padding: 0 6px 0 2px !important;
+  }
+
+  .app-sidebar > div:first-child > div {
+    display: none;
+  }
+
+  .app-sidebar > a {
+    flex-shrink: 0;
+    padding: 8px 10px !important;
+    font-size: 13px !important;
   }
 
   .app-topbar {

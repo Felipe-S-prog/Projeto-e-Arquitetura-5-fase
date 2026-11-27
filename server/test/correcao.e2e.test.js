@@ -204,6 +204,16 @@ describe('correção de ponta a ponta (MySQL)', { skip }, () => {
     assert.equal(relatorio.body.estatisticas.media, 8.5);
   });
 
+  test('com todas as cópias corrigidas a aplicação passa a Corrigida', async () => {
+    const aplicacao = await call('GET', `/aplicacoes/${ids.anonima}`);
+    assert.equal(aplicacao.status, 200);
+    assert.equal(aplicacao.body.status, 'Corrigida');
+    assert.equal(aplicacao.body.gradedCount, 2);
+    assert.equal(aplicacao.body.copiesCount, 2);
+    const lista = await call('GET', '/aplicacoes');
+    assert.equal(lista.body.find((a) => a.id === ids.anonima).status, 'Corrigida');
+  });
+
   test('outro professor não enxerga nada desta turma (404) e sem login é 401', async () => {
     assert.equal((await call('GET', '/correcoes/copias/ANAE2E', null, other)).status, 404);
     assert.equal((await call('GET', `/correcoes/aplicacoes/${ids.nominal}`, null, other)).status, 404);
@@ -216,5 +226,7 @@ describe('correção de ponta a ponta (MySQL)', { skip }, () => {
     assert.equal((await call('DELETE', `/correcoes/${body.correcao.id}`)).status, 204);
     const depois = await call('GET', '/correcoes/copias/ANO2E2');
     assert.equal(depois.body.correcao, null);
+    // sem essa correção falta uma cópia: a aplicação volta a Aplicada
+    assert.equal((await call('GET', `/aplicacoes/${ids.anonima}`)).body.status, 'Aplicada');
   });
 });
