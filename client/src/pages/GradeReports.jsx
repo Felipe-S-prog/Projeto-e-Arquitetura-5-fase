@@ -1,7 +1,25 @@
 import { Fragment, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import AnswerDistribution, { MostMarked } from '../components/AnswerDistribution';
-import { Badge, Breadcrumb, EmptyState, FormField, PageHeader, PrimaryButton, SecondaryButton, Select } from '../components/ui';
+import {
+  Badge,
+  Breadcrumb,
+  DataTable,
+  EmptyState,
+  ErrorMessage,
+  FormField,
+  PageHeader,
+  PrimaryButton,
+  RowLink,
+  SecondaryButton,
+  SectionCard,
+  SegmentedControl,
+  Select,
+  StatCard,
+  StatGrid,
+  Td,
+  Th,
+} from '../components/ui';
 import { apiDownload } from '../services/api';
 import { useApiGet } from '../services/useApiGet';
 import { formatDate, formatPercent, formatScore, GRADING_TYPE_LABEL, scoreColor } from '../utils/grades';
@@ -18,49 +36,6 @@ const FORMATS = [
   { key: 'pdf', label: 'PDF' },
   { key: 'csv', label: 'CSV' },
 ];
-
-const cardStyle = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 24, marginBottom: 18 };
-const thStyle = { padding: '9px 8px', fontSize: 12, fontWeight: 600, color: 'var(--muted-3)', textAlign: 'left', whiteSpace: 'nowrap' };
-const tdStyle = { padding: '10px 8px', fontSize: 13.5, borderTop: '1px solid var(--border-light)' };
-
-function Tabs({ value, onChange }) {
-  return (
-    <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
-      {VIEWS.map(({ key, label }) => {
-        const active = value === key;
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onChange(key)}
-            style={{
-              padding: '7px 14px',
-              borderRadius: 100,
-              fontSize: 13,
-              fontWeight: 600,
-              background: active ? 'var(--navy)' : 'white',
-              color: active ? 'white' : 'oklch(40% 0.02 250)',
-              cursor: 'pointer',
-              border: active ? '1px solid var(--navy)' : '1px solid var(--border)',
-            }}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function StatCard({ label, value, detail, color }) {
-  return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
-      <div style={{ fontSize: 12, color: 'var(--muted-3)', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 800, color: color ?? 'var(--ink)', lineHeight: 1.1 }}>{value}</div>
-      {detail && <div style={{ fontSize: 12.5, color: 'var(--muted-2)', marginTop: 4 }}>{detail}</div>}
-    </div>
-  );
-}
 
 function ErrorState({ error }) {
   return <EmptyState>{error.message}</EmptyState>;
@@ -79,8 +54,8 @@ function ExportButtons({ path, fileName }) {
     }
   };
   return (
-    <div style={{ textAlign: 'right' }}>
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+    <div>
+      <div role="group" aria-label="Exportar relatório" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13, color: 'var(--muted-2)' }}>Exportar:</span>
         {FORMATS.map(({ key, label }) => {
           const Button = key === 'xlsx' ? PrimaryButton : SecondaryButton;
@@ -91,7 +66,7 @@ function ExportButtons({ path, fileName }) {
           );
         })}
       </div>
-      {state.error && <div style={{ fontSize: 12.5, color: 'var(--red-text)', marginTop: 6 }}>{state.error}</div>}
+      <ErrorMessage style={{ fontSize: 12.5, marginTop: 6 }}>{state.error}</ErrorMessage>
     </div>
   );
 }
@@ -99,18 +74,12 @@ function ExportButtons({ path, fileName }) {
 // Consolidado do professor (T66): todas as notas de todas as turmas, para baixar de uma vez.
 function AllClassesReport() {
   return (
-    <div style={cardStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 380px' }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 6 }}>Notas de todas as turmas</div>
-          <div style={{ fontSize: 13.5, color: 'var(--muted-2)', lineHeight: 1.5 }}>
-            No Excel: uma aba com todas as notas (turma, aluno, prova, data, nota e correção) e uma aba por turma com
-            os alunos e as aplicações. No PDF: uma tabela por turma. No CSV: a lista com todas as notas.
-          </div>
-        </div>
-        <ExportButtons path="/relatorios/exportar" fileName="notas-todas-as-turmas" />
-      </div>
-    </div>
+    <SectionCard
+      title="Notas de todas as turmas"
+      hint="No Excel: uma aba com todas as notas (turma, aluno, prova, data, nota e correção) e uma aba por turma com os alunos e as aplicações. No PDF: uma tabela por turma. No CSV: a lista com todas as notas."
+    >
+      <ExportButtons path="/relatorios/exportar" fileName="notas-todas-as-turmas" />
+    </SectionCard>
   );
 }
 
@@ -127,7 +96,7 @@ function HitRateBar({ value }) {
 }
 
 function applicationLabel(a) {
-  return `${a.prova.titulo} · ${a.turma.nome}${a.dataAplicacao ? ` · ${formatDate(a.dataAplicacao)}` : ''}`;
+  return `${a.prova.titulo} · ${a.turma.nome}${a.dataAplicacao ? ` · ${formatDate(a.dataAplicacao)}` : ''}${a.nominal === false ? ' · sem identificação' : ''}`;
 }
 
 function ApplicationReport({ applicationId, onSelect }) {
@@ -143,7 +112,7 @@ function ApplicationReport({ applicationId, onSelect }) {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 22, flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 360px', maxWidth: 560 }}>
+        <div style={{ flex: '1 1 min(100%, 360px)', maxWidth: 560, minWidth: 0 }}>
           <FormField label="Aplicação">
             <Select value={applicationId ?? ''} onChange={(e) => onSelect(e.target.value)}>
               <option value="">Selecione uma aplicação</option>
@@ -165,7 +134,7 @@ function ApplicationReport({ applicationId, onSelect }) {
 
       {report.data && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 18 }}>
+          <StatGrid>
             <StatCard label="Corrigidas" value={`${stats.corrigidas} de ${stats.totalCopias}`} detail={stats.pendentes ? `${stats.pendentes} pendente(s)` : 'Todas corrigidas'} />
             <StatCard
               label="Média"
@@ -176,123 +145,119 @@ function ApplicationReport({ applicationId, onSelect }) {
             <StatCard label="Mediana" value={formatScore(stats.mediana)} />
             <StatCard label="Maior nota" value={formatScore(stats.maior)} />
             <StatCard label="Menor nota" value={formatScore(stats.menor)} />
-          </div>
+          </StatGrid>
           {stats.semAluno > 0 && (
             <div style={{ fontSize: 13, color: 'var(--amber-text)', marginBottom: 14 }}>
               {stats.semAluno} nota(s) sem aluno associado: abra a prova em Correção para associar ao aluno certo.
             </div>
           )}
 
-          <div style={cardStyle}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 10 }}>Notas</div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Aluno</th>
-                    <th style={thStyle}>Código</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Nota</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>%</th>
-                    <th style={thStyle}>Correção</th>
-                    <th style={thStyle} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.data.notas.map((n) => (
-                    <tr key={n.codigo}>
-                      <td style={tdStyle}>
-                        {n.aluno ? (
-                          <Link to={`/relatorios/alunos/${n.aluno.id}`} style={{ fontWeight: 600, textDecoration: 'none' }}>
-                            {n.aluno.nome}
-                          </Link>
-                        ) : (
-                          <span style={{ color: 'var(--muted-2)' }}>{n.rotulo} · sem aluno</span>
-                        )}
-                      </td>
-                      <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 13 }}>{n.codigo}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: scoreColor(n.percentual) }}>{formatScore(n.nota)}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right' }}>{formatPercent(n.percentual)}</td>
-                      <td style={tdStyle}>
-                        <Badge status={n.tipo ? GRADING_TYPE_LABEL[n.tipo] : 'Pendente'} />
-                      </td>
-                      <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <Link to={`/correcao?codigo=${n.codigo}`} style={{ fontSize: 13, fontWeight: 600 }}>
-                          {n.tipo ? 'Ver correção' : 'Corrigir'} →
+          <SectionCard title="Notas">
+            <DataTable label="Notas por aluno">
+              <thead>
+                <tr>
+                  <Th>Aluno</Th>
+                  <Th>Código</Th>
+                  <Th align="right">Nota</Th>
+                  <Th align="right">%</Th>
+                  <Th>Correção</Th>
+                  <Th>
+                    <span className="sr-only">Ação</span>
+                  </Th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.data.notas.map((n) => (
+                  <tr key={n.codigo}>
+                    <Td style={{ minWidth: 160 }}>
+                      {n.aluno ? (
+                        <Link to={`/relatorios/alunos/${n.aluno.id}`} style={{ fontWeight: 600, textDecoration: 'none' }}>
+                          {n.aluno.nome}
                         </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div style={cardStyle}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 4 }}>Desempenho por questão</div>
-            <div style={{ fontSize: 13, color: 'var(--muted-2)', marginBottom: 10 }}>
-              Considera só as correções feitas pelas respostas (lançamentos manuais não têm resposta por questão). Numeração da prova original.
-            </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Nº</th>
-                    <th style={thStyle}>Enunciado</th>
-                    <th style={thStyle}>Taxa de acerto</th>
-                    <th style={thStyle}>Mais marcada</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Em branco</th>
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Média de pontos</th>
-                    <th style={thStyle} />
+                      ) : (
+                        <span style={{ color: 'var(--muted-2)' }}>{n.rotulo} · sem aluno</span>
+                      )}
+                    </Td>
+                    <Td style={{ fontFamily: 'monospace', fontSize: 13 }}>{n.codigo}</Td>
+                    <Td align="right" style={{ fontWeight: 700, color: scoreColor(n.percentual) }}>{formatScore(n.nota)}</Td>
+                    <Td align="right">{formatPercent(n.percentual)}</Td>
+                    <Td>
+                      <Badge status={n.tipo ? GRADING_TYPE_LABEL[n.tipo] : 'Pendente'} />
+                    </Td>
+                    <Td align="right">
+                      <RowLink to={`/correcao?codigo=${n.codigo}`}>{n.tipo ? 'Ver correção' : 'Corrigir'}</RowLink>
+                    </Td>
                   </tr>
-                </thead>
-                <tbody>
-                  {report.data.questoes.map((q) => (
-                    <Fragment key={q.questaoId}>
+                ))}
+              </tbody>
+            </DataTable>
+          </SectionCard>
+
+          <SectionCard
+            title="Desempenho por questão"
+            hint="Considera só as correções feitas pelas respostas (lançamentos manuais não têm resposta por questão). Numeração da prova original."
+          >
+            <DataTable label="Desempenho por questão">
+              <thead>
+                <tr>
+                  <Th>Nº</Th>
+                  <Th>Enunciado</Th>
+                  <Th>Taxa de acerto</Th>
+                  <Th>Mais marcada</Th>
+                  <Th align="right">Em branco</Th>
+                  <Th align="right">Média de pontos</Th>
+                  <Th>
+                    <span className="sr-only">Alternativas</span>
+                  </Th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.data.questoes.map((q) => (
+                  <Fragment key={q.questaoId}>
+                  <tr>
+                    <Td style={{ fontWeight: 600 }}>{q.posicao}</Td>
+                    <Td style={{ maxWidth: 300 }}>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.enunciado}</div>
+                      {q.tipo === 'DISCURSIVA' && <div style={{ fontSize: 12, color: 'var(--muted-3)' }}>Discursiva</div>}
+                    </Td>
+                    <Td>
+                      <HitRateBar value={q.taxaAcerto} />
+                    </Td>
+                    <Td style={{ whiteSpace: 'nowrap' }}>
+                      <MostMarked distribuicao={q.distribuicao} />
+                    </Td>
+                    <Td align="right">{q.tipo === 'OBJETIVA' ? q.emBranco : '—'}</Td>
+                    <Td align="right" style={{ whiteSpace: 'nowrap' }}>
+                      {formatScore(q.mediaPontos)} / {formatScore(q.pontuacao)}
+                    </Td>
+                    <Td align="right" style={{ whiteSpace: 'nowrap' }}>
+                      {q.distribuicao && (
+                        <button
+                          type="button"
+                          onClick={() => setOpenQuestion(openQuestion === q.questaoId ? null : q.questaoId)}
+                          aria-expanded={openQuestion === q.questaoId}
+                          style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, fontWeight: 600, color: 'var(--navy)', cursor: 'pointer' }}
+                        >
+                          {openQuestion === q.questaoId ? 'Fechar' : 'Alternativas'}
+                        </button>
+                      )}
+                    </Td>
+                  </tr>
+                  {openQuestion === q.questaoId && (
                     <tr>
-                      <td style={{ ...tdStyle, fontWeight: 600 }}>{q.posicao}</td>
-                      <td style={{ ...tdStyle, maxWidth: 300 }}>
-                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.enunciado}</div>
-                        {q.tipo === 'DISCURSIVA' && <div style={{ fontSize: 12, color: 'var(--muted-3)' }}>Discursiva</div>}
-                      </td>
-                      <td style={tdStyle}>
-                        <HitRateBar value={q.taxaAcerto} />
-                      </td>
-                      <td style={tdStyle}>
-                        <MostMarked distribuicao={q.distribuicao} />
-                      </td>
-                      <td style={{ ...tdStyle, textAlign: 'right' }}>{q.tipo === 'OBJETIVA' ? q.emBranco : '—'}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right' }}>
-                        {formatScore(q.mediaPontos)} / {formatScore(q.pontuacao)}
-                      </td>
-                      <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        {q.distribuicao && (
-                          <button
-                            type="button"
-                            onClick={() => setOpenQuestion(openQuestion === q.questaoId ? null : q.questaoId)}
-                            aria-expanded={openQuestion === q.questaoId}
-                            style={{ background: 'none', border: 'none', padding: 0, fontSize: 13, fontWeight: 600, color: 'var(--navy)', cursor: 'pointer' }}
-                          >
-                            {openQuestion === q.questaoId ? 'Fechar' : 'Alternativas'}
-                          </button>
-                        )}
-                      </td>
+                      <Td colSpan={7} style={{ borderTop: 'none', paddingTop: 0, paddingBottom: 16 }}>
+                        {/* preso à esquerda: continua visível quando a tabela rola para o lado */}
+                        <div style={{ position: 'sticky', left: 8, width: 540, maxWidth: '100%' }}>
+                          <AnswerDistribution distribuicao={q.distribuicao} />
+                        </div>
+                      </Td>
                     </tr>
-                    {openQuestion === q.questaoId && (
-                      <tr>
-                        <td colSpan={7} style={{ ...tdStyle, borderTop: 'none', paddingTop: 0, paddingBottom: 16 }}>
-                          {/* preso à esquerda: continua visível quando a tabela rola para o lado */}
-                          <div style={{ position: 'sticky', left: 8, width: 540, maxWidth: '100%' }}>
-                            <AnswerDistribution distribuicao={q.distribuicao} />
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                  )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </DataTable>
+          </SectionCard>
         </>
       )}
     </>
@@ -311,7 +276,7 @@ function ClassReport({ classId, onSelect }) {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 22, flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 320px', maxWidth: 460 }}>
+        <div style={{ flex: '1 1 min(100%, 320px)', maxWidth: 460, minWidth: 0 }}>
           <FormField label="Turma">
             <Select value={classId ?? ''} onChange={(e) => onSelect(e.target.value)}>
               <option value="">Selecione uma turma</option>
@@ -335,68 +300,66 @@ function ClassReport({ classId, onSelect }) {
       {data && data.aplicacoes.length === 0 && <EmptyState>Esta turma ainda não tem aplicações.</EmptyState>}
       {data && data.aplicacoes.length > 0 && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 18 }}>
+          <StatGrid>
             <StatCard label="Alunos" value={data.alunos.length} />
             <StatCard label="Aplicações" value={data.aplicacoes.length} />
             <StatCard label="Média da turma" value={formatPercent(data.mediaPercentualDaTurma)} detail="Média dos percentuais dos alunos" color={scoreColor(data.mediaPercentualDaTurma)} />
-          </div>
-          <div style={cardStyle}>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Aluno</th>
-                    {data.aplicacoes.map((a) => (
-                      <th key={a.id} style={{ ...thStyle, textAlign: 'right', whiteSpace: 'normal', minWidth: 120 }}>
-                        {a.prova.titulo}
-                        <div style={{ fontWeight: 500 }}>
-                          {formatDate(a.dataAplicacao)} · máx. {formatScore(a.notaMaxima)}
-                        </div>
-                      </th>
-                    ))}
-                    <th style={{ ...thStyle, textAlign: 'right' }}>Média</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.alunos.map((linha) => (
-                    <tr key={linha.aluno.id}>
-                      <td style={tdStyle}>
-                        <Link to={`/relatorios/alunos/${linha.aluno.id}`} style={{ fontWeight: 600, textDecoration: 'none' }}>
-                          {linha.aluno.nome}
-                        </Link>
-                        {!linha.aluno.matriculado && <div style={{ fontSize: 12, color: 'var(--muted-3)' }}>não está mais na turma</div>}
-                      </td>
-                      {linha.notas.map((n) => (
-                        <td key={n.aplicacaoId} style={{ ...tdStyle, textAlign: 'right', fontWeight: 600, color: scoreColor(n.percentual) }}>
-                          {formatScore(n.nota)}
-                        </td>
-                      ))}
-                      <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 700, color: scoreColor(linha.mediaPercentual) }}>
-                        {formatPercent(linha.mediaPercentual)}
-                      </td>
-                    </tr>
+          </StatGrid>
+          <SectionCard>
+            <DataTable label="Notas da turma por aplicação">
+              <thead>
+                <tr>
+                  <Th>Aluno</Th>
+                  {data.aplicacoes.map((a) => (
+                    <Th key={a.id} align="right" style={{ whiteSpace: 'normal', minWidth: 120 }}>
+                      {a.prova.titulo}
+                      <div style={{ fontWeight: 500 }}>
+                        {formatDate(a.dataAplicacao)} · máx. {formatScore(a.notaMaxima)}
+                      </div>
+                    </Th>
                   ))}
-                  <tr style={{ background: 'var(--bg)' }}>
-                    <td style={{ ...tdStyle, fontWeight: 700 }}>Média da aplicação</td>
-                    {data.aplicacoes.map((a) => (
-                      <td key={a.id} style={{ ...tdStyle, textAlign: 'right', fontWeight: 700 }}>
-                        {formatScore(a.estatisticas.media)}
-                      </td>
+                  <Th align="right">Média</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.alunos.map((linha) => (
+                  <tr key={linha.aluno.id}>
+                    <Td style={{ minWidth: 160 }}>
+                      <Link to={`/relatorios/alunos/${linha.aluno.id}`} style={{ fontWeight: 600, textDecoration: 'none' }}>
+                        {linha.aluno.nome}
+                      </Link>
+                      {!linha.aluno.matriculado && <div style={{ fontSize: 12, color: 'var(--muted-3)' }}>não está mais na turma</div>}
+                    </Td>
+                    {linha.notas.map((n) => (
+                      <Td key={n.aplicacaoId} align="right" style={{ fontWeight: 600, color: scoreColor(n.percentual) }}>
+                        {formatScore(n.nota)}
+                      </Td>
                     ))}
-                    <td style={tdStyle} />
+                    <Td align="right" style={{ fontWeight: 700, color: scoreColor(linha.mediaPercentual) }}>
+                      {formatPercent(linha.mediaPercentual)}
+                    </Td>
                   </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+                ))}
+                <tr style={{ background: 'var(--bg)' }}>
+                  <Td style={{ fontWeight: 700 }}>Média da aplicação</Td>
+                  {data.aplicacoes.map((a) => (
+                    <Td key={a.id} align="right" style={{ fontWeight: 700 }}>
+                      {formatScore(a.estatisticas.media)}
+                    </Td>
+                  ))}
+                  <Td />
+                </tr>
+              </tbody>
+            </DataTable>
+          </SectionCard>
         </>
       )}
     </>
   );
 }
 
-// Relatórios de notas (T32): por aplicação (com acerto por questão) e consolidado
-// por turma (alunos x aplicações), ambos com exportação em CSV para o Excel.
+// Relatórios de notas (T32 e T66): por aplicação (com acerto por questão), consolidado
+// por turma (alunos x aplicações) e de todas as turmas, com exportação em Excel, PDF e CSV.
 export default function GradeReports() {
   const [searchParams, setSearchParams] = useSearchParams();
   const view =
@@ -412,7 +375,13 @@ export default function GradeReports() {
     <div>
       <Breadcrumb items={[{ label: 'Relatórios' }]} />
       <PageHeader title="Relatórios de notas" description="Notas por aplicação, por turma e de todas as turmas, com exportação para Excel, PDF e CSV." />
-      <Tabs value={view} onChange={(key) => setSearchParams(key === 'aplicacao' ? {} : { visao: key })} />
+      <SegmentedControl
+        label="Tipo de relatório"
+        options={VIEWS}
+        value={view}
+        onChange={(key) => setSearchParams(key === 'aplicacao' ? {} : { visao: key })}
+        style={{ marginBottom: 22 }}
+      />
       {view === 'aplicacao' && (
         <ApplicationReport applicationId={applicationId} onSelect={(id) => setSearchParams(id ? { aplicacao: id } : {})} />
       )}

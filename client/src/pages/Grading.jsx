@@ -1,67 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import QrReader from '../components/QrReader';
-import { Badge, Breadcrumb, FormField, PageHeader, PrimaryButton, SecondaryButton, Select, TextInput } from '../components/ui';
 import { useData } from '../context/DataContext';
+import {
+  Badge,
+  Breadcrumb,
+  DangerButton,
+  DataTable,
+  ErrorMessage,
+  FormField,
+  PageHeader,
+  PrimaryButton,
+  SecondaryButton,
+  SectionCard,
+  SegmentedControl,
+  Select,
+  Td,
+  TextInput,
+  Th,
+} from '../components/ui';
 import { apiRequest } from '../services/api';
 import { useApiGet } from '../services/useApiGet';
 import { formatDate, formatPercent, formatScore, GRADING_TYPE_LABEL, scoreColor } from '../utils/grades';
 import { loadSheetPhoto, readAnswers, SheetReadError } from '../utils/sheetReader';
 
-const cardStyle = {
-  background: 'white',
-  border: '1px solid var(--border)',
-  borderRadius: 14,
-  padding: 26,
-  marginBottom: 18,
-};
-
 const MODES = [
   { key: 'answers', label: 'Marcar respostas' },
   { key: 'manual', label: 'Lançar nota manual' },
 ];
-
-function SectionTitle({ children, hint }) {
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)' }}>{children}</div>
-      {hint && <div style={{ fontSize: 13.5, color: 'var(--muted-2)', marginTop: 4 }}>{hint}</div>}
-    </div>
-  );
-}
-
-function ErrorText({ children }) {
-  return <div style={{ marginTop: 12, fontSize: 13.5, color: 'var(--red-text)' }}>{children}</div>;
-}
-
-function Pills({ options, value, onChange }) {
-  return (
-    <div style={{ display: 'flex', gap: 8 }}>
-      {options.map(({ key, label }) => {
-        const active = value === key;
-        return (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onChange(key)}
-            style={{
-              padding: '7px 14px',
-              borderRadius: 100,
-              fontSize: 13,
-              fontWeight: 600,
-              background: active ? 'var(--navy)' : 'white',
-              color: active ? 'white' : 'oklch(40% 0.02 250)',
-              cursor: 'pointer',
-              border: active ? '1px solid var(--navy)' : '1px solid var(--border)',
-            }}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 // Bolinha de alternativa, como na folha de respostas. Clicar de novo desmarca (questão em branco).
 function Bubble({ letter, label, selected, onClick }) {
@@ -148,8 +114,9 @@ function answersFromGrading(grading) {
   return answers;
 }
 
-function CopyHeader({ copy }) {
+function CopyHeader({ copy, graded }) {
   const items = [
+    ['Situação', <Badge key="situacao" status={graded ? 'Corrigida' : 'Pendente'} />],
     ['Prova', copy.prova.titulo],
     ['Turma', copy.turma.nome],
     ['Aplicada em', formatDate(copy.aplicacao.dataAplicacao)],
@@ -157,7 +124,7 @@ function CopyHeader({ copy }) {
     ['Nota máxima', formatScore(copy.notaMaxima)],
   ];
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: 14 }}>
       {items.map(([label, value]) => (
         <div key={label}>
           <div style={{ fontSize: 12, color: 'var(--muted-3)', marginBottom: 3 }}>{label}</div>
@@ -168,14 +135,14 @@ function CopyHeader({ copy }) {
   );
 }
 
-function GradingResult({ grading, onRegrade, onDelete, onNext, onNextPending, onBackToList }) {
+function GradingResult({ grading, onRegrade, onDelete, onNextPending, onBackToList }) {
   const automatic = grading.tipo === 'AUTOMATICA';
   return (
-    <div style={cardStyle}>
+    <SectionCard>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)' }}>Prova corrigida</div>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: 'var(--ink)' }}>Prova corrigida</h2>
             <Badge status={GRADING_TYPE_LABEL[grading.tipo]} />
           </div>
           <div style={{ fontSize: 13.5, color: 'var(--muted-2)' }}>
@@ -192,32 +159,34 @@ function GradingResult({ grading, onRegrade, onDelete, onNext, onNextPending, on
       </div>
 
       {automatic && (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5, marginTop: 20 }}>
-          <thead>
-            <tr style={{ textAlign: 'left', color: 'var(--muted-3)', fontSize: 12 }}>
-              <th style={{ padding: '8px 6px' }}>Questão</th>
-              <th style={{ padding: '8px 6px' }}>Marcada</th>
-              <th style={{ padding: '8px 6px' }}>Correta</th>
-              <th style={{ padding: '8px 6px' }}>Resultado</th>
-              <th style={{ padding: '8px 6px', textAlign: 'right' }}>Pontos</th>
-            </tr>
-          </thead>
-          <tbody>
-            {grading.respostas.map((r) => (
-              <tr key={r.questaoId} style={{ borderTop: '1px solid var(--border-light)' }}>
-                <td style={{ padding: '9px 6px', fontWeight: 600 }}>{r.numero}</td>
-                <td style={{ padding: '9px 6px' }}>{r.tipo === 'OBJETIVA' ? (r.letraMarcada ?? 'Em branco') : 'Discursiva'}</td>
-                <td style={{ padding: '9px 6px' }}>{r.letraCorreta ?? '—'}</td>
-                <td style={{ padding: '9px 6px', fontWeight: 600, color: r.correta === null ? 'var(--muted-2)' : r.correta ? 'var(--green-text)' : 'var(--red-text-strong)' }}>
-                  {r.correta === null ? 'Avaliada' : r.correta ? 'Acertou' : 'Errou'}
-                </td>
-                <td style={{ padding: '9px 6px', textAlign: 'right' }}>
-                  {formatScore(r.pontos)} / {formatScore(r.pontuacao)}
-                </td>
+        <div style={{ marginTop: 20 }}>
+          <DataTable label="Respostas da prova">
+            <thead>
+              <tr>
+                <Th>Questão</Th>
+                <Th>Marcada</Th>
+                <Th>Correta</Th>
+                <Th>Resultado</Th>
+                <Th align="right">Pontos</Th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {grading.respostas.map((r) => (
+                <tr key={r.questaoId}>
+                  <Td style={{ fontWeight: 600 }}>{r.numero}</Td>
+                  <Td>{r.tipo === 'OBJETIVA' ? (r.letraMarcada ?? 'Em branco') : 'Discursiva'}</Td>
+                  <Td>{r.letraCorreta ?? '—'}</Td>
+                  <Td style={{ fontWeight: 600, color: r.correta === null ? 'var(--muted-2)' : r.correta ? 'var(--green-text)' : 'var(--red-text-strong)' }}>
+                    {r.correta === null ? 'Avaliada' : r.correta ? 'Acertou' : 'Errou'}
+                  </Td>
+                  <Td align="right" style={{ whiteSpace: 'nowrap' }}>
+                    {formatScore(r.pontos)} / {formatScore(r.pontuacao)}
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </DataTable>
+        </div>
       )}
 
       <div style={{ display: 'flex', gap: 10, marginTop: 22, flexWrap: 'wrap' }}>
@@ -227,21 +196,14 @@ function GradingResult({ grading, onRegrade, onDelete, onNext, onNextPending, on
           <PrimaryButton onClick={onBackToList}>Voltar à lista</PrimaryButton>
         )}
         {onNextPending && <SecondaryButton onClick={onBackToList}>Voltar à lista</SecondaryButton>}
-        <SecondaryButton onClick={onNext}>Corrigir outra prova</SecondaryButton>
         <SecondaryButton onClick={onRegrade}>Corrigir novamente</SecondaryButton>
         <Link to={`/relatorios?aplicacao=${grading.aplicacao.id}`} style={{ alignSelf: 'center', fontSize: 14, fontWeight: 600, marginLeft: 6 }}>
-          Ver notas da aplicação →
+          Ver notas da aplicação
         </Link>
         <div style={{ flex: 1 }} />
-        <button
-          type="button"
-          onClick={onDelete}
-          style={{ background: 'none', border: 'none', color: 'var(--red-text-strong)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}
-        >
-          Excluir correção
-        </button>
+        <DangerButton onClick={onDelete}>Excluir correção</DangerButton>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -252,10 +214,9 @@ function ApplicationPicker() {
   const applied = (data ?? []).filter((a) => a.totalCopias > 0);
 
   return (
-    <div style={cardStyle}>
-      <SectionTitle hint="Abra a lista de alunos de uma aplicação e corrija um por um.">Escolher a aplicação</SectionTitle>
+    <SectionCard title="Escolher a aplicação" hint="Abra a lista de alunos de uma aplicação e corrija um por um.">
       {loading && <div style={{ fontSize: 13.5, color: 'var(--muted-2)' }}>Carregando aplicações...</div>}
-      {error && <ErrorText>{error.message}</ErrorText>}
+      {error && <ErrorMessage>{error.message}</ErrorMessage>}
       {data && applied.length === 0 && (
         <div style={{ fontSize: 13.5, color: 'var(--muted-2)' }}>Nenhuma aplicação com provas geradas ainda.</div>
       )}
@@ -269,7 +230,9 @@ function ApplicationPicker() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 16,
+              flexWrap: 'wrap',
+              columnGap: 16,
+              rowGap: 8,
               width: '100%',
               padding: '12px 4px',
               background: 'none',
@@ -280,11 +243,12 @@ function ApplicationPicker() {
               fontFamily: 'inherit',
             }}
           >
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ flex: '1 1 220px', minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-strong)' }}>{a.prova.titulo}</div>
               <div style={{ fontSize: 12.5, color: 'var(--muted-2)', marginTop: 2 }}>
                 {a.turma.nome}
                 {a.dataAplicacao ? ` · ${formatDate(a.dataAplicacao)}` : ''}
+                {a.nominal === false ? ' · provas sem identificação' : ''}
               </div>
             </div>
             <Badge status={done ? 'Corrigida' : 'Pendente'}>
@@ -294,7 +258,7 @@ function ApplicationPicker() {
           </button>
         );
       })}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -497,28 +461,33 @@ export default function Grading() {
             : [{ label: 'Correção' }]
         }
       />
-      <PageHeader title="Correção" description="Escolha a aplicação e corrija pela lista de alunos, ou leia o QR Code da folha." />
+      {copy ? (
+        <PageHeader
+          title={`Prova ${copy.copia.codigo}`}
+          description={`${copy.copia.rotulo} · ${copy.prova.titulo} · ${copy.turma.nome}`}
+          actions={<SecondaryButton onClick={reset}>Trocar prova</SecondaryButton>}
+        />
+      ) : (
+        <PageHeader title="Correção" description="Escolha a aplicação e corrija pela lista de alunos, ou leia a folha pela foto." />
+      )}
 
       {!copy && <ApplicationPicker />}
 
       {!copy && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, alignItems: 'start' }}>
-          <div style={{ ...cardStyle, marginBottom: 0 }}>
-            <SectionTitle hint="Tire uma foto da folha preenchida: o sistema identifica a prova e lê as marcações.">Ler folha pela foto</SectionTitle>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 18, alignItems: 'start' }}>
+          <SectionCard title="Ler folha pela foto" hint="Tire uma foto da folha preenchida: o sistema identifica a prova e lê as marcações." style={{ marginBottom: 0 }}>
             <div style={{ fontSize: 13.5, color: 'var(--muted-2)', marginBottom: 14 }}>
               Folha inteira na foto, sem reflexo e sem cortar os quadrados pretos dos cantos.
             </div>
             <SheetPhotoButton onFile={readPhoto} busy={readingSheet} primary>
               Enviar foto da folha
             </SheetPhotoButton>
-            {sheetError && <ErrorText>{sheetError}</ErrorText>}
-          </div>
-          <div style={{ ...cardStyle, marginBottom: 0 }}>
-            <SectionTitle hint="Só identifica a prova; as respostas você marca na tela.">Ler QR Code</SectionTitle>
+            <ErrorMessage>{sheetError}</ErrorMessage>
+          </SectionCard>
+          <SectionCard title="Ler só o QR Code" hint="Identifica a prova; as respostas você marca na tela." style={{ marginBottom: 0 }}>
             <QrReader onCode={loadCopy} />
-          </div>
-          <div style={{ ...cardStyle, marginBottom: 0 }}>
-            <SectionTitle hint="O código aparece ao lado do QR Code e no rodapé de cada página.">Digitar código</SectionTitle>
+          </SectionCard>
+          <SectionCard title="Digitar código" hint="O código aparece ao lado do QR Code e no rodapé de cada página." style={{ marginBottom: 0 }}>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -534,14 +503,14 @@ export default function Grading() {
                 aria-label="Código da prova"
                 style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}
               />
-              <PrimaryButton type="submit" disabled={!typedCode.trim() || Boolean(loadingCode)}>
+              <SecondaryButton type="submit" disabled={!typedCode.trim() || Boolean(loadingCode)}>
                 {loadingCode ? 'Buscando...' : 'Buscar'}
-              </PrimaryButton>
+              </SecondaryButton>
             </form>
-          </div>
+          </SectionCard>
           {lookupError && (
             <div style={{ gridColumn: '1 / -1' }}>
-              <ErrorText>{lookupError}</ErrorText>
+              <ErrorMessage>{lookupError}</ErrorMessage>
             </div>
           )}
           {loadingCode && <div style={{ gridColumn: '1 / -1', fontSize: 13.5, color: 'var(--muted-2)' }}>Buscando a prova {loadingCode}...</div>}
@@ -550,24 +519,14 @@ export default function Grading() {
 
       {copy && (
         <>
-          <div style={cardStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)' }}>Prova {copy.copia.codigo}</div>
-                <Badge status={grading ? 'Corrigida' : 'Pendente'} />
-              </div>
-              <SecondaryButton onClick={reset} style={{ padding: '8px 14px', fontSize: 13 }}>
-                Trocar prova
-              </SecondaryButton>
-            </div>
-            <CopyHeader copy={copy} />
-          </div>
+          <SectionCard>
+            <CopyHeader copy={copy} graded={Boolean(grading)} />
+          </SectionCard>
 
           {grading && !editing && (
             <>
               <GradingResult
                 grading={grading}
-                onNext={reset}
                 onNextPending={nextPending ? () => loadCopy(nextPending) : null}
                 onBackToList={backToList}
                 onDelete={deleteGrading}
@@ -577,28 +536,25 @@ export default function Grading() {
                   setEditing(true);
                 }}
               />
-              {submitError && <ErrorText>{submitError}</ErrorText>}
+              <ErrorMessage>{submitError}</ErrorMessage>
             </>
           )}
 
           {editing && (
-            <div style={cardStyle}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-                <SectionTitle>{grading ? 'Corrigir novamente' : 'Corrigir prova'}</SectionTitle>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <SectionCard
+              title={grading ? 'Corrigir novamente' : 'Corrigir prova'}
+              actions={
+                <>
                   {copy.folha && mode === 'answers' && (
                     <SheetPhotoButton onFile={readPhoto} busy={readingSheet}>
                       Ler folha pela foto
                     </SheetPhotoButton>
                   )}
-                  <Pills options={MODES} value={mode} onChange={setMode} />
-                </div>
-              </div>
-              {sheetError && (
-                <div style={{ marginTop: -8, marginBottom: 14 }}>
-                  <ErrorText>{sheetError}</ErrorText>
-                </div>
-              )}
+                  <SegmentedControl label="Forma de correção" options={MODES} value={mode} onChange={setMode} />
+                </>
+              }
+            >
+              <ErrorMessage style={{ marginTop: 0, marginBottom: 14 }}>{sheetError}</ErrorMessage>
 
               <div style={{ maxWidth: 420, marginBottom: 22 }}>
                 {anonymous ? (
@@ -716,8 +672,8 @@ export default function Grading() {
                 </PrimaryButton>
                 {grading && <SecondaryButton onClick={() => setEditing(false)}>Cancelar</SecondaryButton>}
               </div>
-              {submitError && <ErrorText>{submitError}</ErrorText>}
-            </div>
+              <ErrorMessage>{submitError}</ErrorMessage>
+            </SectionCard>
           )}
         </>
       )}

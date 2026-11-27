@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { PrimaryButton, SecondaryButton } from './ui';
+import { ErrorMessage, SecondaryButton, SegmentedControl } from './ui';
 import { parseQrPayload } from '../utils/qrPayload';
 import {
   cameraSupported,
@@ -115,39 +115,17 @@ export default function QrReader({ onCode }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-        {MODES.map(({ key, label }) => {
-          const active = mode === key;
-          return (
-            <div
-              key={key}
-              onClick={() => changeMode(key)}
-              style={{
-                padding: '7px 14px',
-                borderRadius: 100,
-                fontSize: 13,
-                fontWeight: 600,
-                background: active ? 'var(--navy)' : 'white',
-                color: active ? 'white' : 'oklch(40% 0.02 250)',
-                cursor: 'pointer',
-                border: active ? 'none' : '1px solid var(--border)',
-              }}
-            >
-              {label}
-            </div>
-          );
-        })}
-      </div>
+      <SegmentedControl label="Como ler o QR Code" options={MODES} value={mode} onChange={changeMode} style={{ marginBottom: 18 }} />
 
       {mode === 'image' && (
         <div>
           <div style={{ fontSize: 13.5, color: 'var(--muted-2)', marginBottom: 14 }}>
             Envie uma foto ou um print da folha. O QR Code precisa aparecer inteiro e nítido.
           </div>
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
-          <PrimaryButton onClick={() => fileInputRef.current?.click()} disabled={busy}>
+          <input ref={fileInputRef} type="file" accept="image/*" aria-label="Imagem com o QR Code" onChange={handleFile} style={{ display: 'none' }} />
+          <SecondaryButton onClick={() => fileInputRef.current?.click()} disabled={busy}>
             {busy ? 'Lendo imagem...' : 'Escolher imagem'}
-          </PrimaryButton>
+          </SecondaryButton>
         </div>
       )}
 
@@ -190,12 +168,12 @@ export default function QrReader({ onCode }) {
           {cameraOn ? (
             <SecondaryButton onClick={turnCameraOff}>Desligar câmera</SecondaryButton>
           ) : (
-            <PrimaryButton onClick={turnCameraOn}>Ligar câmera</PrimaryButton>
+            <SecondaryButton onClick={turnCameraOn}>Ligar câmera</SecondaryButton>
           )}
         </div>
       )}
 
-      {message && <div style={{ marginTop: 14, fontSize: 13.5, color: 'var(--red-text)' }}>{message.text}</div>}
+      <ErrorMessage style={{ marginTop: 14 }}>{message?.text}</ErrorMessage>
     </div>
   );
 }
