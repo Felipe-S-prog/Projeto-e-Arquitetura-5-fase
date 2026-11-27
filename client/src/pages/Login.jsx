@@ -106,7 +106,7 @@ export default function Login() {
   const submitLabel = isRegister
     ? 'Criar conta e entrar'
     : isForgot
-      ? 'Gerar token de teste'
+      ? 'Enviar instruções'
       : isReset
         ? 'Redefinir senha'
         : 'Entrar';
@@ -228,11 +228,9 @@ export default function Login() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 22, fontSize: 13 }}>
           {mode === 'login' && (
             <>
-              {import.meta.env.DEV && (
-                <button type="button" onClick={() => changeMode('forgot')} style={secondaryButtonStyle}>
-                  Esqueceu sua senha?
-                </button>
-              )}
+              <button type="button" onClick={() => changeMode('forgot')} style={secondaryButtonStyle}>
+                Esqueceu sua senha?
+              </button>
               <button type="button" onClick={() => changeMode('register')} style={secondaryButtonStyle}>
                 Não tem uma conta? Criar conta
               </button>
