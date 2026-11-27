@@ -90,9 +90,12 @@ export function describeCameraError(error) {
 // Liga a câmera e mostra a imagem no elemento <video>. Prefere a câmera traseira
 // (celular); no computador usa a webcam. Devolve o stream, que deve ser passado
 // para stopCamera quando terminar.
-export async function startCamera(video) {
+// highRes pede a maior resolução que a câmera tiver: a leitura das bolinhas da folha precisa
+// de mais pixels que o QR (a folha deve ficar com pelo menos 1000 px de largura).
+export async function startCamera(video, { highRes = false } = {}) {
+  const size = highRes ? { width: { ideal: 3840 }, height: { ideal: 2160 } } : { width: { ideal: 1280 }, height: { ideal: 720 } };
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+    video: { facingMode: { ideal: 'environment' }, ...size },
     audio: false,
   });
   video.srcObject = stream;
@@ -138,4 +141,49 @@ export function scanVideo(video, onText, { intervalMs = 150, maxSide = 960 } = {
     stopped = true;
     clearTimeout(timer);
   };
+}
+
+// Copia o quadro atual do vídeo para um ImageData, reduzido até maxSide no lado maior.
+// Devolve null enquanto o vídeo ainda não tem imagem.
+export function grabFrame(video, maxSide, canvas = document.createElement('canvas')) {
+  if (!video || video.readyState < 2 || !video.videoWidth) return null;
+  const scale = Math.min(1, maxSide / Math.max(video.videoWidth, video.videoHeight));
+  const width = Math.round(video.videoWidth * scale);
+  const height = Math.round(video.videoHeight * scale);
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(video, 0, 0, width, height);
+  return ctx.getImageData(0, 0, width, height);
+}
+
+// Reduz um ImageData para maxSide no lado maior. Devolve { imageData, factor }, em que
+// factor leva as coordenadas da imagem reduzida de volta para a original.
+export function shrinkImageData(imageData, maxSide) {
+  const scale = Math.min(1, maxSide / Math.max(imageData.width, imageData.height));
+  if (scale === 1) return { imageData, factor: 1 };
+  const source = document.createElement('canvas');
+  source.width = imageData.width;
+  source.height = imageData.height;
+  source.getContext('2d').putImageData(imageData, 0, 0);
+  const target = document.createElement('canvas');
+  target.width = Math.round(imageData.width * scale);
+  target.height = Math.round(imageData.height * scale);
+  const ctx = target.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(source, 0, 0, target.width, target.height);
+  return { imageData: ctx.getImageData(0, 0, target.width, target.height), factor: imageData.width / target.width };
+}
+
+// Foto na resolução máxima do sensor, quando o navegador permite (ImageCapture, no Chrome do
+// Android). Costuma ter bem mais pixels que o vídeo. Devolve um Blob, ou null sem suporte.
+export async function takeStillPhoto(stream) {
+  const track = stream?.getVideoTracks?.()[0];
+  if (!track || typeof window === 'undefined' || typeof window.ImageCapture !== 'function') return null;
+  try {
+    return await new window.ImageCapture(track).takePhoto();
+  } catch {
+    return null;
+  }
 }
