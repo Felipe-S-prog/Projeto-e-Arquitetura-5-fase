@@ -14,7 +14,7 @@ const STATUS_COLORS = {
   Corrigida: ['var(--green-bg)', 'var(--green-text)'],
   'Sem folha': ['var(--amber-bg)', 'var(--amber-text)'],
   Automática: ['var(--navy-chip-bg)', 'var(--navy)'],
-  Manual: ['var(--amber-bg)', 'var(--amber-text)'],
+  Manual: ['var(--neutral-bg)', 'var(--neutral-text)'],
 };
 
 export function statusColors(status) {

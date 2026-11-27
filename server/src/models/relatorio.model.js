@@ -19,6 +19,8 @@ export function toAplicacaoResumo(dbRow) {
     notaMaxima: Number(row.notaMaxima),
     // Contagens só existem na listagem (consulta com GROUP BY).
     ...(row.totalCopias !== undefined && {
+      // false: provas sem identificação (o professor associa o aluno na correção)
+      nominal: Boolean(row.vincularAlunos),
       totalCopias: Number(row.totalCopias),
       corrigidas: Number(row.corrigidas),
       media: toNumberOrNull(row.media),

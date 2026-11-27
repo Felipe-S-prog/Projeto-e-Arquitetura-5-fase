@@ -51,7 +51,7 @@ Regras:
 | POST | `/correcoes/manual` | Lançamento manual da nota |
 | GET | `/correcoes/:id` | Correção com as respostas e o gabarito da cópia |
 | DELETE | `/correcoes/:id` | Exclui a correção (a nota sai dos relatórios e do histórico) |
-| GET | `/relatorios/aplicacoes` | Aplicações do professor com total de cópias, corrigidas e média |
+| GET | `/relatorios/aplicacoes` | Aplicações do professor com total de cópias, corrigidas, média e `nominal` (false para provas sem identificação) |
 | GET | `/relatorios/aplicacoes/:id` | Notas da aplicação, estatísticas e desempenho por questão |
 | GET | `/relatorios/aplicacoes/:id/exportar?formato=xlsx` | Exportação das notas da aplicação: `xlsx`, `pdf` ou `csv` (T66). `/csv` continua valendo |
 | GET | `/relatorios/turmas` | Turmas do professor (para escolher o consolidado) |
