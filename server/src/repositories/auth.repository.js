@@ -140,6 +140,104 @@ export function createAuthRepository(pool) {
       return result.affectedRows > 0;
     },
 
+    async createPasswordResetToken({ userId, tokenHash, expiresInMinutes }) {
+      const connection = await pool.getConnection();
+
+      try {
+        await connection.beginTransaction();
+
+        await connection.execute(
+          `UPDATE token_recuperacao_senha
+           SET usado_em = NOW()
+           WHERE usuario_id = ? AND usado_em IS NULL`,
+          [userId],
+        );
+
+        await connection.execute(
+          `INSERT INTO token_recuperacao_senha
+           (usuario_id, token_hash, expira_em)
+           VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? MINUTE))`,
+          [userId, tokenHash, expiresInMinutes],
+        );
+
+        await connection.commit();
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
+    },
+
+    async findPasswordResetTokenByHash(tokenHash) {
+      const [rows] = await pool.execute(
+        `SELECT id, usuario_id
+         FROM token_recuperacao_senha
+         WHERE token_hash = ?
+           AND usado_em IS NULL
+           AND expira_em > NOW()
+         LIMIT 1`,
+        [tokenHash],
+      );
+
+      return rows[0] ?? null;
+    },
+
+    async resetPassword({ tokenId, userId, passwordHash }) {
+      const connection = await pool.getConnection();
+
+      try {
+        await connection.beginTransaction();
+
+        const [tokenRows] = await connection.execute(
+          `SELECT id FROM token_recuperacao_senha
+           WHERE id = ? AND usuario_id = ?
+             AND usado_em IS NULL AND expira_em > NOW()
+           FOR UPDATE`,
+          [tokenId, userId],
+        );
+
+        if (!tokenRows[0]) {
+          await connection.rollback();
+          return false;
+        }
+
+        const [result] = await connection.execute(
+          `UPDATE usuario
+           SET senha_hash = ?, versao_sessao = versao_sessao + 1
+           WHERE id = ? AND status = 'ATIVO'`,
+          [passwordHash, userId],
+        );
+
+        if (result.affectedRows !== 1) {
+          await connection.rollback();
+          return false;
+        }
+
+        await connection.execute(
+          `UPDATE refresh_token
+           SET revogado_em = NOW()
+           WHERE usuario_id = ? AND revogado_em IS NULL`,
+          [userId],
+        );
+
+        await connection.execute(
+          `UPDATE token_recuperacao_senha
+           SET usado_em = NOW()
+           WHERE usuario_id = ? AND usado_em IS NULL`,
+          [userId],
+        );
+
+        await connection.commit();
+        return true;
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
+    },
+
     async revokeAllSessions(userId) {
       const connection = await pool.getConnection();
 

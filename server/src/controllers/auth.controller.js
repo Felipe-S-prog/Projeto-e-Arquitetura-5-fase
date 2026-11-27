@@ -1,3 +1,4 @@
+
 export function createAuthController(service) {
   return {
     register: async (req, res, next) => {
@@ -19,6 +20,22 @@ export function createAuthController(service) {
     refresh: async (req, res, next) => {
       try {
         res.json(await service.refresh(req.body));
+      } catch (error) {
+        next(error);
+      }
+    },
+
+    requestPasswordReset: async (req, res, next) => {
+      try {
+        res.json(await service.requestPasswordReset(req.body));
+      } catch (error) {
+        next(error);
+      }
+    },
+
+    resetPassword: async (req, res, next) => {
+      try {
+        res.json(await service.resetPassword(req.body));
       } catch (error) {
         next(error);
       }

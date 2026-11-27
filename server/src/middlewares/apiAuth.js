@@ -10,6 +10,8 @@ const PUBLIC_PATHS = new Set([
   '/auth/register',
   '/auth/login',
   '/auth/refresh',
+  '/auth/forgot-password',
+  '/auth/reset-password',
 ]);
 
 const PROTECTED_PREFIXES = [

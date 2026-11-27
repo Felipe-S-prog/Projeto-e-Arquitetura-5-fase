@@ -88,6 +88,8 @@ function shouldTryRefresh(path) {
     '/auth/bootstrap-admin',
     '/auth/bootstrap-status',
     '/auth/refresh',
+    '/auth/forgot-password',
+    '/auth/reset-password',
   ].includes(path);
 }
 

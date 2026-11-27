@@ -144,6 +144,78 @@ export function createAuthService(repository, config) {
       );
     },
 
+        async requestPasswordReset(data) {
+      const email = normalizeEmail(data?.email);
+      validateEmail(email);
+
+      const response = {
+        message: 'Se o e-mail estiver cadastrado, a solicitação será processada. O envio de instruções por e-mail não está habilitado nesta versão.',
+      };
+
+      const user = await repository.findUserByEmail(email);
+
+      if (
+        !user ||
+        user.papel !== 'PROFESSOR' ||
+        user.status !== 'ATIVO' ||
+        !user.senha_hash
+      ) {
+        return response;
+      }
+
+      const resetToken = randomBytes(32).toString('base64url');
+
+      await repository.createPasswordResetToken({
+        userId: Number(user.id),
+        tokenHash: tokenHash(resetToken),
+        expiresInMinutes: 15,
+      });
+
+      if (config.nodeEnv !== 'production') {
+        return { ...response, resetToken };
+      }
+
+      return response;
+    },
+
+    async resetPassword(data) {
+      const token = data?.token;
+
+      if (
+        typeof token !== 'string' ||
+        token.length < 32 ||
+        token.length > 200
+      ) {
+        throw AppError.badRequest('Token de recuperação inválido ou expirado.');
+      }
+
+      validatePassword(data?.password);
+
+      const savedToken = await repository.findPasswordResetTokenByHash(
+        tokenHash(token),
+      );
+
+      if (!savedToken) {
+        throw AppError.badRequest('Token de recuperação inválido ou expirado.');
+      }
+
+      const passwordHash = await hashPassword(data.password);
+
+      const reset = await repository.resetPassword({
+        tokenId: savedToken.id,
+        userId: savedToken.usuario_id,
+        passwordHash,
+      });
+
+      if (!reset) {
+        throw AppError.badRequest('Token de recuperação inválido ou expirado.');
+      }
+
+      return {
+        message: 'Senha redefinida com sucesso. Faça login novamente.',
+      };
+    },
+
     async logout(userId, data) {
       const refreshToken = data?.refreshToken;
 
