@@ -656,6 +656,23 @@ const DataProvider = ({ children }) => {
     );
   }, []);
 
+  // Busca de novo uma aplicação na API depois de lançar ou excluir uma correção,
+  // para o status (Aplicada ou Corrigida) e a contagem de correções ficarem em dia.
+  const refreshApplication = useCallback(async (id) => {
+    try {
+      const updated = await apiRequest(`/aplicacoes/${Number(id)}`);
+      setApplications((previous) =>
+        previous.map((item) =>
+          item.id === Number(id)
+            ? normalizeApplication(updated, item.copies || [])
+            : item,
+        ),
+      );
+    } catch {
+      // Se falhar, a tela mantém o que já tinha; o status se ajusta no próximo carregamento.
+    }
+  }, []);
+
   // Atualiza as cópias de uma aplicação com os dados da API.
   const replaceApplicationCopies = useCallback((applicationId, copies) => {
     setApplications((previous) =>
@@ -834,6 +851,7 @@ const DataProvider = ({ children }) => {
       createApplication,
       updateApplication,
       confirmApplicationDownload,
+      refreshApplication,
       generateApplicationCopies,
       publishAnswerKey,
       unpublishAnswerKey,
@@ -874,6 +892,7 @@ const DataProvider = ({ children }) => {
       createApplication,
       updateApplication,
       confirmApplicationDownload,
+      refreshApplication,
       generateApplicationCopies,
       publishAnswerKey,
       unpublishAnswerKey,

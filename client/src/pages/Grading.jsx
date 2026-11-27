@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import QrReader from '../components/QrReader';
+import { useData } from '../context/DataContext';
 import {
   Badge,
   Breadcrumb,
@@ -284,6 +285,7 @@ export default function Grading() {
   const [sheetReading, setSheetReading] = useState(null);
   const [readingSheet, setReadingSheet] = useState(false);
   const [sheetError, setSheetError] = useState('');
+  const { refreshApplication } = useData();
 
   const loadCopy = async (code) => {
     const normalized = code.trim().toUpperCase();
@@ -411,6 +413,7 @@ export default function Grading() {
     try {
       setGrading(await request);
       setEditing(false);
+      refreshApplication(copy.aplicacao.id);
       setSheetReading(null);
     } catch (error) {
       if (error.code === 'CONFLICT' && error.details?.correcaoId && !replace) {
@@ -431,6 +434,7 @@ export default function Grading() {
     if (!window.confirm('Excluir esta correção? A nota sai dos relatórios e do histórico do aluno.')) return;
     try {
       await apiRequest(`/correcoes/${grading.id}`, { method: 'DELETE' });
+      refreshApplication(copy.aplicacao.id);
       setGrading(null);
       setAnswers({});
       setManualScore('');
